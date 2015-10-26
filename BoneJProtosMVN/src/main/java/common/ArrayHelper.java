@@ -2,6 +2,11 @@ package common;
 
 import geometry.Ellipsoid;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
+
 /**
  * Methods for doing helpful things with arrays
  *
@@ -41,25 +46,14 @@ public class ArrayHelper {
         return array;
     }
 
-    public static Ellipsoid[] removeNulls(Ellipsoid[] o) {
-        final int l = o.length;
-        int nullCount = 0;
-        for (int i = 0; i < l; i++)
-            if (o[i] == null)
-                nullCount++;
-        if (nullCount == 0)
-            return o;
-        final int nonNulls = l - nullCount;
-        Ellipsoid[] array = new Ellipsoid[nonNulls];
-
-        int j = 0;
-        for (int i = 0; i < l; i++) {
-            if (o[i] != null) {
-                array[j] = o[i];
-                j++;
-            }
-        }
-        return array;
+    /**
+     * @param ellipsoids    An array of Ellipsoids which may contain null references
+     * @return              A copy of the given array with all the null references removed.
+     *
+     * Returned array may have a length of 0.
+     */
+    public static Ellipsoid[] removeNulls(Ellipsoid[] ellipsoids) {
+        return Arrays.stream(ellipsoids).filter(e -> e != null).toArray(Ellipsoid[]::new);
     }
 
     /**
