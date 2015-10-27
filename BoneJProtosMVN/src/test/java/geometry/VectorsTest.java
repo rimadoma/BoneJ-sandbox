@@ -3,78 +3,36 @@ package geometry;
 import static org.junit.Assert.*;
 import org.junit.Test;
 
-import javax.vecmath.Point3f;
+import javax.vecmath.Vector3d;
 
 public class VectorsTest {
-    Point3f p0 = new Point3f(1.0f, 2.0f, 3.0f);
-    Point3f p1 = new Point3f(6.0f, 5.0f, 4.0f);
-    Point3f p2 = new Point3f(9.0f, 8.0f, 7.0f);
+    double x1 = 5;
+    double y1 = 3;
+    double z1 = 1;
 
-    double[] point0 = { 1, 2, 3 };
-    double[] point1 = { 6, 5, 4 };
-    double[] point2 = { 9, 8, 7 };
-
-    double[][] pa0 = { { 5 }, { 3 }, { 1 } };
-    double[][] pa1 = { { 8 }, { 6 }, { 4 } };
-
-    double[] a = { 5, 3, 1 };
-    double[] b = { 8, 6, 4 };
+    double x2 = 8;
+    double y2 = 6;
+    double z2 = 4;
 
     @Test
-    public void testCrossProductPoint3fPoint3fPoint3f() {
-        Point3f result = Vectors.crossProduct(p0, p1, p2);
-        Point3f expected = new Point3f(6.0f, -12.0f, 6.0f);
-        assertEquals(expected, result);
-    }
-
-    @Test
-    public void testCrossProductDoubleArrayDoubleArrayDoubleArray() {
-        double[] result = Vectors.crossProduct(point0, point1, point2);
+    public void testCrossProductReplacement()
+    {
+        final double EPSILON = 1e-12;
         double[] expected = { 6, -12, 6 };
-        assertArrayEquals(expected, result, 1e-12);
-    }
 
-    @Test
-    public void testCrossProductDoubleArrayArrayDoubleArrayArray() {
-        double[][] result = Vectors.crossProduct(pa0, pa1);
-        double[][] expected = { { 6 }, { -12 }, { 6 } };
-        assertEquals(expected[0][0], result[0][0], 1e-12);
-        assertEquals(expected[1][0], result[1][0], 1e-12);
-        assertEquals(expected[2][0], result[2][0], 1e-12);
-    }
+        double[] result = Vectors.crossProduct(x1, y1, z1, x2, y2, z2);
 
-    @Test
-    public void testCrossProductDoubleArrayDoubleArray() {
-        double[] result = Vectors.crossProduct(a, b);
-        double[] expected = { 6, -12, 6 };
-        assertArrayEquals(expected, result, 1e-12);
-    }
+        assertEquals(result.length, expected.length);
+        assertArrayEquals(expected, result, EPSILON);
 
-    @Test
-    public void testRandomVectors() {
-        final int n = 1000;
-        double[][] v = Vectors.randomVectors(n);
-        // check that vectors are unit vectors
-        for (int i = 0; i < n; i++) {
-            final double x = v[i][0];
-            final double y = v[i][1];
-            final double z = v[i][2];
-            final double length = Math.sqrt(x * x + y * y + z * z);
-            assertEquals(1, length, 1e-9);
-        }
-    }
+        Vector3d u = new Vector3d(x1, y1, z1);
+        Vector3d v = new Vector3d(x2, y2, z2);
+        Vector3d w = new Vector3d();
+        double vector3dResult [] = new double[3];
 
-    @Test
-    public void testRegularVectors() {
-        final int n = 1000;
-        double[][] v = Vectors.regularVectors(n);
-        // check that vectors are unit vectors
-        for (int i = 0; i < n; i++) {
-            final double x = v[i][0];
-            final double y = v[i][1];
-            final double z = v[i][2];
-            final double length = Math.sqrt(x * x + y * y + z * z);
-            assertEquals(1, length, 1e-9);
-        }
+        w.cross(u, v);
+        w.get(vector3dResult);
+
+        assertArrayEquals(expected, vector3dResult, EPSILON);
     }
 }

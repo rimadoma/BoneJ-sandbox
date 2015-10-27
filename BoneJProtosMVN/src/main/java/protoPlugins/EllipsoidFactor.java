@@ -28,6 +28,7 @@ package protoPlugins;
 
         import javax.vecmath.Color3f;
         import javax.vecmath.Point3f;
+        import javax.vecmath.Vector3d;
 
         import Skeletonize3D_.Skeletonize3D_;
 
@@ -1413,14 +1414,16 @@ public class EllipsoidFactor implements PlugIn, Comparator<Ellipsoid> {
             final double ez = rot[2][0] * unx + rot[2][1] * uny + rot[2][2]
                     * unz;
 
-            final double[] torqueVector = Vectors.crossProduct(px, py, pz, ex,
-                    ey, ez);
+            Vector3d e = new Vector3d(ex, ey, ez);
+            Vector3d point = new Vector3d(px, py, pz);
+            Vector3d cross = new Vector3d();
+            cross.cross(e, point);
 
-            t0 += torqueVector[0];
-            t1 += torqueVector[1];
-            t2 += torqueVector[2];
-
+            t0 += cross.getX();
+            t1 += cross.getY();
+            t2 += cross.getZ();
         }
+
         double[] torque = { -t0, -t1, -t2 };
         return torque;
     }
