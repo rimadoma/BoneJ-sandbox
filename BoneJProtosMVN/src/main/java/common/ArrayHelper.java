@@ -51,8 +51,7 @@ public class ArrayHelper {
      * Returned array may have a length of 0.
      */
     public static Ellipsoid[] removeNulls(Ellipsoid[] ellipsoids) {
-        return new Ellipsoid[0];
-        //return Arrays.stream(ellipsoids).filter(e -> e != null).toArray(Ellipsoid[]::new);
+        return Arrays.stream(ellipsoids).filter(e -> e != null).toArray(Ellipsoid[]::new);
     }
 
     /**

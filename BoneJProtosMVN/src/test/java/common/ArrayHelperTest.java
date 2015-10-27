@@ -23,13 +23,13 @@ public class ArrayHelperTest {
         Ellipsoid allBad[] = {null, null, null};
         Ellipsoid twoValid[] = {unitSphere, null, unitSphere};
 
-        /*allValid = ArrayHelper.removeNulls(allValid);
+        allValid = ArrayHelper.removeNulls(allValid);
         assertEquals(3, Arrays.stream(allValid).filter(e -> e != null).count());
 
         allBad = ArrayHelper.removeNulls(allBad);
         assertEquals(0, allBad.length);
 
         twoValid = ArrayHelper.removeNulls(twoValid);
-        assertEquals(2, Arrays.stream(twoValid).filter(e -> e != null).count());*/
+        assertEquals(2, Arrays.stream(twoValid).filter(e -> e != null).count());
     }
 }
