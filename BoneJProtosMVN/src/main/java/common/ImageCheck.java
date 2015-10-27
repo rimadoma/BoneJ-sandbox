@@ -13,7 +13,6 @@ import ij.process.ImageStatistics;
  *
  */
 public class ImageCheck {
-
     /**
      * Minimal ImageJ version required by BoneJ
      */
@@ -31,61 +30,51 @@ public class ImageCheck {
     /**
      * Check if image is binary
      *
-     * @param imp
-     * @return true if image is binary
+     * @param   imp image to test
+     * @pre     imp != null
+     * @return  true if image is binary
      */
-    public boolean isBinary(ImagePlus imp) {
-        if (imp == null) {
-            IJ.noImage();
+    public static boolean isBinary(ImagePlus imp) {
+        if (imp.getType() != ImagePlus.GRAY8) {
             return false;
         }
-        if (imp.getType() != ImagePlus.GRAY8)
-            return false;
 
         ImageStatistics stats = imp.getStatistics();
-        if (stats.histogram[0] + stats.histogram[255] != stats.pixelCount)
-            return false;
-        return true;
+        int blackCount = stats.histogram[Common.BINARY_BLACK];
+        int whiteCount = stats.histogram[Common.BINARY_WHITE];
+
+        return  blackCount + whiteCount == stats.pixelCount;
     }
 
     /**
      * Check if an image is a multi-slice image stack
      *
-     * @param imp
-     * @return true if the image has >= 2 slices
+     * @param   imp image to test
+     * @pre     imp != null
+     * @return  true if the image has >= 2 slices
      */
-    public boolean isMultiSlice(ImagePlus imp) {
-        if (imp == null) {
-            IJ.noImage();
-            return false;
-        }
-
-        if (imp.getStackSize() < 2)
-            return false;
-        return true;
+    public static boolean isMultiSlice(ImagePlus imp) {
+        return imp.getStackSize() >= 2;
     }
 
     /**
      * Check if the image's voxels are isotropic in all 3 dimensions (i.e. are
      * placed on a cubic grid)
      *
-     * @param imp
-     *            image to test
-     * @param tolerance
-     *            tolerated fractional deviation from equal length
-     * @return true if voxel width == height == depth
+     * @param   imp         image to test
+     * @param   tolerance   tolerated fractional deviation from equal length [0.0, 2.0]
+     * @pre     imp != null
+     * @return true if voxel width == height == depth (within tolerance)
      */
-    public boolean isVoxelIsotropic(ImagePlus imp, double tolerance) {
-        if (imp == null) {
-            IJ.noImage();
-            return false;
-        }
+    public static boolean isVoxelIsotropic(ImagePlus imp, double tolerance) {
+        tolerance = Common.clamp(tolerance, 0.0, 1.0);
+
         Calibration cal = imp.getCalibration();
         final double vW = cal.pixelWidth;
         final double vH = cal.pixelHeight;
         final double vD = cal.pixelDepth;
-        final double tLow = 1 - tolerance;
-        final double tHigh = 1 + tolerance;
+        final double tLow = 1.0 - tolerance;
+        final double tHigh = 1.0 + tolerance;
         final boolean isStack = (imp.getStackSize() > 1);
 
         if (vW < vH * tLow || vW > vH * tHigh)
@@ -101,12 +90,11 @@ public class ImageCheck {
     /**
      * Run isVoxelIsotropic() with a default tolerance of 0%
      *
-     * @param imp
-     *            input image
+     * @param   imp   image to test
      * @return false if voxel dimensions are not equal
      */
-    public boolean isVoxelIsotropic(ImagePlus imp) {
-        return isVoxelIsotropic(imp, 0);
+    public static boolean isVoxelIsotropic(ImagePlus imp) {
+        return isVoxelIsotropic(imp, 0.0);
     }
 
     /**
@@ -205,7 +193,7 @@ public class ImageCheck {
      *
      * @return false if the IJ version is too old or blacklisted
      */
-    private static boolean checkIJVersion() {
+    private static boolean isIJVersionValid() {
         if (isIJVersionBlacklisted()) {
             IJ.error(
                     "Bad ImageJ version",
@@ -229,17 +217,15 @@ public class ImageCheck {
     }
 
     /**
-     * Show a message a return false if any requirement of the environment is
-     * missing
-     *
-     * @return
+     * Checks if BoneJ has everything it needs to run properly.
+     * This includes a compatible version of ImageJ, and the required libraries.
      */
-    public static boolean checkEnvironment() {
+    public static boolean isBoneJEnvironmentValid() {
         try {
             Class.forName("javax.media.j3d.VirtualUniverse");
         } catch (ClassNotFoundException e) {
-            IJ.showMessage("Java 3D libraries are not installed.\n"
-                    + "Please install and run the ImageJ 3D Viewer,\n"
+            IJ.showMessage("Java 3D libraries are not installed.\n " +
+                    "Please install and run the ImageJ 3D Viewer,\n"
                     + "which will automatically install Java's 3D libraries.");
             return false;
         }
@@ -250,9 +236,8 @@ public class ImageCheck {
                     + "Please install and run the ImageJ 3D Viewer.");
             return false;
         }
-        if (!checkIJVersion())
-            return false;
-        return true;
+
+        return isIJVersionValid();
     }
 
     /**
@@ -322,6 +307,8 @@ public class ImageCheck {
      * @return true if the IJ version is blacklisted, false otherwise
      */
     public static boolean isIJVersionBlacklisted() {
+
+
         for (String version : blacklistedIJVersions) {
             if (version.equals(IJ.getVersion()))
                 return true;

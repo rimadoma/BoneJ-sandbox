@@ -2,10 +2,8 @@ package common;
 
 import geometry.Ellipsoid;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
+
 
 /**
  * Methods for doing helpful things with arrays
@@ -53,7 +51,8 @@ public class ArrayHelper {
      * Returned array may have a length of 0.
      */
     public static Ellipsoid[] removeNulls(Ellipsoid[] ellipsoids) {
-        return Arrays.stream(ellipsoids).filter(e -> e != null).toArray(Ellipsoid[]::new);
+        return new Ellipsoid[0];
+        //return Arrays.stream(ellipsoids).filter(e -> e != null).toArray(Ellipsoid[]::new);
     }
 
     /**

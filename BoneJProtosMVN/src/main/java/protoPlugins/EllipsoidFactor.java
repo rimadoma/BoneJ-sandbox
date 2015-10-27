@@ -53,6 +53,7 @@ package protoPlugins;
 
         import customnode.CustomLineMesh;
         import customnode.CustomPointMesh;
+        import net.imagej.Main;
 
 /**
  * <p>
@@ -80,11 +81,10 @@ package protoPlugins;
 public class EllipsoidFactor implements PlugIn, Comparator<Ellipsoid> {
     private int nVectors = 100;
 
-    /**
-     * increment for vector searching in real units. Defaults to ~Nyquist
-     * sampling of a unit pixel
-     */
-    private double vectorIncrement = 1 / 2.3;
+    // Nyquist sampling of a unit pixel
+    public final static double NYQUIST_SAMPLING = 1.0 / 2.3;
+    // Increment for vector searching in real units
+    private double vectorIncrement = NYQUIST_SAMPLING;
 
     /**
      * Number of skeleton points per ellipsoid. Sets the granularity of the
@@ -92,103 +92,143 @@ public class EllipsoidFactor implements PlugIn, Comparator<Ellipsoid> {
      */
     private int skipRatio = 50;
     private int contactSensitivity = 1;
+
     /** Safety value to prevent while() running forever */
     private int maxIterations = 100;
 
-    /**
-     * maximum distance ellipsoid may drift from seed point. Defaults to voxel
-     * diagonal length
-     */
-    private double maxDrift = Math.sqrt(3);
-    // private ResultsTable rt;
+    public final static double VOXEL_DIAGONAL_LENGTH = Math.sqrt(3);
+    // Maximum distance ellipsoid may drift from seed point
+    private double maxDrift = VOXEL_DIAGONAL_LENGTH;
+
     private Image3DUniverse universe;
 
     private double stackVolume;
 
     private double[][] regularVectors;
 
-    public void run(String arg) {
-        if (!ImageCheck.checkEnvironment())
-            return;
-        ImagePlus imp = IJ.getImage();
-        if (imp == null) {
-            IJ.noImage();
-            return;
+    private ImagePlus image;
+
+    // The actual measurement units of the current image
+    private String units;
+
+    private GenericDialog setupDialog;
+
+    // Visualisation options
+    private boolean doEFImage = true;
+    private boolean doEllipsoidIDImage = false;
+    private boolean doVolumeImage = false;
+    private boolean doAxisRatioImages = false;
+    private boolean doFlinnPeakPlot = true;
+    private double gaussianSigma = 2.0;
+    private boolean doFlinnPlot = false;
+
+    private boolean isReadyToProcess() {
+        if (!ImageCheck.isBoneJEnvironmentValid()) {
+            return false;
         }
-        ImageCheck ic = new ImageCheck();
-        if (!ic.isBinary(imp) || !ic.isMultiSlice(imp)
-                || !ic.isVoxelIsotropic(imp, 0.001)) {
+
+        try {
+            image = IJ.getImage();
+        } catch (RuntimeException rte) {
+            // no image found, plugin aborted
+            return false;
+        }
+
+        if (!ImageCheck.isBinary(image) || !ImageCheck.isMultiSlice(image)
+                || !ImageCheck.isVoxelIsotropic(image, 0.001)) {
             IJ.error("8-bit binary stack with isotropic pixel spacing required.");
-            return;
+            return false;
         }
-        Calibration cal = imp.getCalibration();
-        String units = cal.getUnits();
+
+        return true;
+    }
+
+    private void calibrate() {
+        Calibration cal = image.getCalibration();
+        units = cal.getUnits();
         final double pW = cal.pixelWidth;
         final double pH = cal.pixelHeight;
         final double pD = cal.pixelDepth;
         vectorIncrement *= Math.min(pD, Math.min(pH, pW));
         maxDrift = Math.sqrt(pW * pW + pH * pH + pD * pD);
-        stackVolume = pW * pH * pD * imp.getWidth() * imp.getHeight()
-                * imp.getStackSize();
-        GenericDialog gd = new GenericDialog("Setup");
-        gd.addMessage("Sampling options");
-        gd.addNumericField("Sampling_increment", vectorIncrement, 3, 8, units);
-        gd.addNumericField("Vectors", nVectors, 0, 8, "");
-        gd.addNumericField("Skeleton_points per ellipsoid", skipRatio, 0);
-        gd.addNumericField("Contact sensitivity", contactSensitivity, 0, 4, "");
-        gd.addNumericField("Maximum_iterations", maxIterations, 0);
-        gd.addNumericField("Maximum_drift", maxDrift, 5, 8, units);
+        stackVolume = pW * pH * pD * image.getWidth() * image.getHeight()
+                * image.getStackSize();
+    }
 
-        gd.addMessage("\nOutput options");
-        gd.addCheckbox("EF_image", true);
-        gd.addCheckbox("Ellipsoid_ID_image", false);
-        gd.addCheckbox("Volume_image", false);
-        gd.addCheckbox("Axis_ratio_images", false);
-        gd.addCheckbox("Flinn_peak_plot", true);
-        gd.addNumericField("Gaussian_sigma", 2, 0, 4, "px");
-        gd.addCheckbox("Flinn_plot", false);
+    /**
+     * Creates the dialog used to get plugin settings from the user
+     */
+    private void createSetupDialog() {
+        setupDialog = new GenericDialog("Setup");
+        setupDialog.addMessage("Sampling options");
+        setupDialog.addNumericField("Sampling_increment", vectorIncrement, 3, 8, units);
+        setupDialog.addNumericField("Vectors", nVectors, 0, 8, "");
+        setupDialog.addNumericField("Skeleton_points per ellipsoid", skipRatio, 0);
+        setupDialog.addNumericField("Contact sensitivity", contactSensitivity, 0, 4, "");
+        setupDialog.addNumericField("Maximum_iterations", maxIterations, 0);
+        setupDialog.addNumericField("Maximum_drift", maxDrift, 5, 8, units);
 
-        gd.addMessage("Ellipsoid Factor is beta software.\n"
+        setupDialog.addMessage("\nOutput options");
+        setupDialog.addCheckbox("EF_image", doEFImage);
+        setupDialog.addCheckbox("Ellipsoid_ID_image", doEllipsoidIDImage);
+        setupDialog.addCheckbox("Volume_image", doVolumeImage);
+        setupDialog.addCheckbox("Axis_ratio_images", doAxisRatioImages);
+        setupDialog.addCheckbox("Flinn_peak_plot", doFlinnPeakPlot);
+        setupDialog.addNumericField("Gaussian_sigma", gaussianSigma, 0, 4, "px");
+        setupDialog.addCheckbox("Flinn_plot", doFlinnPlot);
+
+        setupDialog.addMessage("Ellipsoid Factor is beta software.\n"
                 + "Please report your experiences to the user group:\n"
                 + "http://bit.ly/bonej-group");
-        gd.addHelp("http://bonej.org/ef");
-        gd.showDialog();
+        setupDialog.addHelp("http://bonej.org/ef");
+        setupDialog.showDialog();
+    }
 
-        if (gd.wasCanceled())
+    /**
+     * Reads the settings of the plugin from the setup dialog
+     */
+    private void readPluginDialogSettings() {
+        vectorIncrement = setupDialog.getNextNumber();
+        nVectors = (int) Math.round(setupDialog.getNextNumber());
+        skipRatio = (int) Math.round(setupDialog.getNextNumber());
+        contactSensitivity = (int) Math.round(setupDialog.getNextNumber());
+        maxIterations = (int) Math.round(setupDialog.getNextNumber());
+        maxDrift = setupDialog.getNextNumber();
+
+        doEFImage = setupDialog.getNextBoolean();
+        doEllipsoidIDImage = setupDialog.getNextBoolean();
+        doVolumeImage = setupDialog.getNextBoolean();
+        doAxisRatioImages = setupDialog.getNextBoolean();
+        doFlinnPeakPlot = setupDialog.getNextBoolean();
+        gaussianSigma = setupDialog.getNextNumber();
+        doFlinnPlot = setupDialog.getNextBoolean();
+    }
+
+    public void run(String arg) {
+        if (!isReadyToProcess()) {
             return;
+        }
 
-        // if (!Interpreter.isBatchMode()) {
-        vectorIncrement = gd.getNextNumber();
-        nVectors = (int) Math.round(gd.getNextNumber());
-        skipRatio = (int) Math.round(gd.getNextNumber());
-        contactSensitivity = (int) Math.round(gd.getNextNumber());
-        maxIterations = (int) Math.round(gd.getNextNumber());
-        maxDrift = gd.getNextNumber();
+        calibrate();
 
-        boolean doEFImage = gd.getNextBoolean();
-        boolean doEllipsoidIDImage = gd.getNextBoolean();
-        boolean doVolumeImage = gd.getNextBoolean();
-        boolean doAxisRatioImages = gd.getNextBoolean();
-        boolean doFlinnPeakPlot = gd.getNextBoolean();
-        double gaussianSigma = gd.getNextNumber();
-        boolean doFlinnPlot = gd.getNextBoolean();
+        createSetupDialog();
+        if (setupDialog.wasCanceled()) {
+            return;
+        }
+        readPluginDialogSettings();
 
-        // }
-
-        final double[][] unitVectors = Vectors.regularVectors(nVectors);
-        regularVectors = unitVectors.clone();
-
-        int[][] skeletonPoints = skeletonPoints(imp);
-
-        IJ.log("Found " + skeletonPoints.length + " skeleton points");
+        int[][] skeletonPoints = skeletonPoints(image);
 
         if (IJ.debugMode) {
             universe = new Image3DUniverse();
             universe.show();
         }
 
+        final double[][] unitVectors = Vectors.regularVectors(nVectors);
+        regularVectors = unitVectors.clone();
+
         long start = System.currentTimeMillis();
-        Ellipsoid[] ellipsoids = findEllipsoids(imp, skeletonPoints,
+        Ellipsoid[] ellipsoids = findEllipsoids(image, skeletonPoints,
                 unitVectors);
         long stop = System.currentTimeMillis();
 
@@ -196,7 +236,7 @@ public class EllipsoidFactor implements PlugIn, Comparator<Ellipsoid> {
                 + (stop - start) + " ms");
 
         start = System.currentTimeMillis();
-        int[][] maxIDs = findMaxID(imp, ellipsoids);
+        int[][] maxIDs = findMaxID(image, ellipsoids);
         stop = System.currentTimeMillis();
 
         IJ.log("Found maximal ellipsoids in " + (stop - start) + " ms");
@@ -205,8 +245,14 @@ public class EllipsoidFactor implements PlugIn, Comparator<Ellipsoid> {
         IJ.log(IJ.d2s((fractionFilled * 100), 3)
                 + "% of foreground volume filled with ellipsoids");
 
+        displayVisualisations(maxIDs, ellipsoids);
+
+        IJ.showStatus("Ellipsoid Factor completed");
+    }
+
+    private void displayVisualisations(int maxIDs[][], Ellipsoid[] ellipsoids) {
         if (doVolumeImage) {
-            ImagePlus volumes = displayVolumes(imp, maxIDs, ellipsoids);
+            ImagePlus volumes = displayVolumes(image, maxIDs, ellipsoids);
             volumes.show();
             volumes.setDisplayRange(0,
                     ellipsoids[(int) (0.05 * ellipsoids.length)].getVolume());
@@ -214,13 +260,13 @@ public class EllipsoidFactor implements PlugIn, Comparator<Ellipsoid> {
         }
 
         if (doAxisRatioImages) {
-            ImagePlus middleOverLong = displayMiddleOverLong(imp, maxIDs,
+            ImagePlus middleOverLong = displayMiddleOverLong(image, maxIDs,
                     ellipsoids);
             middleOverLong.show();
             middleOverLong.setDisplayRange(0, 1);
             IJ.run("Fire");
 
-            ImagePlus shortOverMiddle = displayShortOverMiddle(imp, maxIDs,
+            ImagePlus shortOverMiddle = displayShortOverMiddle(image, maxIDs,
                     ellipsoids);
             shortOverMiddle.show();
             shortOverMiddle.setDisplayRange(0, 1);
@@ -228,37 +274,30 @@ public class EllipsoidFactor implements PlugIn, Comparator<Ellipsoid> {
         }
 
         if (doEFImage) {
-            ImagePlus eF = displayEllipsoidFactor(imp, maxIDs, ellipsoids);
+            ImagePlus eF = displayEllipsoidFactor(image, maxIDs, ellipsoids);
             eF.show();
             eF.setDisplayRange(-1, 1);
             IJ.run("Fire");
         }
 
         if (doEllipsoidIDImage) {
-            ImagePlus maxID = displayMaximumIDs(maxIDs, ellipsoids, imp);
+            ImagePlus maxID = displayMaximumIDs(maxIDs, ellipsoids, image);
             maxID.show();
             maxID.setDisplayRange(-ellipsoids.length / 2, ellipsoids.length);
         }
 
         if (doFlinnPlot) {
             ImagePlus flinnPlot = drawFlinnPlot(
-                    "Weighted-flinn-plot-" + imp.getTitle(), ellipsoids);
+                    "Weighted-flinn-plot-" + image.getTitle(), ellipsoids);
             flinnPlot.show();
         }
 
         if (doFlinnPeakPlot) {
             ImagePlus flinnPeaks = drawFlinnPeakPlot(
-                    "FlinnPeaks_" + imp.getTitle(), imp, maxIDs, ellipsoids,
+                    "FlinnPeaks_" + image.getTitle(), image, maxIDs, ellipsoids,
                     gaussianSigma, 512);
             flinnPeaks.show();
         }
-
-        // ResultInserter ri = ResultInserter.getInstance();
-        // ri.updateTable();
-        // if (IJ.debugMode)
-        // rt.show("Ellipsoid volumes");
-        //UsageReporter.reportEvent(this).send();
-        IJ.showStatus("Ellipsoid Factor completed");
     }
 
     private double calculateFillingEfficiency(final int[][] maxIDs) {
@@ -1537,7 +1576,7 @@ public class EllipsoidFactor implements PlugIn, Comparator<Ellipsoid> {
     private Ellipsoid bump(Ellipsoid ellipsoid,
                            ArrayList<double[]> contactPoints, double px, double py, double pz) {
 
-        final double displacement = vectorIncrement / 2;
+        final double displacement = vectorIncrement / 2.0;
 
         final double[] c = ellipsoid.getCentre();
         final double[] vector = contactPointUnitVector(ellipsoid, contactPoints);
@@ -1600,8 +1639,6 @@ public class EllipsoidFactor implements PlugIn, Comparator<Ellipsoid> {
                                                   ArrayList<double[]> contactPoints, byte[][] pixels,
                                                   final double pW, final double pH, final double pD, final int w,
                                                   final int h, final int d) {
-        // final double[][] unitVectors = Vectors.regularVectors(nVectors);
-        // final double[][] unitVectors = regularVectors;
         return findContactPoints(ellipsoid, contactPoints,
                 regularVectors.clone(), pixels, pW, pH, pD, w, h, d);
     }
@@ -1661,16 +1698,20 @@ public class EllipsoidFactor implements PlugIn, Comparator<Ellipsoid> {
     }
 
     private int[][] skeletonPoints(ImagePlus imp) {
-        Skeletonize3D_ sk = new Skeletonize3D_();
+        //Skeletonize3D sk = new Skeletonize3D();
         //ImagePlus skeleton = sk.getSkeleton(imp);
         //final ImageStack skeletonStack = skeleton.getStack();
 
-        final ImageStack skeletonStack = imp.getStack();
-        sk.computeThinImage(skeletonStack);
+        Skeletonize3D_ sk = new Skeletonize3D_();
+        ImagePlus skeletonImage = new ImagePlus();
+        skeletonImage.setImage(image);
+        sk.setup("", skeletonImage);
+        sk.run(IJ.getProcessor());
+        final ImageStack skeletonStack = skeletonImage.getStack();
 
-        final int d = imp.getStackSize();
-        final int h = imp.getHeight();
-        final int w = imp.getWidth();
+        final int d = skeletonStack.getSize();
+        final int h = skeletonStack.getHeight();
+        final int w = skeletonStack.getWidth();
 
         // Bare ArrayList is not thread safe for concurrent add() operations.
         final List<int[]> list = Collections
@@ -1706,6 +1747,8 @@ public class EllipsoidFactor implements PlugIn, Comparator<Ellipsoid> {
 
         int[][] skeletonPoints = list.toArray(new int[list.size()][]);
 
+        IJ.log("Found " + skeletonPoints.length + " skeleton points");
+
         return skeletonPoints;
     }
 
@@ -1740,5 +1783,10 @@ public class EllipsoidFactor implements PlugIn, Comparator<Ellipsoid> {
         return Double.compare(o2.getVolume(), o1.getVolume());
     }
 
+    public static void main(final String... args) {
+        Main.launch(args);
+        IJ.open();
+        IJ.runPlugIn(EllipsoidFactor.class.getName(), "");
+    }
 }
 

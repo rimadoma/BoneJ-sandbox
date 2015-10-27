@@ -3,6 +3,8 @@ package geometry;
 import Jama.EigenvalueDecomposition;
 import Jama.Matrix;
 
+import javax.vecmath.Point3d;
+
 /**
  * <p>
  * Represents an ellipsoid defined by its centroid, eigenvalues and 3x3
@@ -13,7 +15,6 @@ import Jama.Matrix;
  * @author Michael Doube
  */
 public class Ellipsoid {
-
     /** Centroid of ellipsoid (cx, cy, cz) */
     private double cx, cy, cz;
 
