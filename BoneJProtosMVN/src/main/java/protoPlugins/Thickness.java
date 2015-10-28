@@ -2,10 +2,14 @@ package protoPlugins;
 
 import common.Common;
 import common.ImageCheck;
+import common.RoiUtil;
 import ij.IJ;
 import ij.ImagePlus;
+import ij.ImageStack;
 import ij.gui.GenericDialog;
+import ij.plugin.frame.RoiManager;
 import net.imagej.ImageJ;
+import net.imagej.display.OverlayService;
 import org.scijava.command.Command;
 import org.scijava.log.LogService;
 import org.scijava.plugin.Parameter;
@@ -26,10 +30,13 @@ public class Thickness implements Command
     // The following service parameters are populated automatically
     // by the SciJava service framework before this command plugin is executed.
     @Parameter
-    private LogService log;
+    private LogService logService;
 
     @Parameter
-    private UIService ui;
+    private UIService uiService;
+
+    @Parameter
+    private OverlayService overlayService;
 
     // @todo Read from a file?
     private static final String HELP_URL = "http://bonej.org/thickness";
@@ -80,7 +87,7 @@ public class Thickness implements Command
         }
 
         if (!ImageCheck.isBinary(image)) {
-            log.error("8-bit binary (black and white only) image required.");
+            logService.error("8-bit binary (black and white only) image required.");
             return false;
         }
 
@@ -89,7 +96,7 @@ public class Thickness implements Command
             return true;
         }
 
-        Result result = ui.showDialog(Common.ANISOTROPY_WARNING, "Anisotropic voxels", MessageType.WARNING_MESSAGE,
+        Result result = uiService.showDialog(Common.ANISOTROPY_WARNING, "Anisotropic voxels", MessageType.WARNING_MESSAGE,
                 OptionType.OK_CANCEL_OPTION);
 
         return result != Result.CANCEL_OPTION;
@@ -112,6 +119,16 @@ public class Thickness implements Command
             return;
         }
         getProcessingSettingsFromDialog();
+
+        if (doThickness) {
+            logService.info("Doing thickness...");
+            //@todo move from ROIs to Overlays..?
+            RoiManager roiManager = RoiManager.getInstance();
+            if (doRoi && roiManager != null) {
+                logService.info("Doing ROI crop...");
+                ImageStack stack = RoiUtil.cropStack(roiManager, image.getStack(), true, 0, 1);
+            }
+        }
     }
 
     public static void main(final String... args)
