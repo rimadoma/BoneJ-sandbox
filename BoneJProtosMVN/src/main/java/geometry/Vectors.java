@@ -1,7 +1,5 @@
 package geometry;
 
-import javax.vecmath.Point3f;
-
 public class Vectors {
     /**
      * Calculate the cross product of two vectors (x1, y1, z1) and (x2, y2, z2)
