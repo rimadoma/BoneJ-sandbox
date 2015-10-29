@@ -20,6 +20,7 @@ public class RoiUtil {
      * Returns a list of ROIs that are active in the given slice.
      *
      * @author Richard Domander
+     * @pre     roiMan != null
      * @param   roiMan      The collection of all the current ROIs
      * @param   sliceNumber Number of the slice to be searched
      * @return  In addition to the active ROIs, returns all the ROIs without
@@ -71,7 +72,7 @@ public class RoiUtil {
             ymin = Math.min(r.y, ymin);
             ymax = Math.max(r.y + r.height, ymax);
             int slice = roiMan.getSliceNumber(roi.getName());
-            if (slice > 0) {
+            if (slice >= FIRST_SLICE_NUMBER) {
                 zmin = Math.min(slice, zmin);
                 zmax = Math.max(slice, zmax);
             } else
