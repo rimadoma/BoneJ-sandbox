@@ -36,25 +36,24 @@
         <dependency>
             <groupId>sc.fiji</groupId>
             <artifactId>3D_Viewer</artifactId>
-            <version>3.1.1-SNAPSHOT</version>
+            <version>LATEST</version>
         </dependency>
 
         <dependency>
             <groupId>gov.nist.math</groupId>
             <artifactId>jama</artifactId>
-            <version>1.0.3</version>
         </dependency>
 
         <dependency>
             <groupId>sc.fiji</groupId>
             <artifactId>Skeletonize3D_</artifactId>
-            <version>LATEST</version>
+            <version>1.0.1</version>
         </dependency>
 
         <dependency>
-            <groupId>sc.fiji</groupId>
-            <artifactId>LocalThickness_</artifactId>
-            <version>LATEST</version>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <version>2.0.31-beta</version>
         </dependency>
     </dependencies>
 

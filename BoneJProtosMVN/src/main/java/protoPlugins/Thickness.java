@@ -16,8 +16,6 @@ import org.scijava.plugin.Parameter;
 import org.scijava.plugin.Plugin;
 import org.scijava.ui.UIService;
 
-//import LocalThickness_.LocalThickness;
-
 import static org.scijava.ui.DialogPrompt.*;
 
 /**

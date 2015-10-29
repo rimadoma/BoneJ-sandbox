@@ -13,23 +13,33 @@ import java.util.ArrayList;
  * @author Michael Doube
  */
 public class RoiUtil {
+    public static final int FIRST_SLICE_NUMBER = 1;
+    public static final int NO_SLICE_NUMBER = -1;
+
     /**
-     * Return a list of ROIs that are active in the given slice, s. ROIs without
-     * a slice number are assumed to be active in all slices.
+     * Returns a list of ROIs that are active in the given slice.
      *
-     * @param roiMan
-     * @param s
-     * @return
+     * @author Richard Domander
+     * @param   roiMan      The collection of all the current ROIs
+     * @param   sliceNumber Number of the slice to be searched
+     * @return  In addition to the active ROIs, returns all the ROIs without
+     *          a slice number (assumed to be active in all slices).
      */
-    public static ArrayList<Roi> getSliceRoi(RoiManager roiMan, int s) {
+    public static ArrayList<Roi> getSliceRoi(RoiManager roiMan, int sliceNumber) {
         ArrayList<Roi> roiList = new ArrayList<>();
+
+        if (sliceNumber < FIRST_SLICE_NUMBER) {
+            //@todo: find out if there's a way to check whether sliceNumber >= IJ.getImage().getStackSize()
+            return roiList;
+        }
+
         Roi[] rois = roiMan.getRoisAsArray();
         for (Roi roi : rois) {
-            int sliceNumber = roiMan.getSliceNumber(roi.getName());
-            if (sliceNumber == -1)
-                sliceNumber = roi.getPosition();
-            if (sliceNumber == s || sliceNumber == 0)
+            String roiName = roi.getName();
+            int roiSliceNumber = roiMan.getSliceNumber(roiName);
+            if (roiSliceNumber == sliceNumber || roiSliceNumber == NO_SLICE_NUMBER) {
                 roiList.add(roi);
+            }
         }
         return roiList;
     }
