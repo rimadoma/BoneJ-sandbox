@@ -10,6 +10,8 @@ import javax.vecmath.Vector3d;
  *  calculate similar results. The rationale for these tests is to
  *  ensure that the results BoneJ returns won't change numerically
  *  (precision, rounding errors) etc.
+ *
+ * @author <a href="mailto:rdomander@rvc.ac.uk">Richard Domander</a>
  */
 public class VectorsTest {
     double x1 = 5;

@@ -3,6 +3,9 @@ package bonej.geometry;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
+/**
+ * @author Michael Doube
+ */
 public class EllipsoidTest {
     /** Ellipsoid of radii = 1 and centred on origin */
     Ellipsoid unitSphere = new Ellipsoid(1, 1, 1, 0, 0, 0, new double[][] {

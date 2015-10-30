@@ -11,7 +11,7 @@ import static org.junit.Assert.assertNotEquals;
 import static org.mockito.Mockito.*;
 
 /**
- * Unit tests for the Common.RoiUtil class
+ * Unit tests for the RoiUtil class
  * @author <a href="mailto:rdomander@rvc.ac.uk">Richard Domander</a>
  */
 public class RoiUtilTest {
@@ -79,6 +79,8 @@ public class RoiUtilTest {
     public void testGetLimits() throws Exception
     {
         final int NUM_LIMITS = 6;
+        final int MIN_Z_INDEX = 4;
+        final int MAX_Z_INDEX = 5;
 
         final int ROI1_X = 10;
         final int ROI1_Y = 10;
@@ -93,7 +95,7 @@ public class RoiUtilTest {
         final int MIN_Y = ROI2_Y;
         final int MAX_X = ROI2_X + ROI2_WIDTH;
         final int MAX_Y = ROI1_Y + ROI1_HEIGHT;
-        final int MIN_Z = 1;
+        final int MIN_Z = 2;
         final int MAX_Z = 3;
 
         final String roi1Label = "000" + MIN_Z + "-0000-0001";
@@ -111,32 +113,36 @@ public class RoiUtilTest {
         when(mockRoiManager.getSliceNumber(anyString())).thenCallRealMethod();
         when(mockRoiManager.getRoisAsArray()).thenReturn(rois);
 
-        // RoiManager == null
-        int resultFrame[] = RoiUtil.getLimits(null);
-
-        assertEquals(null, resultFrame);
-
         // Empty RoiManager
         when(mockRoiManager.getCount()).thenReturn(0);
 
-        resultFrame = RoiUtil.getLimits(mockRoiManager);
-
-        assertEquals(null, resultFrame);
+        int limitsResult[] = RoiUtil.getLimits(mockRoiManager);
+        assertEquals(null, limitsResult);
 
         // All valid ROIs
         when(mockRoiManager.getCount()).thenReturn(rois.length);
 
-        resultFrame = RoiUtil.getLimits(mockRoiManager);
-
-        assertNotEquals(null, resultFrame);
-        assertEquals(NUM_LIMITS, resultFrame.length);
-        assertEquals(MIN_X, resultFrame[0]);
-        assertEquals(MAX_X, resultFrame[1]);
-        assertEquals(MIN_Y, resultFrame[2]);
-        assertEquals(MAX_Y, resultFrame[3]);
-        assertEquals(MIN_Z, resultFrame[4]);
-        assertEquals(MAX_Z, resultFrame[5]);
+        limitsResult = RoiUtil.getLimits(mockRoiManager);
+        assertNotEquals(null, limitsResult);
+        assertEquals(NUM_LIMITS, limitsResult.length);
+        assertEquals(MIN_X, limitsResult[0]);
+        assertEquals(MAX_X, limitsResult[1]);
+        assertEquals(MIN_Y, limitsResult[2]);
+        assertEquals(MAX_Y, limitsResult[3]);
+        assertEquals(MIN_Z, limitsResult[MIN_Z_INDEX]);
+        assertEquals(MAX_Z, limitsResult[MAX_Z_INDEX]);
 
         // A ROI without a slice number (z-index)
+        Roi badZRoi = new Roi(80, 80, 10, 10);
+        //if the label of a roi doesn't follow a certain format, then RoiManager.getSliceNumber returns -1
+        badZRoi.setName("BAD_LABEL");
+        Roi roisWithBadZ[] = {roi1, roi2, badZRoi};
+
+        when(mockRoiManager.getRoisAsArray()).thenReturn(roisWithBadZ);
+
+        limitsResult = RoiUtil.getLimits(mockRoiManager);
+        assertNotEquals(null, limitsResult);
+        assertEquals(RoiUtil.DEFAULT_Z_MIN, limitsResult[MIN_Z_INDEX]);
+        assertEquals(RoiUtil.DEFAULT_Z_MAX, limitsResult[MAX_Z_INDEX]);
     }
 }

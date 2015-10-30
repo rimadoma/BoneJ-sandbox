@@ -1,8 +1,10 @@
 package bonej.common;
 
+import ij.IJ;
+import ij.ImagePlus;
+
 /**
- * @author  Richard Domander
- * @date    27/10/15.
+ * @author <a href="mailto:rdomander@rvc.ac.uk">Richard Domander</a>
  */
 public class Common {
     public static final int BINARY_BLACK = 0x00;
@@ -13,7 +15,8 @@ public class Common {
             + "Consider rescaling your data so that voxels are isotropic\n"
             + "(Image > Scale...).\n\n" + "Continue anyway?";
 
-    public static double clamp(double value, double min, double max) {
+    public static double clamp(double value, double min, double max)
+    {
         if (Double.compare(value, min) < 0) {
             return min;
         }

@@ -20,7 +20,6 @@ import static org.scijava.ui.DialogPrompt.*;
 
 /**
  * @author <a href="mailto:rdomander@rvc.ac.uk">Richard Domander</a>
- * @date 28/10/15
  */
 @Plugin(type = Command.class, menuPath = "Plugins>Thickness")
 public class Thickness implements Command
@@ -120,7 +119,7 @@ public class Thickness implements Command
 
         if (doThickness) {
             logService.info("Doing thickness...");
-            //@todo move from ROIs to Overlays..?
+            //@todo How do ROIs work in ImageJ2?
             RoiManager roiManager = RoiManager.getInstance();
             if (doRoi && roiManager != null) {
                 logService.info("Doing ROI crop...");

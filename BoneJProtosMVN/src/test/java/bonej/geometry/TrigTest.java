@@ -3,6 +3,9 @@ package bonej.geometry;
 import static org.junit.Assert.*;
 import org.junit.Test;
 
+/**
+ * @author Michael Doube
+ */
 public class TrigTest {
     double[] p0 = {1, 2, 3};
     double[] p1 = {4, 5, 6};

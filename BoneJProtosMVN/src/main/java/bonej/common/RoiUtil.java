@@ -8,21 +8,27 @@ import ij.process.ImageProcessor;
 
 import java.awt.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 /**
- * @author Michael Doube
+ * @author  Michael Doube
+ * @author <a href="mailto:rdomander@rvc.ac.uk">Richard Domander</a>
  */
 public class RoiUtil {
     public static final int FIRST_SLICE_NUMBER = 1;
     public static final int NO_SLICE_NUMBER = -1;
+    public static final int DEFAULT_Z_MIN = 1;
+    public static final int DEFAULT_Z_MAX = Integer.MAX_VALUE;
+
 
     /**
      * Returns a list of ROIs that are active in the given slice.
      *
-     * @author Richard Domander
-     * @pre     roiMan != null
+     * @todo    Functional testing. Does the method work as intended with a real RoiManager created by ImageJ?
+     * @todo    Does calling this method make sense if there's no image open?
      * @param   roiMan      The collection of all the current ROIs
      * @param   sliceNumber Number of the slice to be searched
+     * @pre     roiMan != null
      * @return  In addition to the active ROIs, returns all the ROIs without
      *          a slice number (assumed to be active in all slices).
      */
@@ -48,43 +54,53 @@ public class RoiUtil {
     /**
      * Find the x, y and z limits of the ROIs in the ROI Manager
      *
-     * @param roiMan
+     * @todo    Set z max to last slice of the current image if there's a ROI with no slice number?
+     * @param   roiMan  The collection of all the current ROIs
+     * @pre     roiMan != null
      * @return int[] containing x min, x max, y min, y max, z min and z max, or
-     *         null if there is no ROI Manager or if the ROI Manager is empty.
-     *         If any of the ROIs contains no slice information, z min is set to
-     *         1 and z max is set to Integer.MAX_VALUE
+     *         null if the ROI Manager contains no ROIs.
+     *         If any of the ROIs has no slice number, z min is set to
+     *         DEFAULT_Z_MIN and z max is set to DEFAULT_Z_MAX
      */
     public static int[] getLimits(RoiManager roiMan) {
-        if (roiMan == null || roiMan.getCount() == 0)
+        if (roiMan.getCount() == 0) {
             return null;
-        int xmin = Integer.MAX_VALUE;
-        int xmax = 0;
-        int ymin = Integer.MAX_VALUE;
-        int ymax = 0;
-        int zmin = Integer.MAX_VALUE;
-        int zmax = 1;
-        boolean noZroi = false;
+        }
+
+        int xMin = Integer.MAX_VALUE;
+        int xMax = 0;
+        int yMin = Integer.MAX_VALUE;
+        int yMax = 0;
+        int zMin = Integer.MAX_VALUE;
+        int zMax = 1;
+        boolean noZRoi = false;
+
         Roi[] rois = roiMan.getRoisAsArray();
+
         for (Roi roi : rois) {
             Rectangle r = roi.getBounds();
-            xmin = Math.min(r.x, xmin);
-            xmax = Math.max(r.x + r.width, xmax);
-            ymin = Math.min(r.y, ymin);
-            ymax = Math.max(r.y + r.height, ymax);
-            int slice = roiMan.getSliceNumber(roi.getName());
-            if (slice >= FIRST_SLICE_NUMBER) {
-                zmin = Math.min(slice, zmin);
-                zmax = Math.max(slice, zmax);
-            } else
-                noZroi = true; // found a ROI with no Z info
+            xMin = Math.min(r.x, xMin);
+            xMax = Math.max(r.x + r.width, xMax);
+            yMin = Math.min(r.y, yMin);
+            yMax = Math.max(r.y + r.height, yMax);
+
+            int sliceNumber = roiMan.getSliceNumber(roi.getName());
+            if (sliceNumber < FIRST_SLICE_NUMBER) {
+                noZRoi = true;
+            } else {
+                zMin = Math.min(sliceNumber, zMin);
+                zMax = Math.max(sliceNumber, zMax);
+            }
         }
-        if (noZroi) {
-            int[] limits = { xmin, xmax, ymin, ymax, 1, Integer.MAX_VALUE };
-            return limits;
-        } else {
-            int[] limits = { xmin, xmax, ymin, ymax, zmin, zmax };
-            return limits;
+
+        int[] limits = { xMin, xMax, yMin, yMax, zMin, zMax };
+
+        if (noZRoi) {
+            limits[4] = DEFAULT_Z_MIN;
+            limits[5] = DEFAULT_Z_MAX;
         }
+
+        return limits;
     }
 
 

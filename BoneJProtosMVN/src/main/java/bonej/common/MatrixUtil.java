@@ -3,7 +3,7 @@ package bonej.common;
 import Jama.Matrix;
 
 /**
- * Created by Richard Domander on 26/10/15.
+ * @author <a href="mailto:rdomander@rvc.ac.uk">Richard Domander</a>
  */
 public class MatrixUtil {
     /**

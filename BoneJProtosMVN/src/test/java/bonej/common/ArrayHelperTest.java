@@ -9,8 +9,7 @@ import java.util.Arrays;
 import static org.junit.Assert.*;
 
 /**
- * @author Richard Domander
- * @date 26/10/15.
+ * @author <a href="mailto:rdomander@rvc.ac.uk">Richard Domander</a>
  */
 public class ArrayHelperTest {
 
