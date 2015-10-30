@@ -1,7 +1,4 @@
-package bonej.common;
-
-import ij.IJ;
-import ij.ImagePlus;
+package org.bonej.common;
 
 /**
  * @author <a href="mailto:rdomander@rvc.ac.uk">Richard Domander</a>

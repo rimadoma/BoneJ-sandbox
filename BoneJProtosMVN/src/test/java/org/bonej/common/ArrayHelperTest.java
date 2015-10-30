@@ -1,7 +1,7 @@
-package bonej.common;
+package org.bonej.common;
 
 import Jama.Matrix;
-import bonej.geometry.Ellipsoid;
+import org.bonej.geometry.Ellipsoid;
 import org.junit.Test;
 
 import java.util.Arrays;

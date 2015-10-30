@@ -1,4 +1,4 @@
-package bonej.geometry;
+package org.bonej.geometry;
 
 /**
  * Provides simple trigonometric calculations

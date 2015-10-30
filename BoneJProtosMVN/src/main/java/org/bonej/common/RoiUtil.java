@@ -1,4 +1,4 @@
-package bonej.common;
+package org.bonej.common;
 
 import ij.ImagePlus;
 import ij.ImageStack;
@@ -8,7 +8,6 @@ import ij.process.ImageProcessor;
 
 import java.awt.*;
 import java.util.ArrayList;
-import java.util.Arrays;
 
 /**
  * @author  Michael Doube
@@ -128,7 +127,7 @@ public class RoiUtil {
         final int ymin = limits[2];
         final int ymax = limits[3];
         final int zmin = limits[4];
-        final int zmax = (limits[5] == Integer.MAX_VALUE) ? stack.getSize()
+        final int zmax = (limits[5] == DEFAULT_Z_MAX) ? stack.getSize()
                 : limits[5];
         // target stack dimensions
         final int w = xmax - xmin + 2 * padding;

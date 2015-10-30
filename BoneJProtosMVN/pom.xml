@@ -11,7 +11,7 @@
         <relativePath />
     </parent>
 
-    <groupId>ac.rvc.bonejprotos</groupId>
+    <groupId>org.bonej.bonejprotos</groupId>
     <artifactId>bonejprotos</artifactId>
     <version>0.0.1-SNAPSHOT</version>
 

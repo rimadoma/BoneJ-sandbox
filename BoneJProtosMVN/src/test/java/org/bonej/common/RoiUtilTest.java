@@ -1,7 +1,9 @@
-package bonej.common;
+package org.bonej.common;
 
+import ij.ImagePlus;
 import ij.gui.Roi;
 import ij.plugin.frame.RoiManager;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -15,6 +17,13 @@ import static org.mockito.Mockito.*;
  * @author <a href="mailto:rdomander@rvc.ac.uk">Richard Domander</a>
  */
 public class RoiUtilTest {
+    RoiManager mockRoiManager = mock(RoiManager.class);
+
+    @Before
+    public void setUp()
+    {
+        mockRoiManager.reset();
+    }
 
     @Test
     public void testGetSliceRoi() throws Exception {
@@ -29,8 +38,6 @@ public class RoiUtilTest {
         final String multiRoi1Label = "000" + MULTI_ROI_SLICE_NO + "-0000-0001";
         final String multiRoi2Label = "000" + MULTI_ROI_SLICE_NO + "-0000-0002";
         final String noSliceLabel = "NO_SLICE";
-
-        RoiManager mockRoiManager = mock(RoiManager.class);
 
         Roi singleRoi = new Roi(10, 10, 10, 10);
         singleRoi.setName(singleRoiLabel);
@@ -109,7 +116,6 @@ public class RoiUtilTest {
 
         Roi rois[] = {roi1, roi2};
 
-        RoiManager mockRoiManager = mock(RoiManager.class);
         when(mockRoiManager.getSliceNumber(anyString())).thenCallRealMethod();
         when(mockRoiManager.getRoisAsArray()).thenReturn(rois);
 
@@ -144,5 +150,28 @@ public class RoiUtilTest {
         assertNotEquals(null, limitsResult);
         assertEquals(RoiUtil.DEFAULT_Z_MIN, limitsResult[MIN_Z_INDEX]);
         assertEquals(RoiUtil.DEFAULT_Z_MAX, limitsResult[MAX_Z_INDEX]);
+    }
+
+    @Test
+    public void testCropStack() throws Exception {
+        final int ROI_WIDTH = 2;
+        final int ROI_HEIGHT = 2;
+
+        int limits[] = {2, 8, 2, 5, 2, 3};
+
+        Roi roi1 = new Roi(2, 2, ROI_WIDTH, ROI_HEIGHT);
+        roi1.setName("0002-0000-0001");
+
+        Roi roi2 = new Roi(6, 3, ROI_WIDTH, ROI_HEIGHT);
+        roi2.setName("0003-0000-0001");
+
+        Roi rois[] = {roi1, roi2};
+
+        when(mockRoiManager.getCount()).thenReturn(rois.length);
+        when(mockRoiManager.getSliceNumber(anyString())).thenCallRealMethod();
+        when(mockRoiManager.getRoisAsArray()).thenReturn(rois);
+
+        ImagePlus image = TestDataMaker.createCuboid(11, 11, 11, Common.BINARY_WHITE, 1);
+
     }
 }

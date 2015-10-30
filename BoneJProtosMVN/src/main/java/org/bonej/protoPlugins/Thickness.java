@@ -1,8 +1,8 @@
-package bonej.protoPlugins;
+package org.bonej.protoPlugins;
 
-import bonej.common.Common;
-import bonej.common.ImageCheck;
-import bonej.common.RoiUtil;
+import org.bonej.common.Common;
+import org.bonej.common.ImageCheck;
+import org.bonej.common.RoiUtil;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.ImageStack;
@@ -20,6 +20,7 @@ import static org.scijava.ui.DialogPrompt.*;
 
 /**
  * @author <a href="mailto:rdomander@rvc.ac.uk">Richard Domander</a>
+ * @todo instead of LogService open error dialogs when things go wrong
  */
 @Plugin(type = Command.class, menuPath = "Plugins>Thickness")
 public class Thickness implements Command

@@ -1,6 +1,6 @@
-package bonej.common;
+package org.bonej.common;
 
-import bonej.geometry.Ellipsoid;
+import org.bonej.geometry.Ellipsoid;
 
 import java.util.Arrays;
 
