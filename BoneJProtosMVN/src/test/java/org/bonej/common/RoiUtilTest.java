@@ -1,6 +1,7 @@
 package org.bonej.common;
 
 import ij.ImagePlus;
+import ij.ImageStack;
 import ij.gui.Roi;
 import ij.plugin.frame.RoiManager;
 import org.junit.Before;
@@ -8,6 +9,7 @@ import org.junit.Test;
 
 import java.util.ArrayList;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.mockito.Mockito.*;
@@ -153,11 +155,16 @@ public class RoiUtilTest {
     }
 
     @Test
-    public void testCropStack() throws Exception {
+    public void testCropStack() throws Exception
+    {
         final int ROI_WIDTH = 2;
         final int ROI_HEIGHT = 2;
+        final int TEST_COLOR_COUNT = 8;
+        final int TEST_COLOR = 0x40;
+        final int BACKGROUND_COLOR = 0x00;
+        final int BACKGROUND_COLOR_COUNT = 46;
 
-        int limits[] = {2, 8, 2, 5, 2, 3};
+        int limits[] = {2, 8, 2, 5, 1, 3};
 
         Roi roi1 = new Roi(2, 2, ROI_WIDTH, ROI_HEIGHT);
         roi1.setName("0002-0000-0001");
@@ -165,13 +172,47 @@ public class RoiUtilTest {
         Roi roi2 = new Roi(6, 3, ROI_WIDTH, ROI_HEIGHT);
         roi2.setName("0003-0000-0001");
 
-        Roi rois[] = {roi1, roi2};
+        Roi paddingRoi = new Roi(2, 2, ROI_WIDTH, ROI_HEIGHT);
+        paddingRoi.setName("0001-0000-0001");
+
+        Roi rois[] = {paddingRoi, roi1, roi2};
 
         when(mockRoiManager.getCount()).thenReturn(rois.length);
         when(mockRoiManager.getSliceNumber(anyString())).thenCallRealMethod();
         when(mockRoiManager.getRoisAsArray()).thenReturn(rois);
 
-        ImagePlus image = TestDataMaker.createCuboid(11, 11, 11, Common.BINARY_WHITE, 1);
+        ImagePlus image = TestDataMaker.createCuboid(10, 10, 10, TEST_COLOR, 1);
 
+        ImageStack resultStack = RoiUtil.cropStack(mockRoiManager, image.getStack(), false, 0x00, 0);
+        assertEquals("Cropped stack has wrong width", 6, resultStack.getWidth());
+        assertEquals("Cropped stack has wrong height", 3, resultStack.getHeight());
+        assertEquals("Cropped stack has wrong depth", 3, resultStack.getSize());
+
+        int foregroundCount = countColorPixels(resultStack, TEST_COLOR);
+        assertEquals("Crop contains wrong part of the original image", TEST_COLOR_COUNT, foregroundCount);
+
+        int backgroundCount = countColorPixels(resultStack, BACKGROUND_COLOR);
+        assertEquals("Crop contains wrong part of the original image", BACKGROUND_COLOR_COUNT, backgroundCount);
+    }
+
+    private static int countColorPixels(ImageStack stack, int color)
+    {
+        int count = 0;
+        int height = stack.getHeight();
+        int width = stack.getWidth();
+
+        for (int z = 1; z <= stack.getSize(); z++) {
+            byte pixels[] = (byte[]) stack.getPixels(z);
+            for (int y = 0; y < height; y++) {
+                int offset = y * width;
+                for (int x = 0; x < width; x++) {
+                    if (pixels[offset + x] == color) {
+                        count++;
+                    }
+                }
+            }
+        }
+
+        return count;
     }
 }

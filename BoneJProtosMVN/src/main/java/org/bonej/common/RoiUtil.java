@@ -132,7 +132,7 @@ public class RoiUtil {
         // target stack dimensions
         final int w = xmax - xmin + 2 * padding;
         final int h = ymax - ymin + 2 * padding;
-        final int d = zmax - zmin + 2 * padding;
+        final int d = zmax - zmin + 2 * padding + 1;
 
         // offset that places source stack in coordinate frame
         // of target stack (i.e. origin of source stack relative to origin of
@@ -166,13 +166,16 @@ public class RoiUtil {
                 for (int y = r.y; y < rh; y++) {
                     final int yyOff = y + yOff;
                     for (int x = r.x; x < rw; x++) {
-                        if (mask == null || mask.get(x - r.x, y - r.y) > 0)
-                            ip.set(x + xOff, yyOff, ipSource.get(x, y));
+                        if (mask == null || mask.get(x - r.x, y - r.y) > 0) {
+                            int sourceColor = ipSource.get(x, y);
+                            ip.set(x + xOff, yyOff, sourceColor);
+                        }
                     }
                 }
             }
             out.addSlice(stack.getSliceLabel(z - zOff), ip);
         }
+
         return out;
     }
 }
