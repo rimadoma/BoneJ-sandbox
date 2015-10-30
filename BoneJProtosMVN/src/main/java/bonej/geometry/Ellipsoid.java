@@ -1,9 +1,7 @@
-package geometry;
+package bonej.geometry;
 
 import Jama.EigenvalueDecomposition;
 import Jama.Matrix;
-
-import javax.vecmath.Point3d;
 
 /**
  * <p>

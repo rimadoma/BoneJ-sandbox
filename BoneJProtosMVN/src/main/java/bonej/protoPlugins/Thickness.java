@@ -1,8 +1,8 @@
-package protoPlugins;
+package bonej.protoPlugins;
 
-import common.Common;
-import common.ImageCheck;
-import common.RoiUtil;
+import bonej.common.Common;
+import bonej.common.ImageCheck;
+import bonej.common.RoiUtil;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.ImageStack;

@@ -1,4 +1,4 @@
-package common;
+package bonej.common;
 
 import ij.IJ;
 import ij.ImagePlus;

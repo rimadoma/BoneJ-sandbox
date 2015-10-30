@@ -1,8 +1,8 @@
-package geometry;
+package bonej.geometry;
 
 import Jama.EigenvalueDecomposition;
 import Jama.Matrix;
-import common.MatrixUtil;
+import bonej.common.MatrixUtil;
 
 /**
  * Ellipsoid fitting methods. Both rely on eigenvalue decomposition, which fails

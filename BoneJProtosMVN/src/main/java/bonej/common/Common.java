@@ -1,4 +1,4 @@
-package common;
+package bonej.common;
 
 /**
  * @author  Richard Domander

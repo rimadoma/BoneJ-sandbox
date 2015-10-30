@@ -1,4 +1,4 @@
-package geometry;
+package bonej.geometry;
 
 import static org.junit.Assert.*;
 import org.junit.Test;
@@ -6,7 +6,7 @@ import org.junit.Test;
 import javax.vecmath.Vector3d;
 
 /**
- *  A class to test that javax.vecmath.Vector3d and geometry.Vectors
+ *  A class to test that javax.vecmath.Vector3d and bonej.geometry.Vectors
  *  calculate similar results. The rationale for these tests is to
  *  ensure that the results BoneJ returns won't change numerically
  *  (precision, rounding errors) etc.

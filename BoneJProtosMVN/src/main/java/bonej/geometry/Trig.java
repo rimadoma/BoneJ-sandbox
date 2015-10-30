@@ -1,4 +1,4 @@
-package geometry;
+package bonej.geometry;
 
 /**
  * Provides simple trigonometric calculations

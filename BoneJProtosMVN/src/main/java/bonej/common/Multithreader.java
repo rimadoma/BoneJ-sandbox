@@ -1,4 +1,4 @@
-package common;
+package bonej.common;
 
 /**
  * MultiThreading copyright 2007 Stephan Preibisch

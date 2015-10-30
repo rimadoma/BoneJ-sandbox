@@ -1,4 +1,4 @@
-package common;
+package bonej.common;
 
 import ij.gui.Roi;
 import ij.plugin.frame.RoiManager;

@@ -1,4 +1,4 @@
-package geometry;
+package bonej.geometry;
 
 public class Vectors {
     /**

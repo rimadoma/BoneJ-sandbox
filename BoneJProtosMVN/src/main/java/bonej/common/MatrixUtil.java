@@ -1,4 +1,4 @@
-package common;
+package bonej.common;
 
 import Jama.Matrix;
 
