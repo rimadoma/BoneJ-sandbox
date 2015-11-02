@@ -5,6 +5,7 @@ import ij.ImageStack;
 import ij.gui.Roi;
 import ij.plugin.frame.RoiManager;
 import ij.process.ImageProcessor;
+import sun.awt.geom.Curve;
 
 import java.awt.*;
 import java.util.ArrayList;
@@ -53,7 +54,6 @@ public class RoiUtil {
     /**
      * Find the x, y and z limits of the ROIs in the ROI Manager
      *
-     * @todo    Set z max to last slice of the current image if there's a ROI with no slice number?
      * @param   roiMan  The collection of all the current ROIs
      * @pre     roiMan != null
      * @return int[] containing x min, x max, y min, y max, z min and z max, or
@@ -102,6 +102,74 @@ public class RoiUtil {
         return limits;
     }
 
+
+    public static ImageStack cropToRois(RoiManager roiMan, ImageStack sourceStack, boolean fillBackground, int fillValue,
+                                        int padding)
+    {
+        int[] limits = getLimits(roiMan);
+        final int xMin = limits[0];
+        final int xMax = limits[1];
+        final int yMin = limits[2];
+        final int yMax = limits[3];
+        final int zMin = limits[4];
+        final int zMax = (limits[5] == DEFAULT_Z_MAX) ? sourceStack.getSize() : limits[5];
+
+        //check that width >= height > 0 && depth >= 1
+        final int width = xMax - xMin + 2 * padding;
+        final int height = yMax - yMin + 2 * padding;
+        //final int depth = zMax - zMin + 2 * padding;
+
+        ImageStack targetStack = new ImageStack(width, height);
+
+        // copy
+        ImageProcessor sourceProcessor;
+        ImageProcessor targetProcessor;
+        ArrayList<Roi> sliceRois;
+        for (int sourceZ = zMin; sourceZ <= zMax; sourceZ++) {
+            sourceProcessor = sourceStack.getProcessor(sourceZ);
+            sliceRois = getSliceRoi(roiMan, sourceZ);
+            targetProcessor = sourceProcessor.createProcessor(width, height);
+            copySlice(sourceProcessor, targetProcessor, sliceRois, width, height, padding);
+            targetStack.addSlice("", targetProcessor);
+        }
+
+        // z padding
+        targetProcessor = targetStack.getProcessor(1).createProcessor(width, height);
+        if (fillBackground) {
+            targetProcessor.setColor(fillValue);
+            targetProcessor.fill();
+        }
+        for (int i = 0; i < padding; i++) {
+            targetStack.addSlice("", targetProcessor, 0);
+            targetStack.addSlice(targetProcessor);
+        }
+
+        return targetStack;
+    }
+
+    private static ImageProcessor copySlice(ImageProcessor sourceProcessor, ImageProcessor targetProcessor,
+                                            ArrayList<Roi> sliceRois, int width, int height, int padding)
+    {
+        for (Roi sliceRoi : sliceRois) {
+            Rectangle rectangle = sliceRoi.getBounds();
+            int minY = rectangle.y;
+            int minX = rectangle.x;
+            int maxY = rectangle.y + rectangle.height;
+            int maxX = rectangle.x + rectangle.width;
+            int targetY = padding;
+            for (int sourceY = minY; sourceY < maxY; sourceY++) {
+                int targetX = padding;
+                for (int sourceX = minX; sourceX < maxX; sourceX++) {
+                    int sourceColor = sourceProcessor.get(sourceX, sourceY);
+                    targetProcessor.set(targetX, targetY, sourceColor);
+                    targetX++;
+                }
+                targetY++;
+            }
+        }
+
+        return targetProcessor;
+    }
 
     /**
      * Crop a stack to the limits of the ROIs in the ROI Manager and optionally
@@ -166,7 +234,7 @@ public class RoiUtil {
                 for (int y = r.y; y < rh; y++) {
                     final int yyOff = y + yOff;
                     for (int x = r.x; x < rw; x++) {
-                        if (mask == null || mask.get(x - r.x, y - r.y) > 0) {
+                        if (mask == null || mask.get(x, y) > 0) {
                             int sourceColor = ipSource.get(x, y);
                             ip.set(x + xOff, yyOff, sourceColor);
                         }

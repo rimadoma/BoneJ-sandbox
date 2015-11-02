@@ -1,8 +1,5 @@
 package org.bonej.protoPlugins;
 
-import org.bonej.common.Common;
-import org.bonej.common.ImageCheck;
-import org.bonej.common.RoiUtil;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.ImageStack;
@@ -10,6 +7,9 @@ import ij.gui.GenericDialog;
 import ij.plugin.frame.RoiManager;
 import net.imagej.ImageJ;
 import net.imagej.display.OverlayService;
+import org.bonej.common.Common;
+import org.bonej.common.ImageCheck;
+import org.bonej.common.RoiUtil;
 import org.scijava.command.Command;
 import org.scijava.log.LogService;
 import org.scijava.plugin.Parameter;

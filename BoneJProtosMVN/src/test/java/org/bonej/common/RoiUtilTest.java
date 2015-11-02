@@ -4,12 +4,13 @@ import ij.ImagePlus;
 import ij.ImageStack;
 import ij.gui.Roi;
 import ij.plugin.frame.RoiManager;
+import ij.process.ByteProcessor;
+import ij.process.ImageProcessor;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.ArrayList;
 
-import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.mockito.Mockito.*;
@@ -157,12 +158,20 @@ public class RoiUtilTest {
     @Test
     public void testCropStack() throws Exception
     {
+        final int WIDTH = 6;
+        final int HEIGHT = 3;
+        final int DEPTH = 3;
+        final int PADDING = 2;
         final int ROI_WIDTH = 2;
         final int ROI_HEIGHT = 2;
         final int TEST_COLOR_COUNT = 8;
-        final int TEST_COLOR = 0x40;
-        final int BACKGROUND_COLOR = 0x00;
+        final byte TEST_COLOR = 0x40;
+        final byte BACKGROUND_COLOR = 0x00;
         final int BACKGROUND_COLOR_COUNT = 46;
+        final byte FILL_COLOR = 0x10;
+        final int FILL_COLOR_COUNT = BACKGROUND_COLOR_COUNT;
+        final int MASKED_COUNT = 6;
+        final byte MASK_BLACK = Byte.MAX_VALUE;
 
         int limits[] = {2, 8, 2, 5, 1, 3};
 
@@ -183,16 +192,61 @@ public class RoiUtilTest {
 
         ImagePlus image = TestDataMaker.createCuboid(10, 10, 10, TEST_COLOR, 1);
 
-        ImageStack resultStack = RoiUtil.cropStack(mockRoiManager, image.getStack(), false, 0x00, 0);
-        assertEquals("Cropped stack has wrong width", 6, resultStack.getWidth());
-        assertEquals("Cropped stack has wrong height", 3, resultStack.getHeight());
-        assertEquals("Cropped stack has wrong depth", 3, resultStack.getSize());
+        ImageStack resultStack = RoiUtil.cropToRois(mockRoiManager, image.getStack(), false, 0x00, 0);
+        assertEquals("Cropped stack has wrong width", WIDTH, resultStack.getWidth());
+        assertEquals("Cropped stack has wrong height", HEIGHT, resultStack.getHeight());
+        assertEquals("Cropped stack has wrong depth", DEPTH, resultStack.getSize());
 
         int foregroundCount = countColorPixels(resultStack, TEST_COLOR);
         assertEquals("Crop contains wrong part of the original image", TEST_COLOR_COUNT, foregroundCount);
 
         int backgroundCount = countColorPixels(resultStack, BACKGROUND_COLOR);
         assertEquals("Crop contains wrong part of the original image", BACKGROUND_COLOR_COUNT, backgroundCount);
+
+        //padding
+        ImageStack paddedResultStack = RoiUtil.cropToRois(mockRoiManager, image.getStack(), false, 0x00, PADDING);
+        assertEquals("Cropped stack has wrong padded width", WIDTH + 2 * PADDING, paddedResultStack.getWidth());
+        assertEquals("Cropped stack has wrong padded height", HEIGHT + 2 * PADDING, paddedResultStack.getHeight());
+        assertEquals("Cropped stack has wrong padded depth", DEPTH + 2 * PADDING, paddedResultStack.getSize());
+
+        assertEquals("Padding didn't shift the pixels correctly", true, pixelsShifted(resultStack, paddedResultStack, PADDING));
+
+        //filling
+        resultStack = RoiUtil.cropToRois(mockRoiManager, image.getStack(), true, FILL_COLOR, 0);
+        int fillCount = countColorPixels(resultStack, FILL_COLOR);
+        assertEquals("Crop area has wrong background fill color", FILL_COLOR_COUNT, fillCount);
+
+        //mask?
+    }
+
+
+    /**
+     * Checks that padding has moved all of the pixels to correct coordinates
+     * @param stack         the original image without padding
+     * @param paddedStack   the resulting image with padding
+     * @param padding       number of padding pixels on each side of the stack
+     * @return true if all the pixels have shifted the correct amount
+     */
+    private static boolean pixelsShifted(ImageStack stack, ImageStack paddedStack, int padding) {
+        for (int z = 1; z <= stack.getSize(); z++) {
+            ImageProcessor sourceProcessor = stack.getProcessor(z);
+            int targetZ = z + padding;
+            ImageProcessor targetProcessor = paddedStack.getProcessor(targetZ);
+            for (int y = 0; y < stack.getHeight(); y++) {
+                int targetY = y + padding;
+                for (int x = 0; x < stack.getWidth(); x++) {
+                    int targetX = x + padding;
+                    int sourceColor = sourceProcessor.get(x, y);
+                    int targetColor = targetProcessor.get(targetX, targetY);
+                    if (sourceColor != targetColor) {
+                        System.out.println(x + "," + y + "," + z + "(x1,y1,z1) " + targetX + "," + targetY + "," + targetZ + "(x2,y2,z2)");
+                        System.out.println("Color1: " + sourceColor + " Color2: " + targetColor);
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
     }
 
     private static int countColorPixels(ImageStack stack, int color)
