@@ -249,10 +249,11 @@ public class RoiUtilTest {
 
         //filling
         resultStack = RoiUtil.cropToRois(mockRoiManager, originalStack, true, FILL_COLOR, 0);
+
         int fillCount = countColorPixels(resultStack, FILL_COLOR);
         assertEquals("Crop area has wrong background fill color", FILL_COLOR_COUNT, fillCount);
 
-        //mask?
+        //@TODO: write mask functionality to cropToRois and the test case. Check how to mock masks.
     }
 
     /**

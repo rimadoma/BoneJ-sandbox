@@ -106,8 +106,25 @@ public class RoiUtil {
     }
 
 
-    public static ImageStack cropToRois(RoiManager roiMan, ImageStack sourceStack, boolean fillBackground, int fillValue,
-                                        int padding)
+    public static ImageStack cropToRois(RoiManager roiMan, ImageStack sourceStack, boolean fillBackground,
+    int fillColor, int padding) {
+        return cropToRois(roiMan, sourceStack, fillBackground, fillColor, padding, 0x00);
+    }
+
+    /**
+     * Crop a stack to the limits of the ROIs in the ROI Manager and optionally
+     * fill the background with a single pixel value.
+     *
+     * @param roiMan                The manager containing the ROIs
+     * @param sourceStack           The image to be cropped
+     * @param fillBackground        If true, fill the background of the resulting image
+     * @param fillColor             Color of the background of the resulting image
+     * @param padding               Number of pixels added to the each side of the resulting image
+     * @param roiBackgroundColor    Which color to ignore when copying from ROIs (if there's no mask)
+     * @return A new image stack containing the cropped version of the given image
+     */
+    public static ImageStack cropToRois(RoiManager roiMan, ImageStack sourceStack, boolean fillBackground,
+                                        int fillColor, int padding, int roiBackgroundColor)
     {
         int[] limits = getLimits(roiMan);
         final int xMin = limits[0];
@@ -132,14 +149,18 @@ public class RoiUtil {
             sourceProcessor = sourceStack.getProcessor(sourceZ);
             sliceRois = getSliceRoi(roiMan, sourceZ);
             targetProcessor = sourceProcessor.createProcessor(width, height);
-            copySlice(sourceProcessor, targetProcessor, sliceRois, width, height, padding);
+            if (fillBackground) {
+                targetProcessor.setColor(fillColor);
+                targetProcessor.fill();
+            }
+            copySlice(sourceProcessor, targetProcessor, sliceRois, padding, roiBackgroundColor);
             targetStack.addSlice("", targetProcessor);
         }
 
         // z padding
         targetProcessor = targetStack.getProcessor(1).createProcessor(width, height);
         if (fillBackground) {
-            targetProcessor.setColor(fillValue);
+            targetProcessor.setColor(fillColor);
             targetProcessor.fill();
         }
         for (int i = 0; i < padding; i++) {
@@ -151,7 +172,7 @@ public class RoiUtil {
     }
 
     private static ImageProcessor copySlice(ImageProcessor sourceProcessor, ImageProcessor targetProcessor,
-                                            ArrayList<Roi> sliceRois, int width, int height, int padding)
+                                            ArrayList<Roi> sliceRois, int padding, int roiBackgroundColor)
     {
         for (Roi sliceRoi : sliceRois) {
             Rectangle rectangle = sliceRoi.getBounds();
@@ -164,7 +185,9 @@ public class RoiUtil {
                 int targetX = padding;
                 for (int sourceX = minX; sourceX < maxX; sourceX++) {
                     int sourceColor = sourceProcessor.get(sourceX, sourceY);
-                    targetProcessor.set(targetX, targetY, sourceColor);
+                    if (sourceColor != roiBackgroundColor) {
+                        targetProcessor.set(targetX, targetY, sourceColor);
+                    }
                     targetX++;
                 }
                 targetY++;
