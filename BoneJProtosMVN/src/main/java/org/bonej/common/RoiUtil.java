@@ -1,5 +1,6 @@
 package org.bonej.common;
 
+import ij.IJ;
 import ij.ImagePlus;
 import ij.ImageStack;
 import ij.gui.Roi;
@@ -25,18 +26,20 @@ public class RoiUtil {
      * Returns a list of ROIs that are active in the given slice.
      *
      * @todo    Functional testing. Does the method work as intended with a real RoiManager created by ImageJ?
-     * @todo    Does calling this method make sense if there's no image open?
      * @param   roiMan      The collection of all the current ROIs
      * @param   sliceNumber Number of the slice to be searched
      * @pre     roiMan != null
+     * @pre     There's an image open (IJ.getImage() passes)
      * @return  In addition to the active ROIs, returns all the ROIs without
      *          a slice number (assumed to be active in all slices).
+     *          Return an empty list sliceNumber is out of bounds
+     *
      */
     public static ArrayList<Roi> getSliceRoi(RoiManager roiMan, int sliceNumber) {
         ArrayList<Roi> roiList = new ArrayList<>();
+        ImagePlus currentImage = IJ.getImage();
 
-        if (sliceNumber < FIRST_SLICE_NUMBER) {
-            //@todo: find out if there's a way to check whether sliceNumber >= IJ.getImage().getStackSize()
+        if (sliceNumber < FIRST_SLICE_NUMBER || sliceNumber > currentImage.getNSlices()) {
             return roiList;
         }
 
