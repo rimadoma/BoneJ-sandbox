@@ -6,7 +6,6 @@ import ij.ImageStack;
 import ij.gui.Roi;
 import ij.plugin.frame.RoiManager;
 import ij.process.ImageProcessor;
-import sun.awt.geom.Curve;
 
 import java.awt.*;
 import java.util.ArrayList;
@@ -105,12 +104,6 @@ public class RoiUtil {
         return limits;
     }
 
-
-    public static ImageStack cropToRois(RoiManager roiMan, ImageStack sourceStack, boolean fillBackground,
-    int fillColor, int padding) {
-        return cropToRois(roiMan, sourceStack, fillBackground, fillColor, padding, 0x00);
-    }
-
     /**
      * Crop a stack to the limits of the ROIs in the ROI Manager and optionally
      * fill the background with a single pixel value.
@@ -120,45 +113,64 @@ public class RoiUtil {
      * @param fillBackground        If true, fill the background of the resulting image
      * @param fillColor             Color of the background of the resulting image
      * @param padding               Number of pixels added to the each side of the resulting image
-     * @param roiBackgroundColor    Which color to ignore when copying from ROIs (if there's no mask)
-     * @return A new image stack containing the cropped version of the given image
+     * @return  A new image stack containing the cropped version of the given image.
+     *
      */
     public static ImageStack cropToRois(RoiManager roiMan, ImageStack sourceStack, boolean fillBackground,
-                                        int fillColor, int padding, int roiBackgroundColor)
+                                        int fillColor, int padding)
     {
         int[] limits = getLimits(roiMan);
-        final int xMin = limits[0];
-        final int xMax = limits[1];
-        final int yMin = limits[2];
-        final int yMax = limits[3];
-        final int zMin = limits[4];
-        final int zMax = (limits[5] == DEFAULT_Z_MAX) ? sourceStack.getSize() : limits[5];
 
-        //check that width >= height > 0 && depth >= 1
-        final int width = xMax - xMin + 2 * padding;
-        final int height = yMax - yMin + 2 * padding;
-        //final int depth = zMax - zMin + 2 * padding;
+        if (limits == null) {
+            return null;
+        }
 
-        ImageStack targetStack = new ImageStack(width, height);
+        final int xMin = Common.clamp(limits[0], 0, sourceStack.getWidth());
+        final int xMax = Common.clamp(limits[1], 0, sourceStack.getWidth());
+        final int yMin = Common.clamp(limits[2], 0, sourceStack.getHeight());
+        final int yMax = Common.clamp(limits[3], 0, sourceStack.getHeight());
+        final int zMin = Common.clamp(limits[4], 1, sourceStack.getSize());
+        final int zMax = Common.clamp(limits[5], 1, sourceStack.getSize());
+
+        final int croppedWidth = xMax - xMin + 2 * padding;
+        final int croppedHeight = yMax - yMin + 2 * padding;
+        final int croppedDepth = zMax - zMin + 2 * padding + 1;
+
+        if (croppedWidth <= 0 || croppedHeight <= 0 || croppedDepth <= 0) {
+            return null;
+        }
+
+        ImageStack targetStack = new ImageStack(croppedWidth, croppedHeight);
 
         // copy
         ImageProcessor sourceProcessor;
         ImageProcessor targetProcessor;
         ArrayList<Roi> sliceRois;
+        boolean slicesCopied = false;
         for (int sourceZ = zMin; sourceZ <= zMax; sourceZ++) {
-            sourceProcessor = sourceStack.getProcessor(sourceZ);
             sliceRois = getSliceRoi(roiMan, sourceZ);
-            targetProcessor = sourceProcessor.createProcessor(width, height);
+            if (sliceRois.size() == 0) {
+                continue;
+            }
+            sourceProcessor = sourceStack.getProcessor(sourceZ);
+            targetProcessor = sourceProcessor.createProcessor(croppedWidth, croppedHeight);
             if (fillBackground) {
                 targetProcessor.setColor(fillColor);
                 targetProcessor.fill();
             }
-            copySlice(sourceProcessor, targetProcessor, sliceRois, padding, roiBackgroundColor);
-            targetStack.addSlice("", targetProcessor);
+            boolean copyOk = copySlice(sourceProcessor, targetProcessor, sliceRois, padding);
+            slicesCopied |= copyOk;
+            if (copyOk) {
+                targetStack.addSlice("", targetProcessor);
+            }
+        }
+
+        if (!slicesCopied) {
+            return null;
         }
 
         // z padding
-        targetProcessor = targetStack.getProcessor(1).createProcessor(width, height);
+        targetProcessor = targetStack.getProcessor(1).createProcessor(croppedWidth, croppedHeight);
         if (fillBackground) {
             targetProcessor.setColor(fillColor);
             targetProcessor.fill();
@@ -171,8 +183,8 @@ public class RoiUtil {
         return targetStack;
     }
 
-    private static ImageProcessor copySlice(ImageProcessor sourceProcessor, ImageProcessor targetProcessor,
-                                            ArrayList<Roi> sliceRois, int padding, int roiBackgroundColor)
+    private static boolean copySlice(ImageProcessor sourceProcessor, ImageProcessor targetProcessor,
+                                            ArrayList<Roi> sliceRois, int padding)
     {
         for (Roi sliceRoi : sliceRois) {
             Rectangle rectangle = sliceRoi.getBounds();
@@ -180,22 +192,75 @@ public class RoiUtil {
             int minX = rectangle.x;
             int maxY = rectangle.y + rectangle.height;
             int maxX = rectangle.x + rectangle.width;
+
+            int boundsType = checkRoiBounds(sourceProcessor, minX, minY, maxX, maxY);
+            if (boundsType == OUT_OF_BOUNDS) {
+                return false;
+            } else if (boundsType == PARTLY_OUT) {
+                int yLimit = targetProcessor.getHeight();
+                int xLimit = targetProcessor.getWidth();
+                minY = Common.clamp(minY, 0, yLimit);
+                minX = Common.clamp(minX, 0, xLimit);
+                maxY = Common.clamp(maxY, 0, yLimit);
+                maxX = Common.clamp(maxX, 0, xLimit);
+            }
+
             int targetY = padding;
             for (int sourceY = minY; sourceY < maxY; sourceY++) {
                 int targetX = padding;
                 for (int sourceX = minX; sourceX < maxX; sourceX++) {
                     int sourceColor = sourceProcessor.get(sourceX, sourceY);
-                    if (sourceColor != roiBackgroundColor) {
-                        targetProcessor.set(targetX, targetY, sourceColor);
-                    }
+                    targetProcessor.set(targetX, targetY, sourceColor);
                     targetX++;
                 }
                 targetY++;
             }
         }
 
-        return targetProcessor;
+        return true;
     }
+
+    private static final int WITHIN_BOUNDS = 1;
+    private static final int PARTLY_OUT = 0;
+    private static final int OUT_OF_BOUNDS = -1;
+
+    private static int checkRoiBounds(ImageProcessor sourceProcessor, int minX, int minY, int maxX, int maxY) {
+        int width = sourceProcessor.getWidth();
+        int height = sourceProcessor.getHeight();
+
+        int xBounds = checkDimensionBounds(minX, maxX, 0, width);
+        int yBounds = checkDimensionBounds(minY, maxY, 0, height);
+
+        if (xBounds == WITHIN_BOUNDS) {
+            if (yBounds == WITHIN_BOUNDS) {
+                return WITHIN_BOUNDS;
+            } else if (yBounds == PARTLY_OUT) {
+                return PARTLY_OUT;
+            }
+
+            return OUT_OF_BOUNDS;
+        } else if (xBounds == PARTLY_OUT) {
+            if ((yBounds == PARTLY_OUT) || (yBounds == WITHIN_BOUNDS)) {
+                return PARTLY_OUT;
+            } else {
+                return OUT_OF_BOUNDS;
+            }
+        }
+
+        return OUT_OF_BOUNDS;
+    }
+
+    //@pre p1 < p2
+    private static int checkDimensionBounds(int p1, int p2, int min, int max) {
+        if (p1 < min) {
+            return p2 < min ? OUT_OF_BOUNDS : PARTLY_OUT;
+        } else if (p1 < max) {
+            return p2 < max ? WITHIN_BOUNDS : PARTLY_OUT;
+        }
+
+        return OUT_OF_BOUNDS;
+    }
+
 
     /**
      * Crop a stack to the limits of the ROIs in the ROI Manager and optionally

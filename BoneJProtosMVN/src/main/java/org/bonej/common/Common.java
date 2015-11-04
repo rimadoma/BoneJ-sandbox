@@ -22,4 +22,15 @@ public class Common {
         }
         return value;
     }
+
+    public static int clamp(int value, int min, int max)
+    {
+        if (Integer.compare(value, min) < 0) {
+            return min;
+        }
+        if (Integer.compare(value, max) > 0) {
+            return max;
+        }
+        return value;
+    }
 }

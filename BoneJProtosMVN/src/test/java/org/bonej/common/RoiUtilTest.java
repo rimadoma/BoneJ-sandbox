@@ -203,11 +203,10 @@ public class RoiUtilTest {
         final byte BACKGROUND_COLOR = 0x00;
         final int BACKGROUND_COLOR_COUNT = 46;
         final byte FILL_COLOR = 0x10;
-        final int FILL_COLOR_COUNT = BACKGROUND_COLOR_COUNT;
+        final int ORIGINAL_BG_COLOR_COUNT = 4;
+        final int FILL_COLOR_COUNT = BACKGROUND_COLOR_COUNT - ORIGINAL_BG_COLOR_COUNT;
         final int MASKED_COUNT = 6;
         final byte MASK_BLACK = Byte.MAX_VALUE;
-
-        int limits[] = {2, 8, 2, 5, 1, 3};
 
         Roi roi1 = new Roi(2, 2, ROI_WIDTH, ROI_HEIGHT);
         roi1.setName("0002-0000-0001");
@@ -227,19 +226,20 @@ public class RoiUtilTest {
         ImagePlus image = TestDataMaker.createCuboid(10, 10, 10, TEST_COLOR, 1);
         ImageStack originalStack = image.getStack();
 
+        //All valid ROIs (basic cropping test)
         ImageStack resultStack = RoiUtil.cropToRois(mockRoiManager, originalStack, false, 0x00, 0);
         assertEquals("Cropped stack has wrong width", WIDTH, resultStack.getWidth());
         assertEquals("Cropped stack has wrong height", HEIGHT, resultStack.getHeight());
         assertEquals("Cropped stack has wrong depth", DEPTH, resultStack.getSize());
 
         int foregroundCount = countColorPixels(resultStack, TEST_COLOR);
-        assertEquals("Crop contains wrong part of the original image", TEST_COLOR_COUNT, foregroundCount);
+        assertEquals("Cropped area has wrong amount of foreground color", TEST_COLOR_COUNT, foregroundCount);
 
         int backgroundCount = countColorPixels(resultStack, BACKGROUND_COLOR);
-        assertEquals("Crop contains wrong part of the original image", BACKGROUND_COLOR_COUNT, backgroundCount);
+        assertEquals("Cropped area has wrong amount of background color", BACKGROUND_COLOR_COUNT, backgroundCount);
 
         //padding
-        ImageStack paddedResultStack = RoiUtil.cropToRois(mockRoiManager, image.getStack(), false, 0x00, PADDING);
+        ImageStack paddedResultStack = RoiUtil.cropToRois(mockRoiManager, originalStack, false, 0x00, PADDING);
         assertEquals("Cropped stack has wrong padded width", WIDTH + TOTAL_PADDING, paddedResultStack.getWidth());
         assertEquals("Cropped stack has wrong padded height", HEIGHT + TOTAL_PADDING, paddedResultStack.getHeight());
         assertEquals("Cropped stack has wrong padded depth", DEPTH + TOTAL_PADDING, paddedResultStack.getSize());
@@ -247,13 +247,58 @@ public class RoiUtilTest {
         assertEquals("Padding didn't shift the pixels correctly", true, pixelsShifted(resultStack, paddedResultStack,
                 PADDING));
 
-        //filling
+        //fill color
         resultStack = RoiUtil.cropToRois(mockRoiManager, originalStack, true, FILL_COLOR, 0);
 
+        foregroundCount = countColorPixels(resultStack, TEST_COLOR);
+        assertEquals("Cropped area has wrong amount of foreground color", TEST_COLOR_COUNT, foregroundCount);
+
+        backgroundCount = countColorPixels(resultStack, BACKGROUND_COLOR);
+        assertEquals("Cropped area has wrong amount of \"original\" background color", ORIGINAL_BG_COLOR_COUNT,
+                backgroundCount);
+
         int fillCount = countColorPixels(resultStack, FILL_COLOR);
-        assertEquals("Crop area has wrong background fill color", FILL_COLOR_COUNT, fillCount);
+        assertEquals("Cropped area has wrong amount of background fill color", FILL_COLOR_COUNT, fillCount);
+
 
         //@TODO: write mask functionality to cropToRois and the test case. Check how to mock masks.
+
+        // ROIs out of bounds
+        Roi negativeRoi = new Roi(-3, -3, 2, 2);
+        negativeRoi.setName("0001-0000-0001");
+        Roi tooFarRoi = new Roi(100, 100, 2, 2);
+        tooFarRoi.setName("0001-0000-0002");
+        Roi outOfBoundsRois[] = {negativeRoi, tooFarRoi};
+
+        when(mockRoiManager.getRoisAsArray()).thenReturn(outOfBoundsRois);
+
+        resultStack = RoiUtil.cropToRois(mockRoiManager, originalStack, false, 0x00, 0);
+        assertEquals("ROIs out of bounds should return null stack", null, resultStack);
+
+        // ROI z out of bounds
+        Roi tooFarZRoi = new Roi(2, 2, 2, 2);
+        tooFarZRoi.setName("9999-0000-0002");
+        Roi outOfZBoundsRois[] = {tooFarZRoi};
+
+        when(mockRoiManager.getRoisAsArray()).thenReturn(outOfZBoundsRois);
+
+        resultStack = RoiUtil.cropToRois(mockRoiManager, originalStack, false, 0x00, 0);
+        assertEquals("ROIs out of bounds should return null stack", null, resultStack);
+
+        // ROI too large, but within bounds
+        final int HUGE_ROI_X = 2;
+        final int HUGE_ROI_Y = 2;
+        Roi hugeRoi = new Roi(HUGE_ROI_X, HUGE_ROI_Y, 100_000, 100_000);
+        hugeRoi.setName("0001-0000-0001");
+        Roi hugeRois[] = {hugeRoi};
+
+        when(mockRoiManager.getRoisAsArray()).thenReturn(hugeRois);
+
+        resultStack = RoiUtil.cropToRois(mockRoiManager, originalStack, false, 0x00, 0);
+        assertNotEquals(null, resultStack);
+        assertEquals("Cropped stack has wrong padded width", originalStack.getWidth() - HUGE_ROI_X , resultStack.getWidth());
+        assertEquals("Cropped stack has wrong padded height", originalStack.getHeight() - HUGE_ROI_Y, resultStack.getHeight());
+        assertEquals("Cropped stack has wrong padded depth", 1, resultStack.getSize());
     }
 
     /**
