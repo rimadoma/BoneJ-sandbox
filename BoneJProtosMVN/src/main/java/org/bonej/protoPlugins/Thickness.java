@@ -124,7 +124,7 @@ public class Thickness implements Command
             RoiManager roiManager = RoiManager.getInstance();
             if (doRoi && roiManager != null) {
                 logService.info("Doing ROI crop...");
-                ImageStack stack = RoiUtil.cropStack(roiManager, image.getStack(), true, 0, 1);
+                //ImageStack stack = RoiUtil.cropStack(roiManager, image.getStack(), true, 0, 1);
             }
         }
     }
