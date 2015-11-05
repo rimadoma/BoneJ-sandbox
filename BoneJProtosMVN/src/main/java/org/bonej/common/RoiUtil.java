@@ -58,12 +58,15 @@ public class RoiUtil {
     /**
      * Find the x, y and z limits of the ROIs in the ROI Manager
      *
-     * @todo    special z
      * @param   roiMan  The collection of all the current ROIs
-     * @return int[] containing x min, x max, y min, y max, z min and z max, or
-     *         null if the ROI Manager is null, or contains no ROIs.
-     *         If any of the ROIs has no slice number, z min is set to
-     *         DEFAULT_Z_MIN and z max is set to DEFAULT_Z_MAX
+     * @param   stack   The stack inside which the ROIs must fit (max limits).
+     * @return int[] containing x min, x max, y min, y max, z min and z max.
+     *         Returns null if the roiMan == null, or contains no ROIs.
+     *         Returns null if stack == null
+     *
+     * If for any ROI isActiveOnAllSlices == true, then z min is set to
+     * 1 and z max is set to stack.getSize().
+     * If no ROI in roiMan fits inside stack, then limits are the same as the dimensions of the stack.
      */
     public static int[] getLimits(RoiManager roiMan, ImageStack stack) {
         if (roiMan == null || stack == null) {
@@ -132,6 +135,15 @@ public class RoiUtil {
         return sliceNumber == NO_SLICE_NUMBER;
     }
 
+    /**
+     * Crops the given rectangle to the area [0, 0, width, height]
+     *
+     * @param bounds    The rectangle to be fitted
+     * @param width     Maximum width of the rectangle
+     * @param height    Maximum height of the rectangle
+     * @return          false if the height or width of the fitted rectangle is 0
+     *                  (Couldn't be cropped inside the area).
+     */
     public static boolean getSafeRoiBounds(Rectangle bounds, int width, int height)
     {
         int xMin = Common.clamp(bounds.x, 0, width);
@@ -152,11 +164,12 @@ public class RoiUtil {
      *
      * @param roiMan                The manager containing the ROIs
      * @param sourceStack           The image to be cropped
-     * @param fillBackground        If true, fill the background of the resulting image
-     * @param fillColor             Color of the background of the resulting image
+     * @param fillBackground        If true, fill the background of the cropped image
+     * @param fillColor             Color of the background of the cropped image
      * @param padding               Number of pixels added to the each side of the resulting image
-     * @pre All ROIs in the manager must fit inside the source stack in (x,y)
      * @return  A new image stack containing the cropped version of the given image.
+     *          Returns null if roiMan is null or empty.
+     *          Returns null if sourceStack == null
      *
      */
     public static ImageStack cropToRois(RoiManager roiMan, ImageStack sourceStack, boolean fillBackground,
@@ -218,6 +231,14 @@ public class RoiUtil {
         return targetStack;
     }
 
+    /**
+     * Copies pixels under all the ROIs on a slide
+     *
+     * @param sourceProcessor   The source image slide
+     * @param targetProcessor   The target slide
+     * @param sliceRois         List of all the ROIs on the source slide
+     * @param padding           Number of pixels added on each side of the target slide
+     */
     private static void copySlice(ImageProcessor sourceProcessor, ImageProcessor targetProcessor,
                                   ArrayList<Roi> sliceRois, int padding)
     {
