@@ -12,6 +12,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.awt.*;
 import java.util.ArrayList;
 
 import static org.junit.Assert.assertEquals;
@@ -26,9 +27,10 @@ import static org.mockito.Mockito.*;
 public class RoiUtilTest {
     RoiManager mockRoiManager = mock(RoiManager.class);
     private static ImagePlus mockImage;
+    private static ImageStack mockStack;
 
-    private final static int MOCK_IMAGE_WIDTH = 10;
-    private final static int MOCK_IMAGE_HEIGHT = 10;
+    private final static int MOCK_IMAGE_WIDTH = 100;
+    private final static int MOCK_IMAGE_HEIGHT = 100;
     private final static int MOCK_IMAGE_DEPTH = 4;
 
     @BeforeClass
@@ -36,6 +38,7 @@ public class RoiUtilTest {
     {
         IJ.newImage("mockImage", "8-bit", MOCK_IMAGE_WIDTH, MOCK_IMAGE_HEIGHT, MOCK_IMAGE_DEPTH);
         mockImage = IJ.getImage();
+        mockStack = mockImage.getStack();
     }
 
     @AfterClass
@@ -45,6 +48,7 @@ public class RoiUtilTest {
             mockImage.flush();
             mockImage.close();
             mockImage = null;
+            mockStack = null;
         }
     }
 
@@ -85,32 +89,35 @@ public class RoiUtilTest {
         when(mockRoiManager.getSliceNumber(anyString())).thenCallRealMethod();
         when(mockRoiManager.getRoisAsArray()).thenReturn(rois);
 
-        /* Can't test the case where no image is open,
-         * because Mockito can't mock static methods (IJ.getImage),
-         * and PowerMock isn't compatible with Mockito 2.0+
-         */
+        // RoiMan == null
+        ArrayList<Roi> resultRois = RoiUtil.getSliceRoi(null, mockStack, 1);
+        assertEquals(true, resultRois.isEmpty());
+
+        // ImageStack == null
+        resultRois = RoiUtil.getSliceRoi(mockRoiManager, null, 1);
+        assertEquals(true, resultRois.isEmpty());
 
         // Out of bounds slice number
-        ArrayList<Roi> resultRois = RoiUtil.getSliceRoi(mockRoiManager, BAD_SLICE_NUMBER);
+        resultRois = RoiUtil.getSliceRoi(mockRoiManager, mockStack, BAD_SLICE_NUMBER);
         assertEquals("Out of bounds slice number should return no ROIs", 0, resultRois.size());
 
-        resultRois = RoiUtil.getSliceRoi(mockRoiManager, mockImage.getNSlices() + 1);
+        resultRois = RoiUtil.getSliceRoi(mockRoiManager, mockStack, mockStack.getSize() + 1);
         assertEquals("Out of bounds slice number should return no ROIs", 0, resultRois.size());
 
         // Slice with no (associated) Rois
-        resultRois = RoiUtil.getSliceRoi(mockRoiManager, NO_ROI_SLICE_NO);
+        resultRois = RoiUtil.getSliceRoi(mockRoiManager, mockStack, NO_ROI_SLICE_NO);
         assertEquals("Wrong number of ROIs returned", 1, resultRois.size());
         assertEquals("Wrong ROI returned", noSliceLabel, resultRois.get(0).getName());
 
         // Slice with one Roi
-        resultRois = RoiUtil.getSliceRoi(mockRoiManager, SINGLE_ROI_SLICE_NO);
+        resultRois = RoiUtil.getSliceRoi(mockRoiManager, mockStack, SINGLE_ROI_SLICE_NO);
 
         assertEquals("Wrong number of ROIs returned", 2, resultRois.size());
         assertEquals("Wrong ROI returned, or ROIs in wrong order", singleRoiLabel, resultRois.get(0).getName());
         assertEquals("Wrong ROI returned, or ROIs in wrong order", noSliceLabel, resultRois.get(1).getName());
 
         // Slice with multiple Rois
-        resultRois = RoiUtil.getSliceRoi(mockRoiManager, MULTI_ROI_SLICE_NO);
+        resultRois = RoiUtil.getSliceRoi(mockRoiManager, mockStack, MULTI_ROI_SLICE_NO);
 
         assertEquals("Wrong number of ROIs returned", 3, resultRois.size());
         assertEquals("Wrong ROI returned, or ROIs in wrong order", multiRoi1Label, resultRois.get(0).getName());
@@ -155,16 +162,24 @@ public class RoiUtilTest {
         when(mockRoiManager.getSliceNumber(anyString())).thenCallRealMethod();
         when(mockRoiManager.getRoisAsArray()).thenReturn(rois);
 
+        // Null RoiManager
+        int limitsResult[] = RoiUtil.getLimits(null, mockStack);
+        assertEquals(null, limitsResult);
+
+        // Null stack
+        limitsResult = RoiUtil.getLimits(mockRoiManager, null);
+        assertEquals(null, limitsResult);
+
         // Empty RoiManager
         when(mockRoiManager.getCount()).thenReturn(0);
 
-        int limitsResult[] = RoiUtil.getLimits(mockRoiManager);
+        limitsResult = RoiUtil.getLimits(mockRoiManager, mockStack);
         assertEquals(null, limitsResult);
 
         // All valid ROIs
         when(mockRoiManager.getCount()).thenReturn(rois.length);
 
-        limitsResult = RoiUtil.getLimits(mockRoiManager);
+        limitsResult = RoiUtil.getLimits(mockRoiManager, mockStack);
         assertNotEquals(null, limitsResult);
         assertEquals(NUM_LIMITS, limitsResult.length);
         assertEquals(MIN_X, limitsResult[0]);
@@ -174,19 +189,49 @@ public class RoiUtilTest {
         assertEquals(MIN_Z, limitsResult[MIN_Z_INDEX]);
         assertEquals(MAX_Z, limitsResult[MAX_Z_INDEX]);
 
-        // A ROI without a slice number (z-index)
-        Roi badZRoi = new Roi(80, 80, 10, 10);
+        // Valid ROIs, and one with no slice number (active on all slices)
+        Roi allActive = new Roi(80, 80, 10, 10);
         //if the label of a roi doesn't follow a certain format, then RoiManager.getSliceNumber returns -1
-        badZRoi.setName("BAD_LABEL");
-        Roi roisWithBadZ[] = {roi1, roi2, badZRoi};
+        allActive.setName("ALL_ACTIVE");
+        Roi roisWithAllActive[] = {roi1, roi2, allActive};
+
+        when(mockRoiManager.getRoisAsArray()).thenReturn(roisWithAllActive);
+
+        limitsResult = RoiUtil.getLimits(mockRoiManager, mockStack);
+        assertNotEquals(null, limitsResult);
+        assertEquals(1, limitsResult[MIN_Z_INDEX]);
+        assertEquals(mockStack.getSize(), limitsResult[MAX_Z_INDEX]);
+
+        // Valid ROIs, and one with a too large slice number
+        Roi farZRoi = new Roi(10, 10, 10, 10);
+        farZRoi.setName("9999-0000-0001"); // slice no == 9999
+
+        Roi roisWithBadZ[] = {roi1, roi2, farZRoi};
 
         when(mockRoiManager.getRoisAsArray()).thenReturn(roisWithBadZ);
 
-        limitsResult = RoiUtil.getLimits(mockRoiManager);
+        limitsResult = RoiUtil.getLimits(mockRoiManager, mockStack);
         assertNotEquals(null, limitsResult);
-        assertEquals(RoiUtil.DEFAULT_Z_MIN, limitsResult[MIN_Z_INDEX]);
-        assertEquals(RoiUtil.DEFAULT_Z_MAX, limitsResult[MAX_Z_INDEX]);
-    }
+        assertEquals(MIN_Z, limitsResult[MIN_Z_INDEX]);
+        assertEquals(MAX_Z, limitsResult[MAX_Z_INDEX]);
+
+        // No valid ROIs
+        Roi badRoi = new Roi(-100, -100, 10, 10);
+        badRoi.setName("BAD_ROI");
+
+        Roi badRois[] = {badRoi};
+
+        when(mockRoiManager.getRoisAsArray()).thenReturn(badRois);
+
+        limitsResult = RoiUtil.getLimits(mockRoiManager, mockStack);
+        assertNotEquals(null, limitsResult);
+        assertEquals(0, limitsResult[0]);
+        assertEquals(mockStack.getWidth(), limitsResult[1]);
+        assertEquals(0, limitsResult[2]);
+        assertEquals(mockStack.getHeight(), limitsResult[3]);
+        assertEquals(1, limitsResult[MIN_Z_INDEX]);
+        assertEquals(mockStack.getSize(), limitsResult[MAX_Z_INDEX]);
+     }
 
     @Test
     public void testCropStack() throws Exception
@@ -223,7 +268,8 @@ public class RoiUtilTest {
         when(mockRoiManager.getSliceNumber(anyString())).thenCallRealMethod();
         when(mockRoiManager.getRoisAsArray()).thenReturn(rois);
 
-        ImagePlus image = TestDataMaker.createCuboid(10, 10, 10, TEST_COLOR, 1);
+        final int CUBE_SIDE = 10;
+        ImagePlus image = TestDataMaker.createCuboid(CUBE_SIDE, CUBE_SIDE, CUBE_SIDE, TEST_COLOR, 1);
         ImageStack originalStack = image.getStack();
 
         //All valid ROIs (basic cropping test)
@@ -237,8 +283,6 @@ public class RoiUtilTest {
 
         int backgroundCount = countColorPixels(resultStack, BACKGROUND_COLOR);
         assertEquals("Cropped area has wrong amount of background color", BACKGROUND_COLOR_COUNT, backgroundCount);
-
-        //@TODO: ROI with no slice number
 
         //padding
         ImageStack paddedResultStack = RoiUtil.cropToRois(mockRoiManager, originalStack, false, 0x00, PADDING);
@@ -262,9 +306,39 @@ public class RoiUtilTest {
         int fillCount = countColorPixels(resultStack, FILL_COLOR);
         assertEquals("Cropped area has wrong amount of background fill color", FILL_COLOR_COUNT, fillCount);
 
+        //A ROI active on all slices
+        final int ALL_ACTIVE_WIDTH = 6;
+        final int ALL_ACTIVE_HEIGHT = 5;
+        Roi allActive = new Roi(1, 1, ALL_ACTIVE_WIDTH, ALL_ACTIVE_HEIGHT);
+        allActive.setName("All active");
+        Roi noZRois[] = {allActive};
 
-        // ROI with a mask
-        //ImageProcessor mask = originalStack.
+        when(mockRoiManager.getRoisAsArray()).thenReturn(noZRois);
+
+        resultStack = RoiUtil.cropToRois(mockRoiManager, originalStack, false, 0x00, 0);
+        assertEquals("Cropped stack has wrong width", ALL_ACTIVE_WIDTH, resultStack.getWidth());
+        assertEquals("Cropped stack has wrong height", ALL_ACTIVE_HEIGHT, resultStack.getHeight());
+        assertEquals("Cropped stack has wrong depth", originalStack.getSize(), resultStack.getSize());
+
+        foregroundCount = countColorPixels(resultStack, TEST_COLOR);
+        assertEquals("Cropped area has wrong amount of foreground color", ALL_ACTIVE_HEIGHT * ALL_ACTIVE_WIDTH *
+                CUBE_SIDE, foregroundCount);
+
+
+        // Too large ROI
+        Roi tooLargeRoi = new Roi(-10, -10, originalStack.getWidth() + 100, originalStack.getHeight() + 100);
+        tooLargeRoi.setName("0001-0000-0001");
+        Roi badRois[] = {tooLargeRoi};
+
+        when(mockRoiManager.getRoisAsArray()).thenReturn(badRois);
+
+        resultStack = RoiUtil.cropToRois(mockRoiManager, originalStack, false, 0x00, 0);
+        assertEquals("Cropped stack has wrong width", originalStack.getWidth(), resultStack.getWidth());
+        assertEquals("Cropped stack has wrong height", originalStack.getHeight(), resultStack.getHeight());
+        assertEquals("Cropped stack has wrong depth", 1, resultStack.getSize());
+
+        // @TODO ROI with a mask
+        // How to set mask to an ImageProcessor so that getMask() != null?!
     }
 
     /**
@@ -320,5 +394,42 @@ public class RoiUtilTest {
         }
 
         return count;
+    }
+
+    @Test
+    public void testGetSafeRoiBounds() throws Exception {
+        final int X = 10;
+        final int Y = 10;
+        final int WIDTH = 10;
+        final int HEIGHT = 10;
+
+        Rectangle validRectangle = new Rectangle(X, Y, WIDTH, HEIGHT);
+        Rectangle outOfBoundsRectangle = new Rectangle(-10, -10, 5, 5);
+        Rectangle tooLargeRectangle = new Rectangle(X, Y, mockStack.getWidth() + 100, mockStack.getHeight() + 100);
+
+        // valid bounds
+        boolean result = RoiUtil.getSafeRoiBounds(validRectangle, mockStack.getWidth(), mockStack.getHeight());
+        assertEquals(true, result);
+        assertEquals(X, validRectangle.x);
+        assertEquals(Y, validRectangle.y);
+        assertEquals(WIDTH, validRectangle.width);
+        assertEquals(HEIGHT, validRectangle.height);
+
+        // bounds completely outside the image stack
+        result = RoiUtil.getSafeRoiBounds(outOfBoundsRectangle, mockStack.getWidth(), mockStack.getHeight());
+        assertEquals(false, result);
+        assertEquals(0, outOfBoundsRectangle.x);
+        assertEquals(0, outOfBoundsRectangle.y);
+        assertEquals(0, outOfBoundsRectangle.width);
+        assertEquals(0, outOfBoundsRectangle.height);
+
+        // bound partly outside the image stack
+        result = RoiUtil.getSafeRoiBounds(tooLargeRectangle, mockStack.getWidth(), mockStack.getHeight());
+        assertEquals(true, result);
+        assertEquals(X, tooLargeRectangle.x);
+        assertEquals(Y, tooLargeRectangle.y);
+        assertEquals(mockStack.getWidth() - X, tooLargeRectangle.width);
+        assertEquals(mockStack.getHeight() - Y, tooLargeRectangle.height);
+
     }
 }

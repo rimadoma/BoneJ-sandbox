@@ -10,6 +10,7 @@ import net.imagej.display.OverlayService;
 import org.bonej.common.Common;
 import org.bonej.common.ImageCheck;
 import org.bonej.common.RoiUtil;
+import org.bonej.common.TestDataMaker;
 import org.scijava.command.Command;
 import org.scijava.log.LogService;
 import org.scijava.plugin.Parameter;
