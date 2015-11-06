@@ -21,6 +21,8 @@ import org.scijava.ui.UIService;
 import static org.scijava.ui.DialogPrompt.*;
 
 /**
+ * A plugin for processing the local thickness measure for bone images.
+ *
  * @author <a href="mailto:rdomander@rvc.ac.uk">Richard Domander</a>
  * @todo instead of LogService open error dialogs when things go wrong
  */
@@ -35,9 +37,6 @@ public class Thickness implements Command
     @Parameter
     private UIService uiService;
 
-    @Parameter
-    private OverlayService overlayService;
-
     // @todo Read from a file?
     private static final String HELP_URL = "http://bonej.org/thickness";
 
@@ -50,6 +49,8 @@ public class Thickness implements Command
     boolean doGraphic = true;
     boolean doRoi = false;
     boolean doMask = true;
+
+    // @todo Add dialog titles as public static final Strings so that they can be accessed by a GUI testing robot..?
 
     /**
      * @todo Remove legacy code, and replace with proper ImageJ2 to show setup dialog
@@ -102,14 +103,16 @@ public class Thickness implements Command
         return result != Result.CANCEL_OPTION;
     }
 
-    private void openTestImage() {
+    //@todo write a plugin that can be used to create test images
+    public static void openTestImage()
+    {
         final int WIDTH = 500;
         final int HEIGHT = 500;
         final int DEPTH = 10;
         final int PADDING = 0;
         IJ.newImage("cuboid", "8-bit", WIDTH, HEIGHT, DEPTH);
-        image = IJ.getImage();
-        image.setImage(TestDataMaker.createCuboid(WIDTH - PADDING, HEIGHT - PADDING, DEPTH, 0xFF, PADDING));
+        ImagePlus foo = IJ.getImage();
+        foo.setImage(TestDataMaker.createCuboid(WIDTH - PADDING, HEIGHT - PADDING, DEPTH, 0xFF, PADDING));
     }
 
     @Override
@@ -119,11 +122,9 @@ public class Thickness implements Command
             return;
         }
 
-        /*if (!setCurrentImage()) {
+        if (!setCurrentImage()) {
             return;
-        }*/
-
-        openTestImage();
+        }
 
         createSetupDialog();
         setupDialog.showDialog();
@@ -132,63 +133,97 @@ public class Thickness implements Command
         }
         getProcessingSettingsFromDialog();
 
-        String title = "Test";
-        boolean inverse = false;
-
-        RoiManager roiMan = RoiManager.getInstance();
+        if (!doThickness && !doSpacing) {
+            uiService.showDialog("Nothing to process, shutting down plugin.", "Nothing to process",
+                    MessageType.INFORMATION_MESSAGE, OptionType.DEFAULT_OPTION);
+            return;
+        }
 
         if (doThickness) {
             logService.info("Do thickness");
 
-            inverse = false;
-
-            if (doRoi) {
-                logService.info("Do crop");
-                ImageStack stack = RoiUtil.cropToRois(roiMan, image.getStack(), true, 0x00, 1);
-                if (stack == null) {
-                    logService.info("Error: no valid ROIs");
-                }
-            } else {
-                logService.info("Don't crop");
-            }
-
-            title = title + "_Tb.Th";
-
-            if (doGraphic && !Interpreter.isBatchMode()) {
-                logService.info("Do graphic");
-            }
+            getLocalThickness(true);
         }
 
         if (doSpacing) {
             logService.info("Do spacing");
 
-            inverse = true;
-
-            if (doRoi ) {
-                logService.info("Do crop");
-                ImageStack stack = RoiUtil.cropToRois(roiMan, image.getStack(), true, 0x00, 1);
-                if (stack == null) {
-                    logService.info("Error: no valid ROIs");
-                }
-            } else {
-                logService.info("Don't crop");
-            }
-
-            title = title + "_Tb.Sp";
-
-            if (doGraphic && !Interpreter.isBatchMode()) {
-                logService.info("Do graphic");
-            }
+            getLocalThickness(false);
         }
+    }
 
+    /**
+     * Calculate the local thickness measure with various user options from the setup dialog
+     * (foreground/background thickness, crop image, show image...).
+     *
+     * @param doForeground  If true, then process the thickness of the foreground (trabecular thickness).
+     *                      If false, then process the thickness of the background (trabecular spacing).
+     */
+    private void getLocalThickness(boolean doForeground)
+    {
+        ImagePlus result;
+        RoiManager roiManager = RoiManager.getInstance();
+
+        int color = doForeground ? Common.BINARY_BLACK : Common.BINARY_WHITE;
+
+        String title = image.getTitle(); //@Todo stripExtension?
+        String suffix = doForeground ? "_Tb.Th" : "_Tb.Sp";
+        title = title + suffix;
 
         logService.info("Title: " + title);
-        logService.info("Inverse: " + inverse);
+        logService.info("Do foreground: " + doForeground);
+        logService.info("Color: " + color);
+
+        if (doRoi) {
+            logService.info("Do crop");
+
+            ImageStack croppedStack = RoiUtil.cropToRois(roiManager, image.getStack(), true, 0x00, 1);
+            if (croppedStack == null) {
+                uiService.showDialog("There are no valid ROIs in the ROI Manager for cropping", "ROI Manager empty",
+                        MessageType.ERROR_MESSAGE, OptionType.DEFAULT_OPTION);
+                return;
+            }
+            ImagePlus croppedImage = new ImagePlus("", croppedStack);
+            result = processThicknessSteps(croppedImage, doForeground);
+        } else {
+            logService.info("Don't crop");
+
+            result = processThicknessSteps(image, doForeground);
+        }
+
+        if (doGraphic && !Interpreter.isBatchMode()) {
+            logService.info("Do graphic");
+        } else {
+            logService.info("Don't do graphic");
+        }
+
+        logService.info("\n");
+    }
+
+    /**
+     * Process the given image through all the steps of Bob Dougherty's LocalThickness_ plugin.
+     *
+     * @param image         Binary (black & white) ImagePlus
+     * @param doForeground  If true, then process the thickness of the foreground.
+     *                      If false, then process the thickness of the background
+     * @return
+     */
+    private ImagePlus processThicknessSteps(ImagePlus image, boolean doForeground) {
+        if (doMask) {
+            logService.info("Do mask");
+        } else {
+            logService.info("Don't do mask");
+        }
+
+        return null;
     }
 
     public static void main(final String... args)
     {
         final ImageJ ij = net.imagej.Main.launch(args);
+
+        openTestImage();
+
         ij.command().run(Thickness.class, true);
     }
 }
