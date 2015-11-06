@@ -224,13 +224,7 @@ public class RoiUtilTest {
         when(mockRoiManager.getRoisAsArray()).thenReturn(badRois);
 
         limitsResult = RoiUtil.getLimits(mockRoiManager, mockStack);
-        assertNotEquals(null, limitsResult);
-        assertEquals(0, limitsResult[0]);
-        assertEquals(mockStack.getWidth(), limitsResult[1]);
-        assertEquals(0, limitsResult[2]);
-        assertEquals(mockStack.getHeight(), limitsResult[3]);
-        assertEquals(1, limitsResult[MIN_Z_INDEX]);
-        assertEquals(mockStack.getSize(), limitsResult[MAX_Z_INDEX]);
+        assertEquals(null, limitsResult);
      }
 
     @Test
@@ -250,8 +244,6 @@ public class RoiUtilTest {
         final byte FILL_COLOR = 0x10;
         final int ORIGINAL_BG_COLOR_COUNT = 4;
         final int FILL_COLOR_COUNT = BACKGROUND_COLOR_COUNT - ORIGINAL_BG_COLOR_COUNT;
-        final int MASKED_COUNT = 6;
-        final byte MASK_BLACK = Byte.MAX_VALUE;
 
         Roi roi1 = new Roi(2, 2, ROI_WIDTH, ROI_HEIGHT);
         roi1.setName("0002-0000-0001");
@@ -336,9 +328,6 @@ public class RoiUtilTest {
         assertEquals("Cropped stack has wrong width", originalStack.getWidth(), resultStack.getWidth());
         assertEquals("Cropped stack has wrong height", originalStack.getHeight(), resultStack.getHeight());
         assertEquals("Cropped stack has wrong depth", 1, resultStack.getSize());
-
-        // @TODO ROI with a mask
-        // How to set mask to an ImageProcessor so that getMask() != null?!
     }
 
     /**
@@ -431,5 +420,48 @@ public class RoiUtilTest {
         assertEquals(mockStack.getWidth() - X, tooLargeRectangle.width);
         assertEquals(mockStack.getHeight() - Y, tooLargeRectangle.height);
 
+    }
+
+    /**
+     * A test for copying from source stack to target stack with a mask
+     *
+     * Complements testCropStack(), because I don't know how to set up a ImageStack with a mask on one of its slices.
+     * @throws Exception
+     */
+    @Test
+    public void testCopyRoiWithMask() throws Exception
+    {
+        final int TEST_COLOR = 0x20;
+        final int TEST_COLOR_COUNT = 75;
+
+        // Create a mask from an L-shaped polygon
+        Polygon polygon = new Polygon();
+        polygon.addPoint(0, 0);
+        polygon.addPoint(10, 0);
+        polygon.addPoint(10, 5);
+        polygon.addPoint(5, 5);
+        polygon.addPoint(5, 10);
+        polygon.addPoint(0, 10);
+        polygon.addPoint(0, 0);
+
+        ImageProcessor result = mockStack.getProcessor(1).createProcessor(mockImage.getWidth(),
+            mockImage.getHeight());
+        ImageProcessor ip = mockStack.getProcessor(1).createProcessor(mockImage.getWidth(),
+                mockImage.getHeight());
+        ip.setRoi(polygon);
+        ImageProcessor mask = ip.getMask();
+
+        // set up mock ImageProcessor
+        ImageProcessor mockSource = mock(ImageProcessor.class);
+        when(mockSource.getMask()).thenReturn(mask);
+        when(mockSource.get(anyInt(), anyInt())).thenReturn(TEST_COLOR);
+
+        // get and assert result
+        RoiUtil.copyRoiWithMask(mockSource, result, 0, 0, 10, 10, 0);
+        ImageStack stack = new ImageStack(result.getWidth(), result.getHeight());
+        stack.addSlice(result);
+
+        int foregroundCount = countColorPixels(stack, TEST_COLOR);
+        assertEquals(TEST_COLOR_COUNT, foregroundCount);
     }
 }

@@ -61,12 +61,12 @@ public class RoiUtil {
      * @param   roiMan  The collection of all the current ROIs
      * @param   stack   The stack inside which the ROIs must fit (max limits).
      * @return int[] containing x min, x max, y min, y max, z min and z max.
-     *         Returns null if the roiMan == null, or contains no ROIs.
+     *         Returns null if roiMan == null || roiMan.getCount() == 0
      *         Returns null if stack == null
+     *         Returns null if every ROI in roiMan is outside the given stack
      *
      * If for any ROI isActiveOnAllSlices == true, then z min is set to
      * 1 and z max is set to stack.getSize().
-     * If no ROI in roiMan fits inside stack, then limits are the same as the dimensions of the stack.
      */
     public static int[] getLimits(RoiManager roiMan, ImageStack stack) {
         if (roiMan == null || stack == null) {
@@ -116,8 +116,7 @@ public class RoiUtil {
         }
 
         if (noValidRois) {
-            int defaultLimits[] = {0, stack.getWidth(), 0, stack.getHeight(), DEFAULT_Z_MIN, DEFAULT_Z_MAX};
-            return  defaultLimits;
+            return null;
         }
 
         int[] limits = { xMin, xMax, yMin, yMax, zMin, zMax };
@@ -199,7 +198,6 @@ public class RoiUtil {
         ArrayList<Roi> sliceRois;
 
         for (int sourceZ = zMin; sourceZ <= zMax; sourceZ++) {
-            //@todo: check that ROIs with NO_SLICE_NUMBER work OK
             sliceRois = getSliceRoi(roiMan, sourceStack, sourceZ);
             if (sliceRois.size() == 0) {
                 continue;
@@ -280,7 +278,7 @@ public class RoiUtil {
      *
      * Calls copyRoi with the given parameters if sourceProcessor.getMask() == null
      */
-    private static void copyRoiWithMask(ImageProcessor sourceProcessor, ImageProcessor targetProcessor, final int minX,
+    public static void copyRoiWithMask(ImageProcessor sourceProcessor, ImageProcessor targetProcessor, final int minX,
                                         final int minY, final int maxX, final int maxY, final int padding)
     {
         ImageProcessor mask = sourceProcessor.getMask();
