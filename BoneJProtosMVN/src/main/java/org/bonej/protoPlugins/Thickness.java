@@ -4,6 +4,7 @@ import ij.IJ;
 import ij.ImagePlus;
 import ij.ImageStack;
 import ij.gui.GenericDialog;
+import ij.macro.Interpreter;
 import ij.plugin.frame.RoiManager;
 import net.imagej.ImageJ;
 import net.imagej.display.OverlayService;
@@ -59,7 +60,7 @@ public class Thickness implements Command
         setupDialog.addCheckbox("Thickness", doThickness);
         setupDialog.addCheckbox("Spacing", doSpacing);
         setupDialog.addCheckbox("Graphic Result", doGraphic);
-        setupDialog.addCheckbox("Use_ROI_Manager", doRoi);
+        setupDialog.addCheckbox("Crop using ROI Manager", doRoi);
         setupDialog.addCheckbox("Mask thickness map", doMask);
         setupDialog.addHelp(HELP_URL);
     }
@@ -101,6 +102,16 @@ public class Thickness implements Command
         return result != Result.CANCEL_OPTION;
     }
 
+    private void openTestImage() {
+        final int WIDTH = 500;
+        final int HEIGHT = 500;
+        final int DEPTH = 10;
+        final int PADDING = 0;
+        IJ.newImage("cuboid", "8-bit", WIDTH, HEIGHT, DEPTH);
+        image = IJ.getImage();
+        image.setImage(TestDataMaker.createCuboid(WIDTH - PADDING, HEIGHT - PADDING, DEPTH, 0xFF, PADDING));
+    }
+
     @Override
     public void run()
     {
@@ -108,9 +119,11 @@ public class Thickness implements Command
             return;
         }
 
-        if (!setCurrentImage()) {
+        /*if (!setCurrentImage()) {
             return;
-        }
+        }*/
+
+        openTestImage();
 
         createSetupDialog();
         setupDialog.showDialog();
@@ -119,21 +132,63 @@ public class Thickness implements Command
         }
         getProcessingSettingsFromDialog();
 
+        String title = "Test";
+        boolean inverse = false;
+
+        RoiManager roiMan = RoiManager.getInstance();
+
         if (doThickness) {
-            logService.info("Doing thickness...");
-            //@todo How do ROIs work in ImageJ2?
-            RoiManager roiManager = RoiManager.getInstance();
-            if (doRoi && roiManager != null) {
-                logService.info("Doing ROI crop...");
-                //ImageStack stack = RoiUtil.cropStack(roiManager, image.getStack(), true, 0, 1);
+            logService.info("Do thickness");
+
+            inverse = false;
+
+            if (doRoi) {
+                logService.info("Do crop");
+                ImageStack stack = RoiUtil.cropToRois(roiMan, image.getStack(), true, 0x00, 1);
+                if (stack == null) {
+                    logService.info("Error: no valid ROIs");
+                }
+            } else {
+                logService.info("Don't crop");
+            }
+
+            title = title + "_Tb.Th";
+
+            if (doGraphic && !Interpreter.isBatchMode()) {
+                logService.info("Do graphic");
             }
         }
+
+        if (doSpacing) {
+            logService.info("Do spacing");
+
+            inverse = true;
+
+            if (doRoi ) {
+                logService.info("Do crop");
+                ImageStack stack = RoiUtil.cropToRois(roiMan, image.getStack(), true, 0x00, 1);
+                if (stack == null) {
+                    logService.info("Error: no valid ROIs");
+                }
+            } else {
+                logService.info("Don't crop");
+            }
+
+            title = title + "_Tb.Sp";
+
+            if (doGraphic && !Interpreter.isBatchMode()) {
+                logService.info("Do graphic");
+            }
+        }
+
+
+        logService.info("Title: " + title);
+        logService.info("Inverse: " + inverse);
     }
 
     public static void main(final String... args)
     {
         final ImageJ ij = net.imagej.Main.launch(args);
-        IJ.open();
         ij.command().run(Thickness.class, true);
     }
 }
