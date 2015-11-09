@@ -12,6 +12,8 @@ import org.bonej.common.Common;
 import org.bonej.common.ImageCheck;
 import org.bonej.common.RoiUtil;
 import org.bonej.common.TestDataMaker;
+import org.bonej.localThickness.EDT_S1D;
+import org.bonej.localThickness.Local_Thickness_Driver;
 import org.scijava.command.Command;
 import org.scijava.log.LogService;
 import org.scijava.plugin.Parameter;
@@ -209,6 +211,11 @@ public class Thickness implements Command
      * @return
      */
     private ImagePlus processThicknessSteps(ImagePlus image, boolean doForeground) {
+        EDT_S1D geometryToDistance = new EDT_S1D();
+        geometryToDistance.setup("", image);
+        geometryToDistance.run(null);
+
+
         if (doMask) {
             logService.info("Do mask");
         } else {
