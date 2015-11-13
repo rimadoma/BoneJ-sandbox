@@ -67,7 +67,9 @@ public class Local_Thickness_Driver implements  PlugInFilter {
 		impDM.flush();
 		WindowManager.setTempCurrentImage(impDR);
 		IJ.run("Distance Ridge to Local Thickness");
-		ImagePlus impLT = WindowManager.getCurrentImage();	
+		ImagePlus impLT = WindowManager.getCurrentImage();
+		impDR.hide();
+		impDR.flush();
 		IJ.run("Local Thickness to Cleaned-Up Local Thickness");
 		ImagePlus impLTC = WindowManager.getCurrentImage();
 		impLT.hide();
@@ -77,7 +79,7 @@ public class Local_Thickness_Driver implements  PlugInFilter {
 		IJ.showStatus("Done");
 	}
 	//Modified from ImageJ code by Wayne Rasband
-    String stripExtension(String name) {
+    public static String stripExtension(String name) {
         if (name!=null) {
             int dotIndex = name.lastIndexOf(".");
             if (dotIndex>=0)

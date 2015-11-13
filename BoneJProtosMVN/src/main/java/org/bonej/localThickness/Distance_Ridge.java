@@ -61,6 +61,8 @@ public class Distance_Ridge implements  PlugInFilter {
 	private ImagePlus imp;
 	public float[][] data;
 	public int w,h,d;
+	public boolean runSilent = false;
+	private ImagePlus resultImage;
 
 	public int setup(String arg, ImagePlus imp) {
  		this.imp = imp;
@@ -71,6 +73,9 @@ public class Distance_Ridge implements  PlugInFilter {
 		w = stack.getWidth();
 		h = stack.getHeight();
 		d = imp.getStackSize();
+
+		resultImage = null;
+
 		//Create 32 bit floating point stack for output, s.  Will also use it for g in Transormation 1.
 		ImageStack newStack = new ImageStack(w,h);
 		float[][] sNew = new float[d][];
@@ -194,10 +199,13 @@ public class Distance_Ridge implements  PlugInFilter {
 		}//k
 		IJ.showStatus("Distance Ridge complete");
 		String title = stripExtension(imp.getTitle());
-		ImagePlus impOut = new ImagePlus(title+"_DR",newStack);
-		impOut.getProcessor().setMinAndMax(0,distMax);
-		impOut.show();
-		IJ.run("Fire");
+		resultImage = new ImagePlus(title+"_DR",newStack);
+		resultImage.getProcessor().setMinAndMax(0,distMax);
+
+		if (!runSilent) {
+			resultImage.show();
+			IJ.run("Fire");
+		}
 	}
 	//For each offset from the origin, (dx,dy,dz), and each radius-squared,
 	//rSq, find the smallest radius-squared, r1Squared, such that a ball
@@ -261,4 +269,9 @@ public class Distance_Ridge implements  PlugInFilter {
 		}
 		return name;
     }
+
+	public ImagePlus getResultImage()
+	{
+		return resultImage;
+	}
 }

@@ -51,6 +51,8 @@ public class Clean_Up_Local_Thickness implements  PlugInFilter {
 	private ImagePlus imp;
 	public float[][] s, sNew;
 	public int w,h,d;
+	public boolean runSilent = false;
+	private ImagePlus resultImage;
 
 	public int setup(String arg, ImagePlus imp) {
  		this.imp = imp;
@@ -61,6 +63,9 @@ public class Clean_Up_Local_Thickness implements  PlugInFilter {
 		w = stack.getWidth();
 		h = stack.getHeight();
 		d = imp.getStackSize();
+
+		resultImage = null;
+
 		//Create 32 bit floating point stack for output, sNew.
 		ImageStack newStack = new ImageStack(w,h);
 		sNew = new float[d][];
@@ -111,10 +116,13 @@ public class Clean_Up_Local_Thickness implements  PlugInFilter {
 		}//k
 		IJ.showStatus("Clean Up Local Thickness complete");
 		String title = stripExtension(imp.getTitle());
-		ImagePlus impOut = new ImagePlus(title+"_CL",newStack);
-		impOut.getProcessor().setMinAndMax(0,2*imp.getProcessor().getMax());
-		impOut.show();
-		IJ.run("Fire");
+		resultImage = new ImagePlus(title+"_CL",newStack);
+		resultImage.getProcessor().setMinAndMax(0,2*imp.getProcessor().getMax());
+
+		if (!runSilent) {
+			resultImage.show();
+			IJ.run("Fire");
+		}
 	}
 	float setFlag(int i,int j,int k){
 		if(s[k][i+w*j]==0)return 0;
@@ -315,4 +323,9 @@ public class Clean_Up_Local_Thickness implements  PlugInFilter {
 		}
 		return name;
     }
+
+	public ImagePlus getResultImage()
+	{
+		return resultImage;
+	}
 }

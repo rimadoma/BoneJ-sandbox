@@ -5,15 +5,15 @@ import ij.ImagePlus;
 import ij.ImageStack;
 import ij.gui.GenericDialog;
 import ij.macro.Interpreter;
+import ij.measure.Calibration;
 import ij.plugin.frame.RoiManager;
 import net.imagej.ImageJ;
-import net.imagej.display.OverlayService;
+import net.imagej.patcher.LegacyInjector;
 import org.bonej.common.Common;
 import org.bonej.common.ImageCheck;
 import org.bonej.common.RoiUtil;
 import org.bonej.common.TestDataMaker;
-import org.bonej.localThickness.EDT_S1D;
-import org.bonej.localThickness.Local_Thickness_Driver;
+import org.bonej.localThickness.LocalThicknessWrapper;
 import org.scijava.command.Command;
 import org.scijava.log.LogService;
 import org.scijava.plugin.Parameter;
@@ -31,6 +31,12 @@ import static org.scijava.ui.DialogPrompt.*;
 @Plugin(type = Command.class, menuPath = "Plugins>Thickness")
 public class Thickness implements Command
 {
+    // @todo Read from a file?
+    private static final String HELP_URL = "http://bonej.org/thickness";
+
+    // Don't make static
+    private final LocalThicknessWrapper thicknessWrapper = new LocalThicknessWrapper();
+
     // The following service parameters are populated automatically
     // by the SciJava service framework before this command plugin is executed.
     @Parameter
@@ -39,18 +45,14 @@ public class Thickness implements Command
     @Parameter
     private UIService uiService;
 
-    // @todo Read from a file?
-    private static final String HELP_URL = "http://bonej.org/thickness";
-
     private ImagePlus image = null;
-
     private GenericDialog setupDialog;
 
-    boolean doThickness = true;
-    boolean doSpacing = false;
-    boolean doGraphic = true;
-    boolean doRoi = false;
-    boolean doMask = true;
+    private boolean doThickness = true;
+    private boolean doSpacing = false;
+    private boolean doGraphic = true;
+    private boolean doRoi = false;
+    private boolean doMask = true;
 
     // @todo Add dialog titles as public static final Strings so that they can be accessed by a GUI testing robot..?
 
@@ -99,8 +101,8 @@ public class Thickness implements Command
             return true;
         }
 
-        Result result = uiService.showDialog(Common.ANISOTROPY_WARNING, "Anisotropic voxels", MessageType.WARNING_MESSAGE,
-                OptionType.OK_CANCEL_OPTION);
+        Result result = uiService.showDialog(Common.ANISOTROPY_WARNING, "Anisotropic voxels",
+                MessageType.WARNING_MESSAGE, OptionType.OK_CANCEL_OPTION);
 
         return result != Result.CANCEL_OPTION;
     }
@@ -168,11 +170,10 @@ public class Thickness implements Command
 
         int color = doForeground ? Common.BINARY_BLACK : Common.BINARY_WHITE;
 
-        String title = image.getTitle(); //@Todo stripExtension?
         String suffix = doForeground ? "_Tb.Th" : "_Tb.Sp";
-        title = title + suffix;
 
-        logService.info("Title: " + title);
+        Calibration originalCalibration = image.getCalibration();
+
         logService.info("Do foreground: " + doForeground);
         logService.info("Color: " + color);
 
@@ -186,15 +187,26 @@ public class Thickness implements Command
                 return;
             }
             ImagePlus croppedImage = new ImagePlus("", croppedStack);
-            result = processThicknessSteps(croppedImage, doForeground);
+
+            result = processThicknessSteps(croppedImage, doForeground, suffix);
         } else {
             logService.info("Don't crop");
 
-            result = processThicknessSteps(image, doForeground);
+            result = processThicknessSteps(image, doForeground, suffix);
         }
+
+        result.setCalibration(originalCalibration);
+
+        double stats[] = org.bonej.common.StackStatistics.standardDeviation(result);
+        logService.info("Mean:" + stats[0]);
+        logService.info("Standard deviation:" + stats[1]);
+        logService.info("Max:" + stats[2]);
+
 
         if (doGraphic && !Interpreter.isBatchMode()) {
             logService.info("Do graphic");
+            result.show();
+            IJ.run("Fire");
         } else {
             logService.info("Don't do graphic");
         }
@@ -203,33 +215,27 @@ public class Thickness implements Command
     }
 
     /**
-     * Process the given image through all the steps of Bob Dougherty's LocalThickness_ plugin.
+     * Process the given image through all the steps of LocalThickness_ plugin.
      *
      * @param image         Binary (black & white) ImagePlus
      * @param doForeground  If true, then process the thickness of the foreground.
      *                      If false, then process the thickness of the background
      * @return
      */
-    private ImagePlus processThicknessSteps(ImagePlus image, boolean doForeground) {
-        EDT_S1D geometryToDistance = new EDT_S1D();
-        geometryToDistance.setup("", image);
-        geometryToDistance.run(null);
-
-
-        if (doMask) {
-            logService.info("Do mask");
-        } else {
-            logService.info("Don't do mask");
-        }
-
-        return null;
+    private ImagePlus processThicknessSteps(ImagePlus image, boolean doForeground, String tittleSuffix) {
+        thicknessWrapper.setSilence(true);
+        thicknessWrapper.inverse = !doForeground;
+        thicknessWrapper.setShowOptions(false);
+        thicknessWrapper.trimThicknessMap = doMask;
+        thicknessWrapper.setTitleSuffix(tittleSuffix);
+        return thicknessWrapper.processImage(image);
     }
 
     public static void main(final String... args)
     {
         final ImageJ ij = net.imagej.Main.launch(args);
 
-        openTestImage();
+        //openTestImage();
 
         ij.command().run(Thickness.class, true);
     }
