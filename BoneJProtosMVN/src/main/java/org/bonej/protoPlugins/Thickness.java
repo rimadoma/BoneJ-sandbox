@@ -5,10 +5,9 @@ import ij.ImagePlus;
 import ij.ImageStack;
 import ij.gui.GenericDialog;
 import ij.macro.Interpreter;
-import ij.measure.Calibration;
 import ij.plugin.frame.RoiManager;
+import ij.process.StackStatistics;
 import net.imagej.ImageJ;
-import net.imagej.patcher.LegacyInjector;
 import org.bonej.common.Common;
 import org.bonej.common.ImageCheck;
 import org.bonej.common.RoiUtil;
@@ -167,19 +166,9 @@ public class Thickness implements Command
     {
         ImagePlus result;
         RoiManager roiManager = RoiManager.getInstance();
-
-        int color = doForeground ? Common.BINARY_BLACK : Common.BINARY_WHITE;
-
         String suffix = doForeground ? "_Tb.Th" : "_Tb.Sp";
 
-        Calibration originalCalibration = image.getCalibration();
-
-        logService.info("Do foreground: " + doForeground);
-        logService.info("Color: " + color);
-
         if (doRoi) {
-            logService.info("Do crop");
-
             ImageStack croppedStack = RoiUtil.cropToRois(roiManager, image.getStack(), true, 0x00, 1);
             if (croppedStack == null) {
                 uiService.showDialog("There are no valid ROIs in the ROI Manager for cropping", "ROI Manager empty",
@@ -187,31 +176,19 @@ public class Thickness implements Command
                 return;
             }
             ImagePlus croppedImage = new ImagePlus("", croppedStack);
+            croppedImage.copyScale(image);
 
             result = processThicknessSteps(croppedImage, doForeground, suffix);
         } else {
-            logService.info("Don't crop");
-
             result = processThicknessSteps(image, doForeground, suffix);
         }
 
-        result.setCalibration(originalCalibration);
-
-        double stats[] = org.bonej.common.StackStatistics.standardDeviation(result);
-        logService.info("Mean:" + stats[0]);
-        logService.info("Standard deviation:" + stats[1]);
-        logService.info("Max:" + stats[2]);
-
+        showThicknessStats(result);
 
         if (doGraphic && !Interpreter.isBatchMode()) {
-            logService.info("Do graphic");
             result.show();
             IJ.run("Fire");
-        } else {
-            logService.info("Don't do graphic");
         }
-
-        logService.info("\n");
     }
 
     /**
@@ -222,13 +199,30 @@ public class Thickness implements Command
      *                      If false, then process the thickness of the background
      * @return
      */
-    private ImagePlus processThicknessSteps(ImagePlus image, boolean doForeground, String tittleSuffix) {
+    private ImagePlus processThicknessSteps(ImagePlus image, boolean doForeground, String tittleSuffix)
+    {
         thicknessWrapper.setSilence(true);
         thicknessWrapper.inverse = !doForeground;
         thicknessWrapper.setShowOptions(false);
         thicknessWrapper.trimThicknessMap = doMask;
         thicknessWrapper.setTitleSuffix(tittleSuffix);
-        return thicknessWrapper.processImage(image);
+        ImagePlus result = thicknessWrapper.processImage(image);
+        result.copyScale(image);
+        return result;
+    }
+
+    private void showThicknessStats(ImagePlus thicknessMap)
+    {
+        // Needed so that pixels with 0.0f (background) value don't affect the statistical mean
+        Common.backgroundToNaN(thicknessMap, 0.0f);
+
+        double pixelWidth = thicknessMap.getCalibration().pixelWidth;
+        StackStatistics stackStats = new StackStatistics(thicknessMap);
+        double calibratedMean = stackStats.mean * pixelWidth;
+        logService.info("Mean:" + calibratedMean);
+        logService.info("Max:" + stackStats.max * pixelWidth);
+        double standardDeviation = Common.calibratedStandardDeviation(thicknessMap, calibratedMean);
+        logService.info("Standard deviation:" + standardDeviation);
     }
 
     public static void main(final String... args)
