@@ -2,6 +2,8 @@ package org.bonej.common;
 
 import ij.measure.ResultsTable;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 /**
  * A wrapper class for ResultsTable used to insert measurements according to the following policy:
  * 1)
@@ -36,44 +38,56 @@ public class ResultsInserter
      */
     public void setResultsTable(ResultsTable resultsTable)
     {
-        if (resultsTable == null) {
-            return;
-        }
+        checkNotNull(resultsTable, "The ResultsTable in ResultsInserter must not be set null");
 
+        this.resultsTable = resultsTable;
         this.resultsTable.setNaNEmptyCells(true);
         this.resultsTable = resultsTable;
     }
 
-    public void setImageMeasurementInFirstFreeRow(String imageTitle, String measurementTitle, double measurementValue)
+    public void setImageMeasurementInFirstFreeRow(String imageTitle, String measurementHeading, double measurementValue)
     {
         if (imageTitle == null || imageTitle.isEmpty()) {
             return;
         }
 
-        if (measurementTitle == null || measurementTitle.isEmpty()) {
+        if (measurementHeading == null || measurementHeading.isEmpty()) {
             return;
         }
 
-        int rowNumber = rowOfImage(imageTitle);
+        int rowNumber = rowOfLabel(imageTitle);
         if (rowNumber < 0) {
-            addNewRow(imageTitle, measurementTitle, measurementValue);
+            addNewRow(imageTitle, measurementHeading, measurementValue);
+            return;
         }
+
+        int columnNumber = columnOfHeading(measurementHeading);
+        if (columnNumber < 0) {
+            //add measurement to row #rowNumber
+        } else {
+            addNewRow(imageTitle, measurementHeading, measurementValue);
+        }
+    }
+
+    private int columnOfHeading(String heading)
+    {
+        return -1;
     }
 
     private void addNewRow(String imageTitle, String measurementTitle, double measurementValue)
     {
         resultsTable.incrementCounter();
         resultsTable.addLabel(imageTitle);
-        resultsTable.addValue(measurementTitle, measurementTitle);
+        resultsTable.addValue(measurementTitle, measurementValue);
     }
 
-    private int rowOfImage(String imageTitle)
+    private int rowOfLabel(String label)
     {
 
         final int rows = resultsTable.getCounter();
         for (int row = 0; row < rows; row++) {
             String rowLabel = resultsTable.getLabel(row);
-            if (imageTitle.equals(rowLabel)) {
+            if (label.equals(rowLabel)) {
                 return row;
             }
         }
