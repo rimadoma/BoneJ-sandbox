@@ -3,6 +3,9 @@ package org.bonej.common;
 import ij.ImagePlus;
 import ij.ImageStack;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+
 /**
  * @author <a href="mailto:rdomander@rvc.ac.uk">Richard Domander</a>
  */
@@ -45,9 +48,8 @@ public class Common {
      */
     public static void backgroundToNaN(ImagePlus image, float backgroundColor)
     {
-        if (image == null) {
-            return;
-        }
+        checkNotNull(image, "Image must not be null");
+        checkArgument(image.getBitDepth() == 32, "Not a 32-bit image");
 
         final int depth = image.getNSlices();
         final int pixelsPerSlice = image.getWidth() * image.getHeight();
@@ -64,51 +66,26 @@ public class Common {
     }
 
     /**
-     * Calculates the standard deviation of the pixel values, when they are used to represent some measurement.
-     * For example, the method is handy for LocalThickness, where pixel values represent the thickness of the sample
-     * at that point.
-     * The units of the measurement are determined from the calibration of the image.
+     * Multiplies all pixel values of the given image by image.getCalibration().pixelWidth
      *
-     * @param image                 A 32-bit floating point image
-     * @param calibratedMeanValue   The mean value of the pixels divided by pixelWidth
-     * @return                      The scaled standard deviation of the pixel values
-     *                              Returns Double.MIN_VALUE if image == null, or if there are no foreground pixels
+     * @param image A 32-bit floating point image
      *
-     * The image is assumed to be isotropic (pixelWidth == pixelHeight).
+     * Handy when the pixel values of an image represent some measurement.
+     * For example the pixel values of a local thickness map represent the thickness of the sample in that location.
+     * Multiplying the pixel values by pixel width then gives you the thickness in real units, e.g. millimetres.
      */
-    public static double calibratedStandardDeviation(ImagePlus image, double calibratedMeanValue)
+
+    public static void pixelValuesToCalibratedValues(ImagePlus image)
     {
-        if (image == null) {
-            return Double.MIN_VALUE;
+        checkNotNull(image, "Image must not be null");
+        checkArgument(image.getBitDepth() == 32, "Not a 32-bit image");
+
+        double pixelWidth = image.getCalibration().pixelWidth;
+        ImageStack stack = image.getStack();
+        final int depth = stack.getSize();
+
+        for (int z = 1; z <= depth; z++) {
+            stack.getProcessor(z).multiply(pixelWidth);
         }
-
-        final int w = image.getWidth();
-        final int h = image.getHeight();
-        final int d = image.getStackSize();
-        final int wh = w * h;
-        final ImageStack stack = image.getStack();
-        long pixCount = 0;
-
-        float pixelWidth = (float) image.getCalibration().pixelWidth;
-
-        double sumSquares = 0;
-        for (int s = 1; s <= d; s++) {
-            final float[] slicePixels = (float[]) stack.getPixels(s);
-            for (int p = 0; p < wh; p++) {
-                final float pixVal = slicePixels[p] * pixelWidth;
-                if (!Float.isNaN(pixVal)) {
-                    final double residual = (pixVal - calibratedMeanValue);
-                    sumSquares += residual * residual;
-                    pixCount++;
-                }
-            }
-        }
-
-        if (pixCount == 0) {
-            return Double.MIN_VALUE;
-        }
-
-        final double stDev = Math.sqrt(sumSquares / pixCount);
-        return stDev;
     }
 }

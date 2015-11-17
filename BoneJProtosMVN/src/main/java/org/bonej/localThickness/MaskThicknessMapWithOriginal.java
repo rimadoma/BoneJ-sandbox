@@ -8,7 +8,7 @@ import ij.process.ImageProcessor;
 /**
  * An additional image processing step to LocalThickness,
  * which removes pixels from the thickness map, which are background
- * in the original image.
+ * in the original image. This is to avoid volume dilation in the map.
  *
  * @author <a href="mailto:rdomander@rvc.ac.uk">Richard Domander</a>
  */

@@ -5,9 +5,11 @@ import ij.ImagePlus;
 import ij.ImageStack;
 import ij.gui.GenericDialog;
 import ij.macro.Interpreter;
+import ij.measure.ResultsTable;
 import ij.plugin.frame.RoiManager;
 import ij.process.StackStatistics;
 import net.imagej.ImageJ;
+import net.imagej.patcher.LegacyInjector;
 import org.bonej.common.Common;
 import org.bonej.common.ImageCheck;
 import org.bonej.common.RoiUtil;
@@ -30,10 +32,14 @@ import static org.scijava.ui.DialogPrompt.*;
 @Plugin(type = Command.class, menuPath = "Plugins>Thickness")
 public class Thickness implements Command
 {
+    // Need this because we're using ImageJ 1.x classes
+    static {
+        LegacyInjector.preinit();
+    }
+
     // @todo Read from a file?
     private static final String HELP_URL = "http://bonej.org/thickness";
 
-    // Don't make static
     private final LocalThicknessWrapper thicknessWrapper = new LocalThicknessWrapper();
 
     // The following service parameters are populated automatically
@@ -45,6 +51,8 @@ public class Thickness implements Command
     private UIService uiService;
 
     private ImagePlus image = null;
+    private ImagePlus result = null;
+    private double resultImageMaxValue = 0.0;
     private GenericDialog setupDialog;
 
     private boolean doThickness = true;
@@ -143,16 +151,26 @@ public class Thickness implements Command
         }
 
         if (doThickness) {
-            logService.info("Do thickness");
-
             getLocalThickness(true);
+            showThicknessStats();
+            showResultImage();
         }
 
         if (doSpacing) {
-            logService.info("Do spacing");
-
             getLocalThickness(false);
+            showThicknessStats();
+            showResultImage();
         }
+    }
+
+    private void showResultImage() {
+        if (!doGraphic || Interpreter.isBatchMode()) {
+            return;
+        }
+
+        result.show();
+        result.getProcessor().setMinAndMax(0.0, resultImageMaxValue);
+        IJ.run("Fire");
     }
 
     /**
@@ -164,7 +182,9 @@ public class Thickness implements Command
      */
     private void getLocalThickness(boolean doForeground)
     {
-        ImagePlus result;
+        result = null;
+        resultImageMaxValue = 0.0;
+
         RoiManager roiManager = RoiManager.getInstance();
         String suffix = doForeground ? "_Tb.Th" : "_Tb.Sp";
 
@@ -181,13 +201,6 @@ public class Thickness implements Command
             result = processThicknessSteps(croppedImage, doForeground, suffix);
         } else {
             result = processThicknessSteps(image, doForeground, suffix);
-        }
-
-        showThicknessStats(result);
-
-        if (doGraphic && !Interpreter.isBatchMode()) {
-            result.show();
-            IJ.run("Fire");
         }
     }
 
@@ -208,21 +221,36 @@ public class Thickness implements Command
         thicknessWrapper.setTitleSuffix(tittleSuffix);
         ImagePlus result = thicknessWrapper.processImage(image);
         result.copyScale(image);
+        Common.pixelValuesToCalibratedValues(result);
+        // Needed so that pixels with 0.0f (background) value don't affect the statistical mean
+        Common.backgroundToNaN(result, 0.0f);
         return result;
     }
 
-    private void showThicknessStats(ImagePlus thicknessMap)
+    public void showThicknessStats()
     {
-        // Needed so that pixels with 0.0f (background) value don't affect the statistical mean
-        Common.backgroundToNaN(thicknessMap, 0.0f);
-
-        double pixelWidth = thicknessMap.getCalibration().pixelWidth;
-        StackStatistics stackStats = new StackStatistics(thicknessMap);
-        double calibratedMean = stackStats.mean * pixelWidth;
-        logService.info("Mean:" + calibratedMean);
-        logService.info("Max:" + stackStats.max * pixelWidth);
-        double standardDeviation = Common.calibratedStandardDeviation(thicknessMap, calibratedMean);
+        StackStatistics stackStats = new StackStatistics(result);
+        resultImageMaxValue = stackStats.max;
+        logService.info("Mean:" + stackStats.mean);
+        logService.info("Max:" + resultImageMaxValue);
+        double standardDeviation = stackStats.stdDev;
         logService.info("Standard deviation:" + standardDeviation);
+
+        String title = "Foo";
+        ResultsTable resultsTable = ResultsTable.getResultsTable();
+        resultsTable.setNaNEmptyCells(true);
+
+        resultsTable.incrementCounter();
+        resultsTable.setLabel(title, 0);
+        resultsTable.addValue("Mean", 1.0);
+        resultsTable.addValue("Mean (mm)", 1.0);
+
+        resultsTable.addLabel(title);
+        resultsTable.addValue("Mean (mm)", 2.0);
+        resultsTable.addValue("Mean (µm)", 1000.0);
+
+        resultsTable.show("Results");
+
     }
 
     public static void main(final String... args)
@@ -230,6 +258,7 @@ public class Thickness implements Command
         final ImageJ ij = net.imagej.Main.launch(args);
 
         //openTestImage();
+        IJ.open("/media/rvc_projects/Research_Storage/Doube_Michael/BoneJ2/TestImages/binary_trabeculae_small.tif");
 
         ij.command().run(Thickness.class, true);
     }
