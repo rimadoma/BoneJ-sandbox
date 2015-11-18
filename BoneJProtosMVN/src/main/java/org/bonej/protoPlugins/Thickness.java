@@ -5,15 +5,11 @@ import ij.ImagePlus;
 import ij.ImageStack;
 import ij.gui.GenericDialog;
 import ij.macro.Interpreter;
-import ij.measure.ResultsTable;
 import ij.plugin.frame.RoiManager;
 import ij.process.StackStatistics;
 import net.imagej.ImageJ;
 import net.imagej.patcher.LegacyInjector;
-import org.bonej.common.Common;
-import org.bonej.common.ImageCheck;
-import org.bonej.common.RoiUtil;
-import org.bonej.common.TestDataMaker;
+import org.bonej.common.*;
 import org.bonej.localThickness.LocalThicknessWrapper;
 import org.scijava.command.Command;
 import org.scijava.log.LogService;
@@ -37,8 +33,9 @@ public class Thickness implements Command
         LegacyInjector.preinit();
     }
 
-    // @todo Read from a file?
-    private static final String HELP_URL = "http://bonej.org/thickness";
+    private static final String HELP_URL = "http://bonej.org/thickness"; // @todo Read from a file?
+    private static final String TRABECULAR_THICKNESS = "Tb.Th";
+    private static final String TRABECULAR_SPACING = "Tb.Sp";
 
     private final LocalThicknessWrapper thicknessWrapper = new LocalThicknessWrapper();
 
@@ -51,8 +48,8 @@ public class Thickness implements Command
     private UIService uiService;
 
     private ImagePlus image = null;
-    private ImagePlus result = null;
-    private double resultImageMaxValue = 0.0;
+    private ImagePlus resultImage = null;
+    private StackStatistics resultStats = null;
     private GenericDialog setupDialog;
 
     private boolean doThickness = true;
@@ -61,11 +58,6 @@ public class Thickness implements Command
     private boolean doRoi = false;
     private boolean doMask = true;
 
-    // @todo Add dialog titles as public static final Strings so that they can be accessed by a GUI testing robot..?
-
-    /**
-     * @todo Remove legacy code, and replace with proper ImageJ2 to show setup dialog
-     */
     private void createSetupDialog()
     {
         setupDialog = new GenericDialog("Plugin options");
@@ -152,14 +144,14 @@ public class Thickness implements Command
 
         if (doThickness) {
             getLocalThickness(true);
-            showThicknessStats();
             showResultImage();
+            showThicknessStats(true);
         }
 
         if (doSpacing) {
             getLocalThickness(false);
-            showThicknessStats();
             showResultImage();
+            showThicknessStats(false);
         }
     }
 
@@ -168,8 +160,8 @@ public class Thickness implements Command
             return;
         }
 
-        result.show();
-        result.getProcessor().setMinAndMax(0.0, resultImageMaxValue);
+        resultImage.show();
+        resultImage.getProcessor().setMinAndMax(0.0, resultStats.max);
         IJ.run("Fire");
     }
 
@@ -182,11 +174,11 @@ public class Thickness implements Command
      */
     private void getLocalThickness(boolean doForeground)
     {
-        result = null;
-        resultImageMaxValue = 0.0;
+        resultImage = null;
+        resultStats = null;
 
         RoiManager roiManager = RoiManager.getInstance();
-        String suffix = doForeground ? "_Tb.Th" : "_Tb.Sp";
+        String suffix = doForeground ? "_" + TRABECULAR_THICKNESS : "_" + TRABECULAR_SPACING;
 
         if (doRoi) {
             ImageStack croppedStack = RoiUtil.cropToRois(roiManager, image.getStack(), true, 0x00, 1);
@@ -198,10 +190,12 @@ public class Thickness implements Command
             ImagePlus croppedImage = new ImagePlus("", croppedStack);
             croppedImage.copyScale(image);
 
-            result = processThicknessSteps(croppedImage, doForeground, suffix);
+            resultImage = processThicknessSteps(croppedImage, doForeground, suffix);
         } else {
-            result = processThicknessSteps(image, doForeground, suffix);
+            resultImage = processThicknessSteps(image, doForeground, suffix);
         }
+
+        resultStats = new StackStatistics(resultImage);
     }
 
     /**
@@ -227,30 +221,17 @@ public class Thickness implements Command
         return result;
     }
 
-    public void showThicknessStats()
+    public void showThicknessStats(boolean doForeground)
     {
-        StackStatistics stackStats = new StackStatistics(result);
-        resultImageMaxValue = stackStats.max;
-        logService.info("Mean:" + stackStats.mean);
-        logService.info("Max:" + resultImageMaxValue);
-        double standardDeviation = stackStats.stdDev;
-        logService.info("Standard deviation:" + standardDeviation);
+        String title = resultImage.getTitle();
+        String units = resultImage.getCalibration().getUnits();
+        String legend = doForeground ? TRABECULAR_THICKNESS : TRABECULAR_SPACING;
 
-        String title = "Foo";
-        ResultsTable resultsTable = ResultsTable.getResultsTable();
-        resultsTable.setNaNEmptyCells(true);
-
-        resultsTable.incrementCounter();
-        resultsTable.setLabel(title, 0);
-        resultsTable.addValue("Mean", 1.0);
-        resultsTable.addValue("Mean (mm)", 1.0);
-
-        resultsTable.addLabel(title);
-        resultsTable.addValue("Mean (mm)", 2.0);
-        resultsTable.addValue("Mean (µm)", 1000.0);
-
-        resultsTable.show("Results");
-
+        ResultsInserter resultsInserter = new ResultsInserter();
+        resultsInserter.setMeasurementInFirstFreeRow(title, legend + " Mean (" + units + ")", resultStats.mean);
+        resultsInserter.setMeasurementInFirstFreeRow(title, legend + " Std Dev (" + units + ")", resultStats.stdDev);
+        resultsInserter.setMeasurementInFirstFreeRow(title, legend + " Max (" + units + ")", resultStats.max);
+        resultsInserter.updateTable();
     }
 
     public static void main(final String... args)
