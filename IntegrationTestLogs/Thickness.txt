@@ -70,17 +70,16 @@ than they do with the original BoneJ/LocalThickness plugin.
 Steps
 -------------------------------------------------------------------------
 1) Open test image "binary_trabeculae_small.tif"
-2) Run and compare stats with options no crop, no mask
-3) Run and compare stats with options crop, no mask
-4) Run and compare stats with options crop, mask
-5) Run and compare stats with options no crop, mask
+2) Run and compare stats with options "Thickness", "Mask thickness map"
+3) Run and compare stats with options "Thickness"
 
 Expected result
 -------------------------------------------------------------------------
 All statistics should match on all the option combinations above.
 
-Completed --
-Notes: 
+Completed 19/11/2015 Richard Domander
+Notes: Results differ after the 8th decimal, but this was deemed 
+acceptable
 -------------------------------------------------------------------------
 
 Case 5

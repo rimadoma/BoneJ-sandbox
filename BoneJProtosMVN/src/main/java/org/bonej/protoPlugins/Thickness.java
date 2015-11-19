@@ -9,10 +9,12 @@ import ij.plugin.frame.RoiManager;
 import ij.process.StackStatistics;
 import net.imagej.ImageJ;
 import net.imagej.patcher.LegacyInjector;
-import org.bonej.common.*;
+import org.bonej.common.Common;
+import org.bonej.common.ImageCheck;
+import org.bonej.common.ResultsInserter;
+import org.bonej.common.RoiUtil;
 import org.bonej.localThickness.LocalThicknessWrapper;
 import org.scijava.command.Command;
-import org.scijava.log.LogService;
 import org.scijava.plugin.Parameter;
 import org.scijava.plugin.Plugin;
 import org.scijava.ui.UIService;
@@ -23,7 +25,6 @@ import static org.scijava.ui.DialogPrompt.*;
  * A plugin for processing the local thickness measure for bone images.
  *
  * @author <a href="mailto:rdomander@rvc.ac.uk">Richard Domander</a>
- * @todo instead of LogService open error dialogs when things go wrong
  */
 @Plugin(type = Command.class, menuPath = "Plugins>Thickness")
 public class Thickness implements Command
@@ -41,9 +42,6 @@ public class Thickness implements Command
 
     // The following service parameters are populated automatically
     // by the SciJava service framework before this command plugin is executed.
-    @Parameter
-    private LogService logService;
-
     @Parameter
     private UIService uiService;
 
@@ -91,7 +89,7 @@ public class Thickness implements Command
         }
 
         if (!ImageCheck.isBinary(image)) {
-            logService.error("8-bit binary (black and white only) image required.");
+            uiService.showDialog(Common.NOT_BINARY_IMAGE_ERROR, "Wrong kind of image");
             return false;
         }
 
@@ -193,7 +191,7 @@ public class Thickness implements Command
      * @param image         Binary (black & white) ImagePlus
      * @param doForeground  If true, then process the thickness of the foreground.
      *                      If false, then process the thickness of the background
-     * @return
+     * @return  A new ImagePlus which contains the thickness
      */
     private ImagePlus processThicknessSteps(ImagePlus image, boolean doForeground, String tittleSuffix)
     {
@@ -223,6 +221,5 @@ public class Thickness implements Command
     public static void main(final String... args)
     {
         final ImageJ ij = net.imagej.Main.launch(args);
-        ij.command().run(Thickness.class, true);
     }
 }
