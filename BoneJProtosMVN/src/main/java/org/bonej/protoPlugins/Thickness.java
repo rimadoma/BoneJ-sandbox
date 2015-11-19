@@ -200,13 +200,10 @@ public class Thickness implements Command
         thicknessWrapper.setSilence(true);
         thicknessWrapper.inverse = !doForeground;
         thicknessWrapper.setShowOptions(false);
-        thicknessWrapper.trimThicknessMap = doMask;
+        thicknessWrapper.maskThicknessMask = doMask;
         thicknessWrapper.setTitleSuffix(tittleSuffix);
+        thicknessWrapper.calibratePixels = true;
         ImagePlus result = thicknessWrapper.processImage(image);
-        result.copyScale(image);
-        Common.pixelValuesToCalibratedValues(result);
-        // Needed so that pixels with 0.0f (background) value don't affect the statistical mean
-        Common.backgroundToNaN(result, 0.0f);
         return result;
     }
 

@@ -1,11 +1,5 @@
 package org.bonej.common;
 
-import ij.ImagePlus;
-import ij.ImageStack;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-
 /**
  * @author <a href="mailto:rdomander@rvc.ac.uk">Richard Domander</a>
  */
@@ -38,54 +32,5 @@ public class Common {
             return max;
         }
         return value;
-    }
-
-    /**
-     * Sets the value of the background pixels to Float.NaN
-     *
-     * @param image             A 32-bit floating point image
-     * @param backgroundColor   The color used to identify background pixels (usually 0.0f)
-     */
-    public static void backgroundToNaN(ImagePlus image, float backgroundColor)
-    {
-        checkNotNull(image, "Image must not be null");
-        checkArgument(image.getBitDepth() == 32, "Not a 32-bit image");
-
-        final int depth = image.getNSlices();
-        final int pixelsPerSlice = image.getWidth() * image.getHeight();
-        final ImageStack stack = image.getStack();
-
-        for (int z = 1; z <= depth; z++) {
-            float pixels[] = (float[]) stack.getPixels(z);
-            for (int i = 0; i < pixelsPerSlice; i++) {
-                if (Float.compare(pixels[i], backgroundColor) == 0) {
-                    pixels[i] = Float.NaN;
-                }
-            }
-        }
-    }
-
-    /**
-     * Multiplies all pixel values of the given image by image.getCalibration().pixelWidth
-     *
-     * @param image A 32-bit floating point image
-     *
-     * Handy when the pixel values of an image represent some measurement.
-     * For example the pixel values of a local thickness map represent the thickness of the sample in that location.
-     * Multiplying the pixel values by pixel width then gives you the thickness in real units, e.g. millimetres.
-     */
-
-    public static void pixelValuesToCalibratedValues(ImagePlus image)
-    {
-        checkNotNull(image, "Image must not be null");
-        checkArgument(image.getBitDepth() == 32, "Not a 32-bit image");
-
-        double pixelWidth = image.getCalibration().pixelWidth;
-        ImageStack stack = image.getStack();
-        final int depth = stack.getSize();
-
-        for (int z = 1; z <= depth; z++) {
-            stack.getProcessor(z).multiply(pixelWidth);
-        }
     }
 }
