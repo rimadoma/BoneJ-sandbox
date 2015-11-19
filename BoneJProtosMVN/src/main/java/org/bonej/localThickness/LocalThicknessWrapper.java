@@ -116,7 +116,6 @@ public class LocalThicknessWrapper implements PlugIn
         resultImage = thicknessCleaningPlugin.getResultImage();
 
         if (trimThicknessMap) {
-            System.out.println("Trim thickness");
             thicknessMask.inverse = inverse;
             thicknessMask.threshold = threshold;
             resultImage = thicknessMask.trimOverhang(image, resultImage);

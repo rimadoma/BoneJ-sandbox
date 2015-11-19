@@ -106,18 +106,6 @@ public class Thickness implements Command
         return result != Result.CANCEL_OPTION;
     }
 
-    //@todo write a plugin that can be used to create test images
-    public static void openTestImage()
-    {
-        final int WIDTH = 500;
-        final int HEIGHT = 500;
-        final int DEPTH = 10;
-        final int PADDING = 0;
-        IJ.newImage("cuboid", "8-bit", WIDTH, HEIGHT, DEPTH);
-        ImagePlus foo = IJ.getImage();
-        foo.setImage(TestDataMaker.createCuboid(WIDTH - PADDING, HEIGHT - PADDING, DEPTH, 0xFF, PADDING));
-    }
-
     @Override
     public void run()
     {
@@ -181,15 +169,16 @@ public class Thickness implements Command
         String suffix = doForeground ? "_" + TRABECULAR_THICKNESS : "_" + TRABECULAR_SPACING;
 
         if (doRoi) {
-            ImageStack croppedStack = RoiUtil.cropToRois(roiManager, image.getStack(), true, 0x00, 1);
+            ImageStack croppedStack = RoiUtil.cropToRois(roiManager, image.getStack(), true, Common.BINARY_BLACK);
+
             if (croppedStack == null) {
                 uiService.showDialog("There are no valid ROIs in the ROI Manager for cropping", "ROI Manager empty",
                         MessageType.ERROR_MESSAGE, OptionType.DEFAULT_OPTION);
                 return;
             }
+
             ImagePlus croppedImage = new ImagePlus("", croppedStack);
             croppedImage.copyScale(image);
-
             resultImage = processThicknessSteps(croppedImage, doForeground, suffix);
         } else {
             resultImage = processThicknessSteps(image, doForeground, suffix);
@@ -237,10 +226,6 @@ public class Thickness implements Command
     public static void main(final String... args)
     {
         final ImageJ ij = net.imagej.Main.launch(args);
-
-        //openTestImage();
-        IJ.open("/media/rvc_projects/Research_Storage/Doube_Michael/BoneJ2/TestImages/binary_trabeculae_small.tif");
-
         ij.command().run(Thickness.class, true);
     }
 }

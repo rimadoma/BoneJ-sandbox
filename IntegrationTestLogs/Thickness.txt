@@ -14,7 +14,7 @@ Expected result
 -----------------------------------------------------------------------
 User should see an error dialog about missing ROIs.
 
-Completed 6/11/2015 Richard Domander
+Completed 06/11/2015 Richard Domander
 -----------------------------------------------------------------------
 
 Case 2
@@ -29,16 +29,40 @@ Steps
 3) Drag the polygon completely outside the image
 4) Add a ROI Manager (Analyze > Tools > RoiManager)
 5) Press "Add" on the ROI Manager window
-2) Run the BoneJ Thickness plugin
+6) Run the BoneJ Thickness plugin with options "thickness", 
+   and "Crop using ROI Manager
 
 Expected result
 -----------------------------------------------------------------------
 User should see an error dialog about missing ROIs.
 
-Completed 6/11/2015 Richard Domander
+Completed 06/11/2015 Richard Domander
 -----------------------------------------------------------------------
 
 Case 3
+=========================================================================
+Local thickness map should confine to the limits of ROIs in ROIManager
+when cropping is selected.
+=========================================================================
+Steps
+-------------------------------------------------------------------------
+1) Open test image "binary_trabeculae_small.tif"
+2) Draw a rectangular ROI on the image
+3) Add a ROI Manager (Analyze > Tools > RoiManager)
+4) Press "Add" on the ROI Manager window
+5) Run the BoneJ Thickness plugin with options "thickness", 
+   "graphic result", and "Crop using ROI Manager"
+6) Confirm that the resulting image matches the area of the ROI
+
+Expected result
+-------------------------------------------------------------------------
+The resulting thickness map should be the same size, and from the same 
+area as the ROI. 
+
+Completed 19/11/2015 Richard Domander
+-------------------------------------------------------------------------
+
+Case 4
 =========================================================================
 Local thickness images should produce same statistics (mean, max, stddev)
 than they do with the original BoneJ/LocalThickness plugin.
@@ -56,5 +80,48 @@ Expected result
 All statistics should match on all the option combinations above.
 
 Completed --
------------------------------------------------------------------------
+Notes: 
+-------------------------------------------------------------------------
+
+Case 5
+=========================================================================
+The resulting thickness map is only displayed if "Graphic Result" option 
+is selected.
+=========================================================================
+Steps
+-------------------------------------------------------------------------
+1) Open test image "binary_trabeculae_small.tif"
+2) Run the thickness plugin
+3) Select options "Thickness" and "Graphic Result"
+4) Verify that the ImageJ displays the thickness map image
+5) Rerun the plugin on the test image, but make sure that the 
+   "Graphic Result" option is not checked
+6) Verify that the ImageJ does not display the thickness map image
+
+Expected result
+-------------------------------------------------------------------------
+Image shown when option checkec, not shown when not checked
+
+Completed 19/11/2015 Richard Domander
+-------------------------------------------------------------------------
+
+Case 6
+=========================================================================
+Running the plugin with both options "Thickness" and "Spacing" produces
+two images.
+=========================================================================
+Steps
+-------------------------------------------------------------------------
+1) Open test image "binary_trabeculae_small.tif"
+2) Run the thickness plugin
+3) Select options "Thickness", "Spacing" and "Graphic Result"
+4) Verify that ImageJ produces two separate images
+5) Verify that there are two lines in the results table
+
+Expected result
+-------------------------------------------------------------------------
+There are two different images, and two lines in the results table
+
+Completed 19/11/2015 Richard Domander
+-------------------------------------------------------------------------
 

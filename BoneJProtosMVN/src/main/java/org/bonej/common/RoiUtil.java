@@ -158,6 +158,16 @@ public class RoiUtil {
     }
 
     /**
+     * Same as @see RoiUtil.cropToRois, but with default padding of 0. Handy if padding might affect the results
+     * of your plugin.
+     */
+    public static ImageStack cropToRois(RoiManager roiMan, ImageStack sourceStack, boolean fillBackground,
+                                        int fillColor)
+    {
+        return cropToRois(roiMan, sourceStack, fillBackground, fillColor, 0);
+    }
+
+    /**
      * Crop a stack to the limits of the ROIs in the ROI Manager and optionally
      * fill the background with a single pixel value.
      *
