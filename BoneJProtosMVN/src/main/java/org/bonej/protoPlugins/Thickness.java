@@ -7,7 +7,6 @@ import ij.gui.GenericDialog;
 import ij.macro.Interpreter;
 import ij.plugin.frame.RoiManager;
 import ij.process.StackStatistics;
-import net.imagej.ImageJ;
 import net.imagej.patcher.LegacyInjector;
 import org.bonej.common.Common;
 import org.bonej.common.ImageCheck;

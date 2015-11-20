@@ -17,9 +17,9 @@
     </build>
 
     <parent>
-        <groupId>net.imagej</groupId>
-        <artifactId>pom-imagej</artifactId>
-        <version>LATEST</version>
+        <groupId>sc.fiji</groupId>
+        <artifactId>pom-fiji</artifactId>
+        <version>16.0.0</version>
         <relativePath />
     </parent>
 
@@ -43,7 +43,6 @@
         <dependency>
             <groupId>sc.fiji</groupId>
             <artifactId>3D_Viewer</artifactId>
-            <version>LATEST</version>
         </dependency>
 
         <dependency>
@@ -54,7 +53,6 @@
         <dependency>
             <groupId>sc.fiji</groupId>
             <artifactId>Skeletonize3D_</artifactId>
-            <version>1.0.1</version>
         </dependency>
 
         <dependency>
@@ -74,6 +72,11 @@
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
             <version>12.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>sc.fiji</groupId>
+            <artifactId>AnalyzeSkeleton_</artifactId>
         </dependency>
     </dependencies>
 

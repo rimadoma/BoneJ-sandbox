@@ -66,6 +66,6 @@ public class Skeletonize3D implements Command
 
     public static void main(final String... args)
     {
-        final ImageJ ij = net.imagej.Main.launch(args);
+        net.imagej.Main.launch(args);
     }
 }
