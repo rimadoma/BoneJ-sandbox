@@ -3,6 +3,7 @@ package org.bonej.protoPlugins;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.ImageStack;
+import ij.Prefs;
 import ij.gui.GenericDialog;
 import ij.macro.Interpreter;
 import ij.plugin.frame.RoiManager;
@@ -50,11 +51,23 @@ public class Thickness implements Command
     private StackStatistics resultStats = null;
     private GenericDialog setupDialog;
 
-    private boolean doThickness = true;
-    private boolean doSpacing = false;
-    private boolean doGraphic = true;
-    private boolean doRoi = false;
-    private boolean doMask = true;
+    private static final String THICKNESS_PREFERENCE_KEY = "bonej.localThickness.doThickness";
+    private static final String SPACING_PREFERENCE_KEY = "bonej.localThickness.doSpacing";
+    private static final String GRAPHIC_PREFERENCE_KEY = "bonej.localThickness.doGraphic";
+    private static final String ROI_PREFERENCE_KEY = "bonej.localThickness.doRoi";
+    private static final String MASK_PREFERENCE_KEY = "bonej.localThickness.doMask";
+
+    private static final boolean THICKNESS_DEFAULT = true;
+    private static final boolean SPACING_DEFAULT = false;
+    private static final boolean GRAPHIC_DEFAULT = true;
+    private static final boolean ROI_DEFAULT = false;
+    private static final boolean MASK_DEFAULT = true;
+
+    private boolean doThickness = THICKNESS_DEFAULT;
+    private boolean doSpacing = SPACING_DEFAULT;
+    private boolean doGraphic = GRAPHIC_DEFAULT;
+    private boolean doRoi = ROI_DEFAULT;
+    private boolean doMask = MASK_DEFAULT;
 
     private void createSetupDialog()
     {
@@ -115,12 +128,14 @@ public class Thickness implements Command
             return;
         }
 
+        loadSettings();
         createSetupDialog();
         setupDialog.showDialog();
         if (setupDialog.wasCanceled()) {
             return;
         }
         getProcessingSettingsFromDialog();
+        saveSettings();
 
         if (!doThickness && !doSpacing) {
             uiService.showDialog("Nothing to process, shutting down plugin.", "Nothing to process",
@@ -141,7 +156,26 @@ public class Thickness implements Command
         }
     }
 
-    private void showResultImage() {
+    private void loadSettings()
+    {
+        doThickness = Prefs.get(THICKNESS_PREFERENCE_KEY, THICKNESS_DEFAULT);
+        doSpacing = Prefs.get(SPACING_PREFERENCE_KEY, SPACING_DEFAULT);
+        doGraphic = Prefs.get(GRAPHIC_PREFERENCE_KEY, GRAPHIC_DEFAULT);
+        doRoi = Prefs.get(ROI_PREFERENCE_KEY, ROI_DEFAULT);
+        doMask = Prefs.get(MASK_PREFERENCE_KEY, MASK_DEFAULT);
+    }
+
+    private void saveSettings()
+    {
+        Prefs.set(THICKNESS_PREFERENCE_KEY, doThickness);
+        Prefs.set(SPACING_PREFERENCE_KEY, doSpacing);
+        Prefs.set(GRAPHIC_PREFERENCE_KEY, doGraphic);
+        Prefs.set(ROI_PREFERENCE_KEY, doRoi);
+        Prefs.set(MASK_PREFERENCE_KEY, doMask);
+    }
+
+    private void showResultImage()
+    {
         if (!doGraphic || Interpreter.isBatchMode()) {
             return;
         }
