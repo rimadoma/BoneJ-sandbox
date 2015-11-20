@@ -3,7 +3,6 @@ package org.bonej.protoPlugins;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.ImageStack;
-import ij.Prefs;
 import ij.gui.GenericDialog;
 import ij.macro.Interpreter;
 import ij.plugin.frame.RoiManager;
@@ -18,6 +17,7 @@ import org.bonej.localThickness.LocalThicknessWrapper;
 import org.scijava.command.Command;
 import org.scijava.plugin.Parameter;
 import org.scijava.plugin.Plugin;
+import org.scijava.prefs.PrefService;
 import org.scijava.ui.UIService;
 
 import static org.scijava.ui.DialogPrompt.*;
@@ -45,6 +45,9 @@ public class Thickness implements Command
     // by the SciJava service framework before this command plugin is executed.
     @Parameter
     private UIService uiService;
+
+    @Parameter
+    private PrefService prefService;
 
     private ImagePlus image = null;
     private ImagePlus resultImage = null;
@@ -158,20 +161,20 @@ public class Thickness implements Command
 
     private void loadSettings()
     {
-        doThickness = Prefs.get(THICKNESS_PREFERENCE_KEY, THICKNESS_DEFAULT);
-        doSpacing = Prefs.get(SPACING_PREFERENCE_KEY, SPACING_DEFAULT);
-        doGraphic = Prefs.get(GRAPHIC_PREFERENCE_KEY, GRAPHIC_DEFAULT);
-        doRoi = Prefs.get(ROI_PREFERENCE_KEY, ROI_DEFAULT);
-        doMask = Prefs.get(MASK_PREFERENCE_KEY, MASK_DEFAULT);
+        doThickness = prefService.getBoolean(THICKNESS_PREFERENCE_KEY, THICKNESS_DEFAULT);
+        doSpacing = prefService.getBoolean(SPACING_PREFERENCE_KEY, SPACING_DEFAULT);
+        doGraphic = prefService.getBoolean(GRAPHIC_PREFERENCE_KEY, GRAPHIC_DEFAULT);
+        doRoi = prefService.getBoolean(ROI_PREFERENCE_KEY, ROI_DEFAULT);
+        doMask = prefService.getBoolean(MASK_PREFERENCE_KEY, MASK_DEFAULT);
     }
 
     private void saveSettings()
     {
-        Prefs.set(THICKNESS_PREFERENCE_KEY, doThickness);
-        Prefs.set(SPACING_PREFERENCE_KEY, doSpacing);
-        Prefs.set(GRAPHIC_PREFERENCE_KEY, doGraphic);
-        Prefs.set(ROI_PREFERENCE_KEY, doRoi);
-        Prefs.set(MASK_PREFERENCE_KEY, doMask);
+        prefService.put(THICKNESS_PREFERENCE_KEY, doThickness);
+        prefService.put(SPACING_PREFERENCE_KEY, doSpacing);
+        prefService.put(GRAPHIC_PREFERENCE_KEY, doGraphic);
+        prefService.put(ROI_PREFERENCE_KEY, doRoi);
+        prefService.put(MASK_PREFERENCE_KEY, doMask);
     }
 
     private void showResultImage()
@@ -254,6 +257,6 @@ public class Thickness implements Command
 
     public static void main(final String... args)
     {
-        final ImageJ ij = net.imagej.Main.launch(args);
+        net.imagej.Main.launch(args);
     }
 }
