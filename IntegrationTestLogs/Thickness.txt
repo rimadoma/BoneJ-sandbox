@@ -1,4 +1,4 @@
-Component: The local thickness plugin 
+Component: The local thickness plugin (org.bone.protoPlugins.Thickness)
 
 Case 1
 =======================================================================
@@ -122,5 +122,30 @@ Expected result
 There are two different images, and two lines in the results table
 
 Completed 19/11/2015 Richard Domander
+-------------------------------------------------------------------------
+
+Case 7
+=========================================================================
+Thickness plugin saves its settings between sessions, and within a 
+session
+=========================================================================
+Steps
+-------------------------------------------------------------------------
+1) Open test image "binary_trabeculae_small.tif"
+2) Run the thickness plugin
+3) Check all the options, and press OK
+4) Rerun the plugin, and verify that all the options are checked
+5) Uncheck all options except "Thickness", and press OK
+6) Close and reopen ImageJ
+7) Repeat steps 1 - 2
+8) Verify that all options except "Thickness" are unchecked
+
+Expected result
+-------------------------------------------------------------------------
+The dialog shows the same options checked as the last time the plugin was
+run.
+
+Completed 20/11/2015 Richard Domander
+Notes: Options won't be saved if the user has unchecked all of them
 -------------------------------------------------------------------------
 

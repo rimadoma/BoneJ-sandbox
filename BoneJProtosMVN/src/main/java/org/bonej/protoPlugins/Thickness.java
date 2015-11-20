@@ -39,6 +39,18 @@ public class Thickness implements Command
     private static final String TRABECULAR_THICKNESS = "Tb.Th";
     private static final String TRABECULAR_SPACING = "Tb.Sp";
 
+    private static final String THICKNESS_PREFERENCE_KEY = "bonej.localThickness.doThickness";
+    private static final String SPACING_PREFERENCE_KEY = "bonej.localThickness.doSpacing";
+    private static final String GRAPHIC_PREFERENCE_KEY = "bonej.localThickness.doGraphic";
+    private static final String ROI_PREFERENCE_KEY = "bonej.localThickness.doRoi";
+    private static final String MASK_PREFERENCE_KEY = "bonej.localThickness.doMask";
+
+    private static final boolean THICKNESS_DEFAULT = true;
+    private static final boolean SPACING_DEFAULT = false;
+    private static final boolean GRAPHIC_DEFAULT = true;
+    private static final boolean ROI_DEFAULT = false;
+    private static final boolean MASK_DEFAULT = true;
+
     private final LocalThicknessWrapper thicknessWrapper = new LocalThicknessWrapper();
 
     // The following service parameters are populated automatically
@@ -53,18 +65,6 @@ public class Thickness implements Command
     private ImagePlus resultImage = null;
     private StackStatistics resultStats = null;
     private GenericDialog setupDialog;
-
-    private static final String THICKNESS_PREFERENCE_KEY = "bonej.localThickness.doThickness";
-    private static final String SPACING_PREFERENCE_KEY = "bonej.localThickness.doSpacing";
-    private static final String GRAPHIC_PREFERENCE_KEY = "bonej.localThickness.doGraphic";
-    private static final String ROI_PREFERENCE_KEY = "bonej.localThickness.doRoi";
-    private static final String MASK_PREFERENCE_KEY = "bonej.localThickness.doMask";
-
-    private static final boolean THICKNESS_DEFAULT = true;
-    private static final boolean SPACING_DEFAULT = false;
-    private static final boolean GRAPHIC_DEFAULT = true;
-    private static final boolean ROI_DEFAULT = false;
-    private static final boolean MASK_DEFAULT = true;
 
     private boolean doThickness = THICKNESS_DEFAULT;
     private boolean doSpacing = SPACING_DEFAULT;
@@ -138,7 +138,6 @@ public class Thickness implements Command
             return;
         }
         getProcessingSettingsFromDialog();
-        saveSettings();
 
         if (!doThickness && !doSpacing) {
             uiService.showDialog("Nothing to process, shutting down plugin.", "Nothing to process",
@@ -146,8 +145,13 @@ public class Thickness implements Command
             return;
         }
 
+        saveSettings();
+
         if (doThickness) {
-            getLocalThickness(true);
+            boolean processingCompleted = getLocalThickness(true);
+            if(!processingCompleted) {
+                return;
+            }
             showResultImage();
             showThicknessStats(true);
         }
@@ -194,8 +198,9 @@ public class Thickness implements Command
      *
      * @param doForeground  If true, then process the thickness of the foreground (trabecular thickness).
      *                      If false, then process the thickness of the background (trabecular spacing).
+     * @return Returns true if localThickness succeeded, and resultImage != null
      */
-    private void getLocalThickness(boolean doForeground)
+    private boolean getLocalThickness(boolean doForeground)
     {
         resultImage = null;
         resultStats = null;
@@ -209,7 +214,7 @@ public class Thickness implements Command
             if (croppedStack == null) {
                 uiService.showDialog("There are no valid ROIs in the ROI Manager for cropping", "ROI Manager empty",
                         MessageType.ERROR_MESSAGE, OptionType.DEFAULT_OPTION);
-                return;
+                return false;
             }
 
             ImagePlus croppedImage = new ImagePlus("", croppedStack);
@@ -220,6 +225,8 @@ public class Thickness implements Command
         }
 
         resultStats = new StackStatistics(resultImage);
+
+        return true;
     }
 
     /**
