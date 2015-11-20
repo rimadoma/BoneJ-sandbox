@@ -23,11 +23,11 @@ import org.scijava.ui.UIService;
 import static org.scijava.ui.DialogPrompt.*;
 
 /**
- * A plugin for processing the local thickness measure for bone images.
+ * A BoneJ wrapper plugin, which is used for a "bone science" flavour of the LocalThickness ImageJ plugin.
  *
  * @author <a href="mailto:rdomander@rvc.ac.uk">Richard Domander</a>
  */
-@Plugin(type = Command.class, menuPath = "Plugins>Thickness")
+@Plugin(type = Command.class, menuPath = "Plugins>BoneJ>Thickness")
 public class Thickness implements Command
 {
     // Need this because we're using ImageJ 1.x classes
@@ -102,7 +102,7 @@ public class Thickness implements Command
         }
 
         if (!ImageCheck.isBinary(image)) {
-            uiService.showDialog(Common.NOT_BINARY_IMAGE_ERROR, "Wrong kind of image");
+            uiService.showDialog(Common.NOT_BINARY_IMAGE_ERROR, Common.WRONG_IMAGE_TYPE_DIALOG_TITLE);
             return false;
         }
 

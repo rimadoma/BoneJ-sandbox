@@ -15,6 +15,8 @@ public class Common {
             + "Consider rescaling your data so that voxels are isotropic\n"
             + "(Image > Scale...).\n\n" + "Continue anyway?";
 
+    public static final String WRONG_IMAGE_TYPE_DIALOG_TITLE = "Wrong kind of image";
+
     public static double clamp(double value, double min, double max)
     {
         if (Double.compare(value, min) < 0) {
