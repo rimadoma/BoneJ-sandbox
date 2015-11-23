@@ -61,6 +61,12 @@ public class Skeletonize3D implements Command
         skeletonizer.setup("", outputImage);
         skeletonizer.run(null);
         outputImage.setTitle("Skeleton of " + inputImage.getTitle());
+
+        if (inputImage.isInvertedLut() != outputImage.isInvertedLut()) {
+            //Invert the LUT of the output image to match input image
+            IJ.run("Invert LUT");
+        }
+
         outputImage.show();
     }
 
