@@ -1,4 +1,4 @@
-package org.bonej.protoPlugins;
+package org.bonej.wrapperPlugins;
 
 import ij.IJ;
 import ij.ImagePlus;

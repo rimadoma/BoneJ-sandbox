@@ -1,9 +1,6 @@
 package org.bonej.analyseSkeleton;
 
-import ij.IJ;
-import ij.ImagePlus;
-import ij.ImageStack;
-import ij.WindowManager;
+import ij.*;
 import ij.gui.DialogListener;
 import ij.gui.GenericDialog;
 import ij.gui.Roi;
@@ -56,6 +53,25 @@ import java.util.ListIterator;
  */
 public class AnalyzeSkeleton_ implements PlugInFilter, DialogListener
 {
+    //region Settings variables
+    private static final int DEFAULT_PRUNE_MODE_INDEX = AnalyzeSkeleton_.NONE;
+    private static final boolean DEFAULT_PRUNE_ENDS = false;
+    private static final boolean DEFAULT_CALCULATE_SHORTEST_PATH = false;
+    private static final boolean DEFAULT_VERBOSE = false;
+    private static final boolean DEFAULT_PROTECT_ROI = false;
+    private static final boolean DEFAULT_DISPLAY_SKELETONS = false;
+    private static final String HELP_URL = "http://fiji.sc/wiki/index.php/AnalyzeSkeleton";
+
+    private static final String PRUNE_MODE_INDEX_KEY = "bonej.analyzeSkeleton.pruneModeIndex";
+    private static final String PRUNE_ENDS_KEY = "bonej.analyzeSkeleton.pruneEnds";
+    private static final String CALCULATE_PATH_KEY = "bonej.analyzeSkeleton.shortestPath";
+    private static final String VERBOSE_KEY = "bonej.analyzeSkeleton.showDetailedInfo";
+    private static final String PROTECT_ROI_KEY = "bonej.analyzeSkeleton.excludeRoi";
+    private static final String DISPLAY_SKELETONS_KEY = "bonej.analyzeSkeleton.displayLabeledSkeletons";
+
+    private GenericDialog settingsDialog;
+    //endregion
+
 	/** end point flag */
 	public static byte END_POINT = 30;
 	/** junction flag */
@@ -164,13 +180,13 @@ public class AnalyzeSkeleton_ implements PlugInFilter, DialogListener
 	private boolean bPruneCycles = true;
 	
 	 /** dead-end pruning option */
-	public static boolean pruneEnds = false;
+	public boolean pruneEnds = DEFAULT_PRUNE_ENDS;
 	
 	/** protective-ROI option (branches inside ROI are spared from pruning) */
-	public static boolean protectRoi = false;
+	public boolean protectRoi = DEFAULT_PROTECT_ROI;
 
 	/** calculate largest shortest path option */
-	public static boolean calculateShortestPath = false;
+	public boolean calculateShortestPath = DEFAULT_CALCULATE_SHORTEST_PATH;
 	
 	/** array of graphs (one per tree) */
 	private Graph[] graph = null;
@@ -198,7 +214,7 @@ public class AnalyzeSkeleton_ implements PlugInFilter, DialogListener
 	private ImageStack originalImage = null;
 	
 	/** prune cycle options index */
-	public static int pruneIndex = AnalyzeSkeleton_.NONE;
+	public int pruneIndex = DEFAULT_PRUNE_MODE_INDEX;
 	
 	/** x- neighborhood offset */
 	private int x_offset = 1;
@@ -208,7 +224,7 @@ public class AnalyzeSkeleton_ implements PlugInFilter, DialogListener
 	private int z_offset = 1;
 	
 	/** boolean flag to display extra information in result tables */
-	public static boolean verbose = false;
+	public boolean verbose = DEFAULT_VERBOSE;
 	
 	/** silent run flag, to distinguish between GUI and plugin calls */
 	protected boolean silent = false;
@@ -217,10 +233,71 @@ public class AnalyzeSkeleton_ implements PlugInFilter, DialogListener
 	private static final boolean debug = false;
 	
 	/** flag to output the labeled skeletons in a new image */
-	public static boolean displaySkeletons = false;
-	
+	public boolean displaySkeletons = DEFAULT_DISPLAY_SKELETONS;
+
 	/* -----------------------------------------------------------------------*/
-	/**
+
+    //region Settings dialog methods
+    private void getSettingsFromDialog()
+    {
+        pruneIndex = settingsDialog.getNextChoiceIndex();
+        pruneEnds = settingsDialog.getNextBoolean();
+        protectRoi = settingsDialog.getNextBoolean();
+        calculateShortestPath = settingsDialog.getNextBoolean();
+        verbose = settingsDialog.getNextBoolean();
+        displaySkeletons = settingsDialog.getNextBoolean();
+    }
+
+    /**
+     * @author <a href="mailto:rdomander@rvc.ac.uk">Richard Domander</a>
+     */
+    private void createSettingsDialog()
+    {
+        settingsDialog = new GenericDialog("Analyze Skeleton");
+        Font headerFont = new Font("SansSerif", Font.BOLD, 12);
+
+        settingsDialog.setInsets(0, 0, 0);
+        settingsDialog.addMessage("Elimination of Loops:", headerFont);
+        settingsDialog.addChoice("Prune cycle method: ", AnalyzeSkeleton_.pruneCyclesModes,
+                AnalyzeSkeleton_.pruneCyclesModes[pruneIndex]);
+
+        settingsDialog.setInsets(20, 0, -15); //default top inset for 1st checkbox is 15
+        settingsDialog.addMessage("Elimination of End-points:", headerFont);
+        settingsDialog.addCheckbox("Prune ends", pruneEnds);
+        settingsDialog.addCheckbox("Exclude ROI from pruning", protectRoi);
+
+        settingsDialog.setInsets(20, 0, 0); //default top inset for subsequent checkboxes is 0
+        settingsDialog.addMessage("Results and Output:", headerFont);
+        settingsDialog.addCheckbox("Calculate largest shortest path", calculateShortestPath);
+        settingsDialog.addCheckbox("Show detailed info", verbose);
+        settingsDialog.addCheckbox("Display labeled skeletons", displaySkeletons);
+
+        settingsDialog.addHelp(HELP_URL);
+        dialogItemChanged(settingsDialog, null);
+    }
+
+    private void saveSettingsToPreferences()
+    {
+        Prefs.set(PRUNE_MODE_INDEX_KEY, pruneIndex);
+        Prefs.set(PRUNE_ENDS_KEY, pruneEnds);
+        Prefs.set(CALCULATE_PATH_KEY, calculateShortestPath);
+        Prefs.set(VERBOSE_KEY, verbose);
+        Prefs.set(PROTECT_ROI_KEY, protectRoi);
+        Prefs.set(DISPLAY_SKELETONS_KEY, displaySkeletons);
+    }
+
+    private void loadSettingsFromPreferences()
+    {
+        pruneIndex = Prefs.getInt(PRUNE_MODE_INDEX_KEY, DEFAULT_PRUNE_MODE_INDEX);
+        pruneEnds = Prefs.get(PRUNE_ENDS_KEY, DEFAULT_PRUNE_ENDS);
+        calculateShortestPath = Prefs.get(CALCULATE_PATH_KEY, DEFAULT_CALCULATE_SHORTEST_PATH);
+        verbose = Prefs.get(VERBOSE_KEY, DEFAULT_VERBOSE);
+        protectRoi = Prefs.get(PROTECT_ROI_KEY, DEFAULT_PROTECT_ROI);
+        displaySkeletons = Prefs.get(DISPLAY_SKELETONS_KEY, DEFAULT_DISPLAY_SKELETONS);
+    }
+    //endregion
+
+    /**
 	 * This method is called once when the filter is loaded.
 	 * 
 	 * @param arg argument specified for this plugin
@@ -239,48 +316,23 @@ public class AnalyzeSkeleton_ implements PlugInFilter, DialogListener
 
 		return DOES_8G; 
 	} // end method setup 
-	
+
 	/* -----------------------------------------------------------------------*/
 	/**
 	 * Process the image: tag skeleton and show results.
 	 * 
 	 * @see ij.plugin.filter.PlugInFilter#run(ij.process.ImageProcessor)
 	 */
-	public void run(ImageProcessor ip) 
-	{
-		GenericDialog gd = new GenericDialog("Analyze Skeleton");
-		Font headerFont = new Font("SansSerif", Font.BOLD, 12);
+	public void run(ImageProcessor ip) {
+	    loadSettingsFromPreferences();
+        createSettingsDialog();
+        settingsDialog.showDialog();
+        getSettingsFromDialog();
+        if (settingsDialog.wasCanceled()) {
+            return;
+        }
+        saveSettingsToPreferences();
 
-		gd.setInsets(0, 0, 0);
-		gd.addMessage("Elimination of Loops:", headerFont);
-		gd.addChoice("Prune cycle method: ", AnalyzeSkeleton_.pruneCyclesModes, 
-										AnalyzeSkeleton_.pruneCyclesModes[pruneIndex]);
-
-		gd.setInsets(20, 0, -15); //default top inset for 1st checkbox is 15
-		gd.addMessage("Elimination of End-points:", headerFont);
-		gd.addCheckbox("Prune ends", pruneEnds);
-		gd.addCheckbox("Exclude ROI from pruning", protectRoi);
-
-		gd.setInsets(20, 0, 0); //default top inset for subsequent checkboxes is 0
-		gd.addMessage("Results and Output:", headerFont);
-		gd.addCheckbox("Calculate largest shortest path", calculateShortestPath);
-		gd.addCheckbox("Show detailed info", AnalyzeSkeleton_.verbose);
-		gd.addCheckbox("Display labeled skeletons", AnalyzeSkeleton_.displaySkeletons);
-
-		gd.addHelp("http://fiji.sc/AnalyzeSkeleton");
-		dialogItemChanged(gd, null);
-		gd.showDialog();
-		
-		// Exit when canceled
-		if (gd.wasCanceled()) 
-			return;
-		pruneIndex = gd.getNextChoiceIndex();
-		pruneEnds = gd.getNextBoolean();
-		protectRoi = gd.getNextBoolean();
-		calculateShortestPath = gd.getNextBoolean();
-		AnalyzeSkeleton_.verbose = gd.getNextBoolean();
-		AnalyzeSkeleton_.displaySkeletons = gd.getNextBoolean();
-		
 		// pre-checking if another image is needed and also setting bPruneCycles
 		ImagePlus origIP = null;
 		switch(pruneIndex)
@@ -338,7 +390,7 @@ public class AnalyzeSkeleton_ implements PlugInFilter, DialogListener
 			IJ.log("num of skeletons = " + this.numOfTrees);
 
 		// Show labeled skeletons
-		if( AnalyzeSkeleton_.displaySkeletons )
+		if( displaySkeletons )
 		{
 			ImagePlus labeledSkeletons = 
 					new ImagePlus( this.imRef.getShortTitle() 
@@ -352,7 +404,7 @@ public class AnalyzeSkeleton_ implements PlugInFilter, DialogListener
 
 	} // end run method
 
-	/** Disables dialog components that are irrelevant to GUI-based analysis. */
+    /** Disables dialog components that are irrelevant to GUI-based analysis. */
 	public boolean dialogItemChanged(GenericDialog gd, AWTEvent e)
 	{
 		if (this.imRef.getRoi()==null)
@@ -408,11 +460,11 @@ public class AnalyzeSkeleton_ implements PlugInFilter, DialogListener
 			boolean verbose,
 			Roi roi)
 	{
-		AnalyzeSkeleton_.pruneIndex = pruneIndex;
+        this.pruneIndex = pruneIndex;
 		this.silent = silent;
-		AnalyzeSkeleton_.pruneEnds = pruneEnds;
-		AnalyzeSkeleton_.calculateShortestPath = shortPath;
-		AnalyzeSkeleton_.verbose = verbose;
+		this.pruneEnds = pruneEnds;
+        this.calculateShortestPath = shortPath;
+		this.verbose = verbose;
 
 		switch(pruneIndex)
 		{
@@ -455,7 +507,7 @@ public class AnalyzeSkeleton_ implements PlugInFilter, DialogListener
 		// Prune cycles if necessary
 		if(bPruneCycles)
 		{
-			if(pruneCycles(this.inputImage, this.originalImage, AnalyzeSkeleton_.pruneIndex))
+			if(pruneCycles(this.inputImage, this.originalImage, this.pruneIndex))
 			{
 				// initialize visit flags
 				resetVisited();
@@ -537,11 +589,11 @@ public class AnalyzeSkeleton_ implements PlugInFilter, DialogListener
 			boolean silent,
 			boolean verbose)
 	{
-		AnalyzeSkeleton_.pruneIndex = pruneIndex;
+        this.pruneIndex = pruneIndex;
 		this.silent = silent;
-		AnalyzeSkeleton_.pruneEnds = true;		
-		AnalyzeSkeleton_.calculateShortestPath = shortPath;
-		AnalyzeSkeleton_.verbose = verbose;
+        this.pruneEnds = true;
+        this.calculateShortestPath = shortPath;
+        this.verbose = verbose;
 
 		switch(pruneIndex)
 		{
@@ -582,7 +634,7 @@ public class AnalyzeSkeleton_ implements PlugInFilter, DialogListener
 		// Prune cycles if necessary
 		if(bPruneCycles)
 		{
-			if(pruneCycles(this.inputImage, this.originalImage, AnalyzeSkeleton_.pruneIndex))
+			if(pruneCycles(this.inputImage, this.originalImage, this.pruneIndex))
 			{
 				// initialize visit flags
 				resetVisited();
@@ -1261,7 +1313,8 @@ public class AnalyzeSkeleton_ implements PlugInFilter, DialogListener
 	 */
 	void displayTagImage(ImageStack taggedImage)
 	{
-		ImagePlus tagIP = new ImagePlus("Tagged skeleton", taggedImage);
+		// duplicate stack so that the plugin won't crash if the user closes the image window, and the stack is freed
+		ImagePlus tagIP = new ImagePlus("Tagged skeleton", taggedImage.duplicate());
 		tagIP.show();
 
 		// Set same calibration as the input image
@@ -1386,7 +1439,7 @@ public class AnalyzeSkeleton_ implements PlugInFilter, DialogListener
 		rt.show("Results");
 		
 		// Extra information
-		if(AnalyzeSkeleton_.verbose)
+		if(verbose)
 		{
 			// New results table
 			final ResultsTable extra_rt = new ResultsTable();

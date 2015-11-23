@@ -1,9 +1,8 @@
-package org.bonej.protoPlugins;
+package org.bonej.wrapperPlugins;
 
 import Skeletonize3D_.Skeletonize3D_;
 import ij.IJ;
 import ij.ImagePlus;
-import net.imagej.ImageJ;
 import org.bonej.common.Common;
 import org.bonej.common.ImageCheck;
 import org.scijava.command.Command;
