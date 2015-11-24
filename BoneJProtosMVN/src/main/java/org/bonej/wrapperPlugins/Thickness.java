@@ -7,6 +7,7 @@ import ij.gui.GenericDialog;
 import ij.macro.Interpreter;
 import ij.plugin.frame.RoiManager;
 import ij.process.StackStatistics;
+import net.imagej.Main;
 import net.imagej.patcher.LegacyInjector;
 import org.bonej.common.Common;
 import org.bonej.common.ImageCheck;
@@ -18,6 +19,8 @@ import org.scijava.plugin.Parameter;
 import org.scijava.plugin.Plugin;
 import org.scijava.prefs.PrefService;
 import org.scijava.ui.UIService;
+
+import java.awt.*;
 
 import static org.scijava.ui.DialogPrompt.*;
 
@@ -63,7 +66,8 @@ public class Thickness implements Command
     private ImagePlus image = null;
     private ImagePlus resultImage = null;
     private StackStatistics resultStats = null;
-    private GenericDialog setupDialog;
+    private GenericDialog setupDialog = null;
+    private RoiManager roiManager = null;
 
     private boolean doThickness = THICKNESS_DEFAULT;
     private boolean doSpacing = SPACING_DEFAULT;
@@ -77,7 +81,14 @@ public class Thickness implements Command
         setupDialog.addCheckbox("Thickness", doThickness);
         setupDialog.addCheckbox("Spacing", doSpacing);
         setupDialog.addCheckbox("Graphic Result", doGraphic);
+
         setupDialog.addCheckbox("Crop using ROI Manager", doRoi);
+        if (roiManager == null) {
+            Checkbox cropCheckbox = (Checkbox) setupDialog.getCheckboxes().elementAt(3);
+            cropCheckbox.setState(false);
+            cropCheckbox.setEnabled(false);
+        }
+
         setupDialog.addCheckbox("Mask thickness map", doMask);
         setupDialog.addHelp(HELP_URL);
     }
@@ -129,6 +140,8 @@ public class Thickness implements Command
         if (!setCurrentImage()) {
             return;
         }
+
+        roiManager = RoiManager.getInstance();
 
         loadSettings();
         createSetupDialog();
@@ -204,7 +217,6 @@ public class Thickness implements Command
         resultImage = null;
         resultStats = null;
 
-        RoiManager roiManager = RoiManager.getInstance();
         String suffix = doForeground ? "_" + TRABECULAR_THICKNESS : "_" + TRABECULAR_SPACING;
 
         if (doRoi) {
@@ -263,6 +275,6 @@ public class Thickness implements Command
 
     public static void main(final String... args)
     {
-        net.imagej.Main.launch(args);
+        Main.launch(args);
     }
 }
