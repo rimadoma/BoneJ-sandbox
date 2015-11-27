@@ -1,6 +1,5 @@
 package org.bonej.wrapperPlugins;
 
-import Skeletonize3D_.Skeletonize3D_;
 import ij.IJ;
 import ij.ImagePlus;
 import org.bonej.common.Common;
@@ -9,6 +8,7 @@ import org.scijava.command.Command;
 import org.scijava.plugin.Parameter;
 import org.scijava.plugin.Plugin;
 import org.scijava.ui.UIService;
+import sc.fiji.skeletonize3D.Skeletonize3D_;
 
 /**
  * A BoneJ wrapper plugin, which is used for a "bone science" flavour of the Skeletonize3D ImageJ plugin.
