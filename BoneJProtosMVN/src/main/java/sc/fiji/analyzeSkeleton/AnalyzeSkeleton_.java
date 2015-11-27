@@ -330,7 +330,7 @@ public class AnalyzeSkeleton_ implements PlugInFilter, DialogListener
 		{
 			ImagePlus labeledSkeletons = 
 					new ImagePlus( this.imRef.getShortTitle() 
-							+ "-labeled-skeletons", this.labeledSkeletons );
+							+ "-labeled-skeletons", this.labeledSkeletons.duplicate() );
 			IJ.run( labeledSkeletons, "Fire", null );
 			labeledSkeletons.show();
 		}
@@ -613,7 +613,7 @@ public class AnalyzeSkeleton_ implements PlugInFilter, DialogListener
 			
 			if (!silent) {
 				// Display short paths in a new stack
-				ImagePlus shortIP = new ImagePlus("Longest shortest paths", shortPathImage);
+				ImagePlus shortIP = new ImagePlus("Longest shortest paths", shortPathImage.duplicate());
 				shortIP.show();
 
 				// Set same calibration as the input image
@@ -3392,7 +3392,8 @@ public class AnalyzeSkeleton_ implements PlugInFilter, DialogListener
 	}
 
 	private void loadDialogSettings() {
-		pruneIndex = Prefs.getInt(PRUNE_MODE_INDEX_KEY, DEFAULT_PRUNE_MODE_INDEX);
+		String index = Prefs.get(PRUNE_MODE_INDEX_KEY, String.valueOf(DEFAULT_PRUNE_MODE_INDEX));
+		pruneIndex = Integer.parseInt(index); // fails to find the key
 		pruneEnds = Prefs.get(PRUNE_ENDS_KEY, DEFAULT_PRUNE_ENDS);
 		calculateShortestPath = Prefs.get(CALCULATE_PATH_KEY, DEFAULT_CALCULATE_SHORTEST_PATH);
 		verbose = Prefs.get(VERBOSE_KEY, DEFAULT_VERBOSE);
@@ -3400,7 +3401,7 @@ public class AnalyzeSkeleton_ implements PlugInFilter, DialogListener
 	}
 
 	private void saveDialogSettings() {
-		Prefs.set(PRUNE_MODE_INDEX_KEY, pruneIndex);
+		Prefs.set(PRUNE_MODE_INDEX_KEY, String.valueOf(pruneIndex));
 		Prefs.set(PRUNE_ENDS_KEY, pruneEnds);
 		Prefs.set(CALCULATE_PATH_KEY, calculateShortestPath);
 		Prefs.set(VERBOSE_KEY, verbose);
