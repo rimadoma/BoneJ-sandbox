@@ -218,7 +218,7 @@ public class AnalyzeSkeleton_ implements PlugInFilter, DialogListener
 	private int y_offset = 1;
 	/** z- neighborhood offset */
 	private int z_offset = 1;
-	
+
 	/** boolean flag to display extra information in result tables */
 	public static boolean verbose = DEFAULT_VERBOSE;
 	
@@ -241,13 +241,14 @@ public class AnalyzeSkeleton_ implements PlugInFilter, DialogListener
 	 */
 	public int setup(String arg, ImagePlus imp) 
 	{
-		this.imRef = imp;
-		
 		if (arg.equals("about")) 
 		{
 			showAbout();
 			return DONE;
 		}
+
+		this.imRef = imp.duplicate();
+		this.imRef.setTitle(imp.getTitle());
 
 		return DOES_8G; 
 	} // end method setup 
