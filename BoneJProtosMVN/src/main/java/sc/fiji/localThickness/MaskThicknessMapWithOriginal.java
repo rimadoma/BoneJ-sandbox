@@ -1,4 +1,4 @@
-package org.bonej.localThickness;
+package sc.fiji.localThickness;
 
 import ij.IJ;
 import ij.ImagePlus;
@@ -8,14 +8,15 @@ import ij.process.ImageProcessor;
 /**
  * An additional image processing step to LocalThickness,
  * which removes pixels from the thickness map, which are background
- * in the original image. This is to avoid volume dilation in the map.
+ * in the original image. This is to avoid volume dilation
+ * in the thickness map, i.e. artifacts in the map may
+ * affect statistical measures of the sample.
  *
  * @author <a href="mailto:rdomander@rvc.ac.uk">Richard Domander</a>
+ * @author Michael Doube
  */
 public class MaskThicknessMapWithOriginal
 {
-    private ImagePlus resultImage = null;
-
     /**
      * Pixels with colors < threshold are considered background
      */
@@ -26,6 +27,8 @@ public class MaskThicknessMapWithOriginal
      */
     public boolean inverse = EDT_S1D.DEFAULT_INVERSE;
 
+    private ImagePlus resultImage = null;
+
     /**
      * Creates a copy of the thicknessMap, where "overhanging" pixels have been removed.
      *
@@ -34,19 +37,18 @@ public class MaskThicknessMapWithOriginal
      *
      * @param   original        The original, unprocessed 8-bit binary image
      * @param   thicknessMap    The 32-bit thickness map image produced from the original
+     * @throws  NullPointerException        if original == null or thicknessMap == null
+     * @throws  IllegalArgumentException    if original.getBitDepth() != 8 or thicknessMap.getBitDepth() != 32
+     * @throws  IllegalArgumentException    if the dimensions of the images do not match
      * @return  A 32-bit thickness map image where the overhanging pixels have been set to 0
-     *          Returns null if either of the input images is null, or has wrong bit depth
-     *          Returns null if the dimensions of the images don't match
-     *
-     * Modified from org.doube.bonej.Thickness.trimOverhang created by Michael Doube
      */
     public ImagePlus trimOverhang(ImagePlus original, ImagePlus thicknessMap) {
-        if (original == null || original.getBitDepth() != 8) {
-            return null;
+        if (original == null || thicknessMap == null) {
+            throw new NullPointerException("Images must not be null");
         }
 
-        if (thicknessMap == null || thicknessMap.getBitDepth() != 32) {
-            return null;
+        if (original.getBitDepth() != 8 || thicknessMap.getBitDepth() != 32) {
+            throw new IllegalArgumentException("One or both of the images have the wrong bit depth");
         }
 
         final int w = original.getWidth();
@@ -54,13 +56,13 @@ public class MaskThicknessMapWithOriginal
         final int d = original.getImageStackSize();
 
         if (w != thicknessMap.getWidth() || h != thicknessMap.getHeight() || d != thicknessMap.getImageStackSize()) {
-            return null;
+            throw new IllegalArgumentException("The dimensions of the images do not match");
         }
 
         final ImageStack originalStack = original.getImageStack();
 
         resultImage = thicknessMap.duplicate();
-        resultImage.setTitle(thicknessMap.getTitle()); // duplicate() add DUP_ to title
+        resultImage.setTitle(thicknessMap.getTitle()); // duplicate() adds DUP_ to title
         final ImageStack resultStack = resultImage.getImageStack();
 
         ImageProcessor originalProcessor;
@@ -90,10 +92,5 @@ public class MaskThicknessMapWithOriginal
     public ImagePlus getResultImage()
     {
         return resultImage;
-    }
-
-    public void resetResultImage()
-    {
-        resultImage = null;
     }
 }

@@ -13,12 +13,12 @@ import org.bonej.common.Common;
 import org.bonej.common.ImageCheck;
 import org.bonej.common.ResultsInserter;
 import org.bonej.common.RoiUtil;
-import org.bonej.localThickness.LocalThicknessWrapper;
 import org.scijava.command.Command;
 import org.scijava.plugin.Parameter;
 import org.scijava.plugin.Plugin;
 import org.scijava.prefs.PrefService;
 import org.scijava.ui.UIService;
+import sc.fiji.localThickness.LocalThicknessWrapper;
 
 import java.awt.*;
 
@@ -200,7 +200,6 @@ public class Thickness implements Command
         }
 
         resultImage.show();
-        resultImage.getProcessor().setMinAndMax(0.0, resultStats.max);
         IJ.run("Fire");
     }
 
@@ -253,7 +252,7 @@ public class Thickness implements Command
         thicknessWrapper.setSilence(true);
         thicknessWrapper.inverse = !doForeground;
         thicknessWrapper.setShowOptions(false);
-        thicknessWrapper.maskThicknessMask = doMask;
+        thicknessWrapper.maskThicknessMap = doMask;
         thicknessWrapper.setTitleSuffix(tittleSuffix);
         thicknessWrapper.calibratePixels = true;
         ImagePlus result = thicknessWrapper.processImage(image);

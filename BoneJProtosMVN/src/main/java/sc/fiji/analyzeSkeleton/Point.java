@@ -1,4 +1,5 @@
-package org.bonej.analyseSkeleton;
+package sc.fiji.analyzeSkeleton;
+
 
 /**
  * AnalyzeSkeleton_ plugin for ImageJ(C).

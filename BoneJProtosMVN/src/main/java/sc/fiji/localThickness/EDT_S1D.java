@@ -1,4 +1,4 @@
-package org.bonej.localThickness;
+package sc.fiji.localThickness;
 
 import ij.IJ;
 import ij.ImagePlus;
@@ -59,23 +59,24 @@ public class EDT_S1D implements  PlugInFilter {
 	public static final int DEFAULT_THRESHOLD = 128;
 	public static final boolean DEFAULT_INVERSE = false;
 
-	private boolean cancelled = false;
-
 	private ImagePlus imp;
+	private boolean cancelled;
+
 	public byte[][] data;
 	public int w,h,d;
-
-	private ImagePlus resultImage;
 	public int thresh = DEFAULT_THRESHOLD;
 	public boolean inverse = DEFAULT_INVERSE;
-	public boolean runSilent = false;
 	public boolean showOptions = true;
+	public boolean runSilent = false;
+	private ImagePlus resultImage;
 
 	public int setup(String arg, ImagePlus imp) {
 		this.imp = imp;
 		return DOES_8G;
 	}
 	public void run(ImageProcessor ip) {
+		resultImage = null;
+
 		ImageStack stack = imp.getStack();
 		w = stack.getWidth();
 		h = stack.getHeight();
@@ -83,15 +84,12 @@ public class EDT_S1D implements  PlugInFilter {
 		int nThreads = Runtime.getRuntime().availableProcessors();
 
 		cancelled = false;
-
 		if (showOptions) {
 			if(!getScale()) {
 				cancelled = true;
 				return;
 			}
 		}
-
-		resultImage = null;
 
 		//Create references to input data
 		data = new byte[d][];
@@ -169,19 +167,13 @@ public class EDT_S1D implements  PlugInFilter {
 		IJ.showStatus("Done");
 		String title = stripExtension(imp.getTitle());
 		resultImage = new ImagePlus(title+"_EDT",sStack);
-		resultImage.getProcessor().setMinAndMax(0, distMax);
+		resultImage.getProcessor().setMinAndMax(0,distMax);
 
-		if (!runSilent) {
+		if(!runSilent) {
 			resultImage.show();
 			IJ.run("Fire");
 		}
 	}
-
-	public ImagePlus getResultImage()
-	{
-		return resultImage;
-	}
-
 	//Modified from ImageJ code by Wayne Rasband
 	String stripExtension(String name) {
 		if (name!=null) {
@@ -191,9 +183,14 @@ public class EDT_S1D implements  PlugInFilter {
 		}
 		return name;
 	}
+
+	public ImagePlus getResultImage() {
+		return resultImage;
+	}
+
 	boolean getScale() {
-		thresh = (int)Prefs.get("edtS1.thresh", DEFAULT_THRESHOLD);
-		inverse = Prefs.get("edtS1.inverse", DEFAULT_INVERSE);
+		thresh = (int)Prefs.get("edtS1.thresh", 128);
+		inverse = Prefs.get("edtS1.inverse", false);
 		GenericDialog gd = new GenericDialog("EDT...", IJ.getInstance());
 		gd.addNumericField("Threshold (1 to 255; value < thresh is background)", thresh, 0);
 		gd.addCheckbox("Inverse case (background when value >= thresh)",inverse);
@@ -205,6 +202,12 @@ public class EDT_S1D implements  PlugInFilter {
 		Prefs.set("edtS1.inverse", inverse);
 		return true;
 	}
+
+	public boolean gotCancelled()
+	{
+		return cancelled;
+	}
+
 	class Step1Thread extends Thread{
 		int thread,nThreads,w,h,d,thresh;
 		float[][] s;
@@ -373,10 +376,5 @@ public class EDT_S1D implements  PlugInFilter {
 				}
 			}
 		}//run
-	}//Step2Thread
-
-	public boolean gotCancelled()
-	{
-		return cancelled;
-	}
+	}//Step2Thread	
 }

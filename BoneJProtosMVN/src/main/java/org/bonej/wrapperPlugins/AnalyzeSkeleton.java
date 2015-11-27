@@ -3,13 +3,13 @@ package org.bonej.wrapperPlugins;
 import ij.IJ;
 import ij.ImagePlus;
 import net.imagej.ImageJ;
-import org.bonej.analyseSkeleton.AnalyzeSkeleton_;
 import org.bonej.common.Common;
 import org.bonej.common.ImageCheck;
 import org.scijava.command.Command;
 import org.scijava.plugin.Parameter;
 import org.scijava.plugin.Plugin;
 import org.scijava.ui.UIService;
+import sc.fiji.analyzeSkeleton.AnalyzeSkeleton_;
 
 /**
  * A BoneJ wrapper plugin, which is used for a "bone science" flavour of the AnalyzeSkeleton ImageJ plugin.

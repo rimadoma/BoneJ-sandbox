@@ -1,4 +1,4 @@
-package org.bonej.localThickness;
+package sc.fiji.localThickness;
 
 import ij.IJ;
 import ij.ImagePlus;
@@ -79,7 +79,7 @@ public class Local_Thickness_Driver implements  PlugInFilter {
 		IJ.showStatus("Done");
 	}
 	//Modified from ImageJ code by Wayne Rasband
-    public static String stripExtension(String name) {
+	static String stripExtension(String name) {
         if (name!=null) {
             int dotIndex = name.lastIndexOf(".");
             if (dotIndex>=0)

@@ -1,4 +1,4 @@
-package org.bonej.localThickness;
+package sc.fiji.localThickness;
 
 import ij.IJ;
 import ij.ImagePlus;
@@ -59,23 +59,23 @@ Version 3.1 Oct. 1, 2006.  Faster scanning of search points.
 */
 public class Distance_Ridge implements  PlugInFilter {
 	private ImagePlus imp;
+	private ImagePlus resultImage;
+
 	public float[][] data;
 	public int w,h,d;
 	public boolean runSilent = false;
-	private ImagePlus resultImage;
 
 	public int setup(String arg, ImagePlus imp) {
- 		this.imp = imp;
+		this.imp = imp;
 		return DOES_32;
 	}
 	public void run(ImageProcessor ip) {
+		resultImage = null;
+
 		ImageStack stack = imp.getStack();
 		w = stack.getWidth();
 		h = stack.getHeight();
 		d = imp.getStackSize();
-
-		resultImage = null;
-
 		//Create 32 bit floating point stack for output, s.  Will also use it for g in Transormation 1.
 		ImageStack newStack = new ImageStack(w,h);
 		float[][] sNew = new float[d][];
@@ -180,8 +180,8 @@ public class Distance_Ridge implements  PlugInFilter {
 												numComp = numCompX + numCompY + numCompZ;
 												if(numComp > 0){
 													sk1Sq = (int)(sk1[i1+w*j1]*sk1[i1+w*j1] + 0.5f);
-														if(sk1Sq >= rSqTemplate[numComp-1][sk0SqInd])
-															notRidgePoint = true;
+													if(sk1Sq >= rSqTemplate[numComp-1][sk0SqInd])
+														notRidgePoint = true;
 												}
 											}//if in grid for i1
 											if(notRidgePoint)break;
@@ -261,17 +261,16 @@ public class Distance_Ridge implements  PlugInFilter {
 		}
 		return r1Sq;
 	}	//Modified from ImageJ code by Wayne Rasband
-    String stripExtension(String name) {
-        if (name!=null) {
-            int dotIndex = name.lastIndexOf(".");
-            if (dotIndex>=0)
-                name = name.substring(0, dotIndex);
+	String stripExtension(String name) {
+		if (name!=null) {
+			int dotIndex = name.lastIndexOf(".");
+			if (dotIndex>=0)
+				name = name.substring(0, dotIndex);
 		}
 		return name;
-    }
+	}
 
-	public ImagePlus getResultImage()
-	{
+	public ImagePlus getResultImage() {
 		return resultImage;
 	}
 }

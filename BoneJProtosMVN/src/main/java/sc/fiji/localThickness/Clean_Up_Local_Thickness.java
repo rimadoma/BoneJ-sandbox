@@ -1,4 +1,4 @@
-package org.bonej.localThickness;
+package sc.fiji.localThickness;
 
 import ij.IJ;
 import ij.ImagePlus;
@@ -49,23 +49,23 @@ offficial definition of local thickness.
 */
 public class Clean_Up_Local_Thickness implements  PlugInFilter {
 	private ImagePlus imp;
+	private ImagePlus resultImage;
+
 	public float[][] s, sNew;
 	public int w,h,d;
 	public boolean runSilent = false;
-	private ImagePlus resultImage;
 
 	public int setup(String arg, ImagePlus imp) {
  		this.imp = imp;
 		return DOES_32;
 	}
 	public void run(ImageProcessor ip) {
+		resultImage = null;
+
 		ImageStack stack = imp.getStack();
 		w = stack.getWidth();
 		h = stack.getHeight();
 		d = imp.getStackSize();
-
-		resultImage = null;
-
 		//Create 32 bit floating point stack for output, sNew.
 		ImageStack newStack = new ImageStack(w,h);
 		sNew = new float[d][];
@@ -324,8 +324,7 @@ public class Clean_Up_Local_Thickness implements  PlugInFilter {
 		return name;
     }
 
-	public ImagePlus getResultImage()
-	{
+	public ImagePlus getResultImage() {
 		return resultImage;
 	}
 }

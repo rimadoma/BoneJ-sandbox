@@ -1,4 +1,4 @@
-package org.bonej.analyseSkeleton;
+package sc.fiji.analyzeSkeleton;
 
 import java.util.ArrayList;
 import java.util.Stack;

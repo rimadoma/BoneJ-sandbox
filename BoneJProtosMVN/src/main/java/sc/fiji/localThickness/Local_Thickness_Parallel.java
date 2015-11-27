@@ -1,4 +1,4 @@
-package org.bonej.localThickness;
+package sc.fiji.localThickness;
 
 import ij.IJ;
 import ij.ImagePlus;
@@ -53,10 +53,9 @@ Version 3.1  Multiplies the output by 2 to conform with the definition of local 
 */
 public class Local_Thickness_Parallel implements  PlugInFilter {
 	private ImagePlus imp;
+	private ImagePlus resultImage;
 	public float[][] data;
 	public int w,h,d;
-
-	private ImagePlus resultImage;
 	public boolean runSilent = false;
 
 	public int setup(String arg, ImagePlus imp) {
@@ -64,12 +63,9 @@ public class Local_Thickness_Parallel implements  PlugInFilter {
 		return DOES_32;
 	}
 	public void run(ImageProcessor ip) {
-		String originalTitle = imp.getTitle();
 		resultImage = imp.duplicate();
-		// duplicate() adds "DUP_" prefix to the title
-		resultImage.setTitle(originalTitle);
-
 		ImageStack stack = resultImage.getStack();
+
 		w = stack.getWidth();
 		h = stack.getHeight();
 		d = resultImage.getStackSize();
@@ -158,7 +154,7 @@ public class Local_Thickness_Parallel implements  PlugInFilter {
 			}
 		}
 		IJ.showStatus("Local Thickness complete");
-		String title = stripExtension(resultImage.getTitle());
+		String title = stripExtension(imp.getTitle());
 		resultImage.setTitle(title+"_LT");
 		resultImage.getProcessor().setMinAndMax(0,sMax);
 
@@ -177,8 +173,7 @@ public class Local_Thickness_Parallel implements  PlugInFilter {
 		return name;
     }
 
-	public ImagePlus getResultImage()
-	{
+	public ImagePlus getResultImage() {
 		return resultImage;
 	}
 
