@@ -48,7 +48,9 @@ public class Local_Thickness_Driver implements  PlugInFilter {
 	public boolean inverse;
 
 	public int setup(String arg, ImagePlus imp) {
- 		this.imp = imp;
+		String originalTitle = stripExtension(imp.getTitle());
+ 		this.imp = imp.duplicate();
+		this.imp.setTitle(originalTitle);
 		return DOES_8G;
 	}
 	public void run(ImageProcessor ip) {
