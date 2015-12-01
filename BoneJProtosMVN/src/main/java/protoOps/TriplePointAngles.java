@@ -32,11 +32,12 @@ public class TriplePointAngles implements Op {
     @Parameter(required = true)
     private ImagePlus inputImage = null;
 
-    @Parameter
+    @Parameter(min = "-1")
     private int nthPixel = DEFAULT_NTH_POINT;
 
     @Parameter(type = ItemIO.OUTPUT)
     private double results[][][] = null;
+    private int nthPoint;
 
     @Override
     public void run() {
@@ -55,75 +56,90 @@ public class TriplePointAngles implements Op {
     }
 
     public void calculateTriplePointAngles() {
-        checkNotNull(inputImage, "Input image cannot be null");
-        checkArgument(inputImage.getBitDepth() == 8, "The bit depth of the input image must be 8");
-
         skeletonAnalyzer.setup("", inputImage);
         skeletonAnalyzer.run();
         Graph[] graphs = skeletonAnalyzer.getGraphs();
         results = new double[graphs.length][][];
-        int g = 0;
 
-        for (Graph graph : graphs) {
-            ArrayList<Vertex> vertices = graph.getVertices();
-            double[][] vertexAngles = new double[vertices.size()][3];
-            int v = 0;
-            for (Vertex vertex : vertices) {
+        for (int g = 0; g < graphs.length; g++) {
+            ArrayList<Vertex> vertices = graphs[g].getVertices();
+            results[g] = new double[vertices.size()][];
+
+            for (int v = 0; v < vertices.size(); v++) {
+                Vertex vertex = vertices.get(v);
+
                 if (!isTriplePoint(vertex)) {
-                    vertexAngles[v] = null;
-                    v++;
+                    results[g][v] = null;
                     continue;
                 }
 
                 ArrayList<Edge> edges = vertex.getBranches();
-
                 Edge edge0 = edges.get(0);
                 Edge edge1 = edges.get(1);
                 Edge edge2 = edges.get(2);
 
-                double theta0 = vertexAngle(vertex, edge0, edge1, nthPixel);
-                double theta1 = vertexAngle(vertex, edge0, edge2, nthPixel);
-                double theta2 = vertexAngle(vertex, edge1, edge2, nthPixel);
-
-                double[] thetas = { theta0, theta1, theta2 };
-
-                vertexAngles[v] = thetas;
-                v++;
-            }
-            results[g] = vertexAngles;
-            g++;
-        }
-    }
-
-    private static boolean isTriplePoint(Vertex vertex) {
-        return vertex.getBranches().size() == 3;
-    }
-
-    public static boolean isInNeighborhood(Point p0, Point v) {
-        for (int x = v.x - 1; x <= v.x + 1; x++) {
-            for (int y = v.y - 1; y <= v.y + 1; y++) {
-                for (int z = v.z - 1; z <= v.z + 1; z++) {
-                    if (x == 0 && y == 0 && z == 0) {
-                        continue;
-                    }
-                    if (x == p0.x && y == p0.y && z == p0.z) {
-                        return true;
-                    }
+                results[g][v] = new double[3];
+                if (nthPoint == VERTEX_TO_VERTEX) {
+                    results[g][v][0] = vertexToVertexAngle(vertex, edge0, edge1);
+                    results[g][v][1] = vertexToVertexAngle(vertex, edge0, edge2);
+                    results[g][v][2] = vertexToVertexAngle(vertex, edge1, edge2);
+                } else {
+                    results[g][v][0] = vertexAngle(vertex, edge0, edge1);
+                    results[g][v][1] = vertexAngle(vertex, edge0, edge2);
+                    results[g][v][2] = vertexAngle(vertex, edge1, edge2);
                 }
             }
         }
-
-        return false;
     }
 
-    private Point getNthPoint(Vertex vertex, Edge edge, int nthPixel) {
+    private boolean isTriplePoint(Vertex vertex) {
+        return vertex.getBranches().size() == 3;
+    }
+
+    private double vertexToVertexAngle(Vertex vertex, Edge edge0, Edge edge1) {
+        Vertex oppositeVertex0 = edge0.getOppositeVertex(vertex);
+        Vertex oppositeVertex1 = edge1.getOppositeVertex(vertex);
+
+        ArrayList<Point> vertexPoints = vertex.getPoints();
+        ArrayList<Point> oppositeVertex0Points = oppositeVertex0.getPoints();
+        ArrayList<Point> oppositeVertex1Points = oppositeVertex1.getPoints();
+
+        double[] vertexCentroid = Centroid.getCentroid(vertexPoints);
+        double[] oppositeVertex0Centroid = Centroid.getCentroid(oppositeVertex0Points);
+        double[] oppositeVertex1Centroid = Centroid.getCentroid(oppositeVertex1Points);
+
+        return Vectors.joinedVectorAngle(
+                oppositeVertex0Centroid[0], oppositeVertex0Centroid[1], oppositeVertex0Centroid[2],
+                oppositeVertex1Centroid[0], oppositeVertex1Centroid[1], oppositeVertex1Centroid[2],
+                vertexCentroid[0], vertexCentroid[1], vertexCentroid[2]);
+    }
+
+    private double vertexAngle(Vertex vertex, Edge edge0, Edge edge1) {
+        Point p0 = getNthPointOfEdge(vertex, edge0);
+        Point p1 = getNthPointOfEdge(vertex, edge1);
+
+        double cv[] = Centroid.getCentroid(vertex.getPoints());
+        return Vectors.joinedVectorAngle(p0.x, p0.y, p0.z, p1.x, p1.y, p1.z, cv[0], cv[1],
+                cv[2]);
+    }
+
+
+    public static boolean isVoxel26Connected(Point point, Point voxel) {
+        int xDistance = Math.abs(point.x - voxel.x);
+        int yDistance = Math.abs(point.y - voxel.y);
+        int zDistance = Math.abs(point.z - voxel.z);
+
+        return xDistance <= 1 && yDistance <= 1 && zDistance <= 1;
+    }
+
+    private Point getNthPointOfEdge(Vertex vertex, Edge edge) {
         ArrayList<Point> vertexPoints = vertex.getPoints();
         ArrayList<Point> edgePoints = edge.getSlabs();
         boolean startAtZero = false;
         Point edgeStart = edgePoints.get(0);
 
         for (Point vertexPoint : vertexPoints) {
-            if (isInNeighborhood(edgeStart, vertexPoint)) {
+            if (isVoxel26Connected(edgeStart, vertexPoint)) {
                 startAtZero = true;
                 break;
             }
@@ -140,34 +156,7 @@ public class TriplePointAngles implements Op {
         return edgePoints.get(edgePoints.size() - nthPixel - 1);
     }
 
-    private double vertexAngle(Vertex vertex, Edge edge0, Edge edge1, int nthPixel) {
-        if (nthPixel == VERTEX_TO_VERTEX) {
-            return vertexAngle(vertex, edge0, edge1);
-        }
-
-        Point p0 = getNthPoint(vertex, edge0, nthPixel);
-        Point p1 = getNthPoint(vertex, edge1, nthPixel);
-
-        double cv[] = Centroid.getCentroid(vertex.getPoints());
-        return Vectors.joinedVectorAngle(p0.x, p0.y, p0.z, p1.x, p1.y, p1.z, cv[0], cv[1],
-                cv[2]);
-    }
-
-    private static double vertexAngle(Vertex vertex, Edge edge0, Edge edge1) {
-        Vertex oppositeVertex0 = edge0.getOppositeVertex(vertex);
-        Vertex oppositeVertex1 = edge1.getOppositeVertex(vertex);
-
-        ArrayList<Point> vertexPoints = vertex.getPoints();
-        ArrayList<Point> oppositeVertex0Points = oppositeVertex0.getPoints();
-        ArrayList<Point> oppositeVertex1Points = oppositeVertex1.getPoints();
-
-        double[] vertexCentroid = Centroid.getCentroid(vertexPoints);
-        double[] oppositeVertex0Centroid = Centroid.getCentroid(oppositeVertex0Points);
-        double[] oppositeVertex1Centroid = Centroid.getCentroid(oppositeVertex1Points);
-
-        return Vectors.joinedVectorAngle(
-                oppositeVertex0Centroid[0], oppositeVertex0Centroid[1], oppositeVertex0Centroid[2],
-                oppositeVertex1Centroid[0], oppositeVertex1Centroid[1], oppositeVertex1Centroid[2],
-                vertexCentroid[0], vertexCentroid[1], vertexCentroid[2]);
+    public void setNthPoint(int nthPoint) {
+        this.nthPoint = nthPoint;
     }
 }
