@@ -33,11 +33,10 @@ public class TriplePointAngles implements Op {
     private ImagePlus inputImage = null;
 
     @Parameter(min = "-1")
-    private int nthPixel = DEFAULT_NTH_POINT;
+    private int nthPoint = DEFAULT_NTH_POINT;
 
     @Parameter(type = ItemIO.OUTPUT)
     private double results[][][] = null;
-    private int nthPoint;
 
     @Override
     public void run() {
@@ -145,15 +144,15 @@ public class TriplePointAngles implements Op {
             }
         }
 
-        nthPixel = Common.clamp(nthPixel, 0, edgePoints.size() - 1);
+        nthPoint = Common.clamp(nthPoint, 0, edgePoints.size() - 1);
 
         if (startAtZero) {
             // Vertex is the start vertex of the edge so start counting "up"
-            return edgePoints.get(nthPixel);
+            return edgePoints.get(nthPoint);
         }
 
         // Vertex is the end vertex of the edge so start counting "down"
-        return edgePoints.get(edgePoints.size() - nthPixel - 1);
+        return edgePoints.get(edgePoints.size() - nthPoint - 1);
     }
 
     public void setNthPoint(int nthPoint) {

@@ -36,56 +36,19 @@ public class TestDataMaker {
         return createCuboid(paddedWidth, paddedHeight, paddedDepth, padding, processor);
     }
 
-    /**
-     * Draw the edges of a brick with 32 pixels of padding on all faces
-     *
-     * @param width
-     *            Width of the box frame in pixels
-     * @param height
-     *            Height of the box frame in pixels
-     * @param depth
-     *            Depth of the box frame in pixels
-     * @return Image containing a 1-pixel wide outline of a 3D box
-     */
-    public static ImagePlus boxFrame(int width, int height, int depth) {
-        ImageStack stack = new ImageStack(width + 64, height + 64);
-        for (int s = 1; s <= depth + 64; s++) {
-            ImageProcessor ip = new ByteProcessor(width + 64, height + 64);
-            ip.setColor(0);
-            ip.fill();
-            stack.addSlice(ip);
-        }
-        ImageProcessor ip = stack.getProcessor(32);
-        ip.setColor(255);
-        ip.drawRect(32, 32, width, height);
-        ip = stack.getProcessor(32 + depth);
-        ip.setColor(255);
-        ip.drawRect(32, 32, width, height);
-        for (int s = 33; s < 32 + depth; s++) {
-            ip = stack.getProcessor(s);
-            ip.setColor(255);
-            ip.drawPixel(32, 32);
-            ip.drawPixel(32, 31 + height);
-            ip.drawPixel(31 + width, 32);
-            ip.drawPixel(31 + width, 31 + height);
-        }
-        ImagePlus imp = new ImagePlus("box-frame", stack);
-        return imp;
-    }
-
     public static ImagePlus createCuboid(int paddedWidth, int paddedHeight, int paddedDepth, int padding,
                                          ImageProcessor cuboidProcessor) {
         ImageStack cuboidStack = new ImageStack(paddedWidth, paddedHeight);
 
         for (int i = 0; i < paddedDepth - padding; i++) {
-            cuboidStack.addSlice(cuboidProcessor);
+            cuboidStack.addSlice(cuboidProcessor.duplicate());
         }
 
         // depth padding
         ImageProcessor paddingProcessor = new ByteProcessor(paddedWidth, paddedHeight);
         for (int i = 0; i < padding; i++) {
-            cuboidStack.addSlice("", paddingProcessor, 0);
-            cuboidStack.addSlice(paddingProcessor);
+            cuboidStack.addSlice("", paddingProcessor.duplicate(), 0);
+            cuboidStack.addSlice(paddingProcessor.duplicate());
         }
 
         ImagePlus image = new ImagePlus("Test cuboid", cuboidStack);
