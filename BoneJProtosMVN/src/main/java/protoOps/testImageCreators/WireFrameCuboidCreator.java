@@ -26,16 +26,16 @@ public class WireFrameCuboidCreator implements Op {
         LegacyInjector.preinit();
     }
 
-    @Parameter(min = "1")
+    @Parameter(min = "1", required = false)
     private int cuboidWidth = 100;
 
-    @Parameter(min = "1")
+    @Parameter(min = "1", required = false)
     private int cuboidHeight = 100;
 
-    @Parameter(min = "1")
+    @Parameter(min = "1", required = false)
     private int cuboidDepth = 100;
 
-    @Parameter(min = "0")
+    @Parameter(min = "0", required = false)
     private int cuboidPadding = 10;
 
     @Parameter(type = ItemIO.OUTPUT)

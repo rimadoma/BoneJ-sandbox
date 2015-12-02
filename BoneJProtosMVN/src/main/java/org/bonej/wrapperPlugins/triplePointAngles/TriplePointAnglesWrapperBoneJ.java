@@ -57,6 +57,7 @@ public class TriplePointAnglesWrapperBoneJ implements Command
     @Override
     public void run() {
         if (activeImage == null) {
+            uiService.showDialog("No image open", "Error");
             return;
         }
 

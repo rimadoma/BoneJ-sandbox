@@ -29,32 +29,32 @@ public class TriplePointAngles implements Op {
     private static final AnalyzeSkeleton_ skeletonAnalyzer = new AnalyzeSkeleton_();
 
     //@todo change to Dataset, and then unwrap ImagePlus?
-    @Parameter(required = true)
+    @Parameter
     private ImagePlus inputImage = null;
 
-    @Parameter(min = "-1")
+    @Parameter(min = "-1", required = false)
     private int nthPoint = DEFAULT_NTH_POINT;
 
     @Parameter(type = ItemIO.OUTPUT)
     private double results[][][] = null;
-
-    @Override
-    public void run() {
-        calculateTriplePointAngles();
-    }
 
     public double[][][] getResults() {
         return results;
     }
 
     public void setInputImage(ImagePlus image) {
-        checkNotNull(image, "Input image cannot be set null");
-        checkArgument(image.getBitDepth() == 8, "The bit depth of the input image must be 8");
+        checkImage(image);
 
         inputImage = image;
     }
 
+    public void setNthPoint(int nthPoint) {
+        this.nthPoint = nthPoint;
+    }
+
     public void calculateTriplePointAngles() {
+        checkImage(inputImage);
+
         skeletonAnalyzer.setup("", inputImage);
         skeletonAnalyzer.run();
         Graph[] graphs = skeletonAnalyzer.getGraphs();
@@ -91,6 +91,27 @@ public class TriplePointAngles implements Op {
         }
     }
 
+    @Override
+    public void run() {
+        calculateTriplePointAngles();
+    }
+
+    //region -- Utility methods --
+    public static boolean isVoxel26Connected(Point point, Point voxel) {
+        int xDistance = Math.abs(point.x - voxel.x);
+        int yDistance = Math.abs(point.y - voxel.y);
+        int zDistance = Math.abs(point.z - voxel.z);
+
+        return xDistance <= 1 && yDistance <= 1 && zDistance <= 1;
+    }
+    //endregion
+
+    //region -- Helper methods --
+    private static void checkImage(ImagePlus image) {
+        checkNotNull(image, "Input image cannot be set null");
+        checkArgument(image.getBitDepth() == 8, "The bit depth of the input image must be 8");
+    }
+
     private boolean isTriplePoint(Vertex vertex) {
         return vertex.getBranches().size() == 3;
     }
@@ -122,15 +143,6 @@ public class TriplePointAngles implements Op {
                 cv[2]);
     }
 
-
-    public static boolean isVoxel26Connected(Point point, Point voxel) {
-        int xDistance = Math.abs(point.x - voxel.x);
-        int yDistance = Math.abs(point.y - voxel.y);
-        int zDistance = Math.abs(point.z - voxel.z);
-
-        return xDistance <= 1 && yDistance <= 1 && zDistance <= 1;
-    }
-
     private Point getNthPointOfEdge(Vertex vertex, Edge edge) {
         ArrayList<Point> vertexPoints = vertex.getPoints();
         ArrayList<Point> edgePoints = edge.getSlabs();
@@ -154,8 +166,5 @@ public class TriplePointAngles implements Op {
         // Vertex is the end vertex of the edge so start counting "down"
         return edgePoints.get(edgePoints.size() - nthPoint - 1);
     }
-
-    public void setNthPoint(int nthPoint) {
-        this.nthPoint = nthPoint;
-    }
+    //endregion
 }
