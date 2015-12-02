@@ -3,19 +3,22 @@ package protoOps;
 import ij.ImagePlus;
 import org.junit.Before;
 import org.junit.Test;
-import protoOps.testImageCreators.CrossedCircleCreator;
-import protoOps.testImageCreators.WireFrameCuboidCreator;
+import protoOps.testImageCreators.StaticTestImageHelper;
 import sc.fiji.skeletonize3D.Skeletonize3D_;
 
 import static org.junit.Assert.*;
 
 /**
- * @author <a href="mailto:rdomander@rvc.ac.uk">Richard Domander</a>
+ * @author Richard Domander
  */
 public class TriplePointAnglesTest
 {
     private final static double HALF_PI = Math.PI / 2.0;
     private final static double QUARTER_PI = Math.PI / 4.0;
+
+    // Skeletonization of the cuboid images thins them so that they lose their corner pixels.
+    // This moves the centroid of the triple point enough so that angles aren't exactly PI / 2 anymore,
+    // at least when measured some pixels away from the vertex (WIRE_FRAME_RESULT_NTH_POINT)
     private final static double NEARLY_HALF_PI = 1.58555518815571;
 
     private final static double[][][] CROSSED_CIRCLE_RESULT = {{
@@ -64,7 +67,7 @@ public class TriplePointAnglesTest
 
     @Test
     public void testCalculateTriplePointAnglesWireFrameCuboid() {
-        ImagePlus testImage = WireFrameCuboidCreator.createWireFrameCuboid(128, 128, 128, 32);
+        ImagePlus testImage = StaticTestImageHelper.createWireFrameCuboid(128, 128, 128, 32);
 
         triplePointAngles.setInputImage(testImage);
         triplePointAngles.setNthPoint(TriplePointAngles.VERTEX_TO_VERTEX);
@@ -86,7 +89,7 @@ public class TriplePointAnglesTest
 
     @Test
     public void testCalculateTriplePointAnglesWireFrameCuboidNthPoint() {
-        ImagePlus testImage = WireFrameCuboidCreator.createWireFrameCuboid(128, 128, 128, 32);
+        ImagePlus testImage = StaticTestImageHelper.createWireFrameCuboid(128, 128, 128, 32);
 
         triplePointAngles.setInputImage(testImage);
         triplePointAngles.setNthPoint(32);
@@ -104,11 +107,8 @@ public class TriplePointAnglesTest
 
     @Test
     public void testCalculateTriplePointAnglesCrossedCircle() {
-        ImagePlus testImage = CrossedCircleCreator.createCrossedCircle(256);
-        //why do we need to skeletonize the image, and why does it affect test results? Smoothing?
-        Skeletonize3D_ skeletonizer = new Skeletonize3D_();
-        skeletonizer.setup("", testImage);
-        skeletonizer.run(null);
+        ImagePlus testImage = StaticTestImageHelper.createCrossedCircle(256);
+        prepareCircleImage(testImage);
 
         triplePointAngles.setInputImage(testImage);
         triplePointAngles.setNthPoint(TriplePointAngles.VERTEX_TO_VERTEX);
@@ -130,10 +130,8 @@ public class TriplePointAnglesTest
 
     @Test
     public void testCalculateTriplePointAnglesCrossedCircleNth() {
-        ImagePlus testImage = CrossedCircleCreator.createCrossedCircle(256);
-        Skeletonize3D_ skeletonizer = new Skeletonize3D_();
-        skeletonizer.setup("", testImage);
-        skeletonizer.run(null);
+        ImagePlus testImage = StaticTestImageHelper.createCrossedCircle(256);
+        prepareCircleImage(testImage);
 
         triplePointAngles.setInputImage(testImage);
         triplePointAngles.setNthPoint(8);
@@ -143,5 +141,12 @@ public class TriplePointAnglesTest
         for (int g = 0; g < CROSSED_CIRCLE_RESULT_NTH_POINT.length; g++)
             for (int v = 0; v < CROSSED_CIRCLE_RESULT_NTH_POINT[g].length; v++)
                 assertArrayEquals(CROSSED_CIRCLE_RESULT_NTH_POINT[g][v], result[g][v], 1e-12);
+    }
+
+    private void prepareCircleImage(ImagePlus circleImage) {
+        //why do we need to skeletonize the image, and why does it affect test results? Smoothing?
+        Skeletonize3D_ skeletonizer = new Skeletonize3D_();
+        skeletonizer.setup("", circleImage);
+        skeletonizer.run(null);
     }
 }

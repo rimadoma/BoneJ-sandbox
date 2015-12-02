@@ -1,16 +1,17 @@
 package org.bonej.common;
 
-//import ij.IJ;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.ImageStack;
 import ij.gui.Roi;
 import ij.plugin.frame.RoiManager;
+import ij.process.ByteProcessor;
 import ij.process.ImageProcessor;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import protoOps.testImageCreators.StaticTestImageHelper;
 
 import java.awt.*;
 import java.util.ArrayList;
@@ -23,7 +24,6 @@ import static org.mockito.Mockito.*;
  * Unit tests for the RoiUtil class
  * @author <a href="mailto:rdomander@rvc.ac.uk">Richard Domander</a>
  */
-//@PrepareForTest(IJ.class)
 public class RoiUtilTest {
     RoiManager mockRoiManager = mock(RoiManager.class);
     private static ImagePlus mockImage;
@@ -261,7 +261,7 @@ public class RoiUtilTest {
         when(mockRoiManager.getRoisAsArray()).thenReturn(rois);
 
         final int CUBE_SIDE = 10;
-        ImagePlus image = TestDataMaker.createCuboid(CUBE_SIDE, CUBE_SIDE, CUBE_SIDE, TEST_COLOR, 1);
+        ImagePlus image = StaticTestImageHelper.createCuboid(CUBE_SIDE, CUBE_SIDE, CUBE_SIDE, TEST_COLOR, 1);
         ImageStack originalStack = image.getStack();
 
         //All valid ROIs (basic cropping test)
