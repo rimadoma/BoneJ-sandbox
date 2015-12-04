@@ -14,7 +14,7 @@ import sc.fiji.analyzeSkeleton.AnalyzeSkeleton_;
 /**
  * A BoneJ wrapper plugin, which is used for a "bone science" flavour of the AnalyzeSkeleton ImageJ plugin.
  *
- * @author <a href="mailto:rdomander@rvc.ac.uk">Richard Domander</a>
+ * @author Richard Domander
  */
 
 @Plugin(type = Command.class, menuPath = "Plugins>BoneJ>AnalyzeSkeleton")
