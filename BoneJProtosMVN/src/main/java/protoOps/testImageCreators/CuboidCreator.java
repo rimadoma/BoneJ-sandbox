@@ -3,6 +3,7 @@ package protoOps.testImageCreators;
 import ij.ImagePlus;
 import net.imagej.*;
 import net.imagej.ops.Op;
+import net.imagej.ops.OpEnvironment;
 import net.imglib2.img.ImagePlusAdapter;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
 import org.scijava.ItemIO;
@@ -44,6 +45,16 @@ public class CuboidCreator implements Op
     @Override
     public void run() {
         createCuboid();
+    }
+
+    @Override
+    public OpEnvironment ops() {
+        return null;
+    }
+
+    @Override
+    public void setEnvironment(OpEnvironment opEnvironment) {
+
     }
 
     /**

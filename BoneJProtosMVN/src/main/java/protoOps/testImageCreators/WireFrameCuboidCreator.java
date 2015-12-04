@@ -6,6 +6,7 @@ import net.imagej.DatasetService;
 import net.imagej.ImageJ;
 import net.imagej.ImgPlus;
 import net.imagej.ops.Op;
+import net.imagej.ops.OpEnvironment;
 import net.imglib2.img.ImagePlusAdapter;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
 import org.scijava.ItemIO;
@@ -43,6 +44,16 @@ public class WireFrameCuboidCreator implements Op {
     @Override
     public void run() {
         createWireFrameCuboid();
+    }
+
+    @Override
+    public OpEnvironment ops() {
+        return null;
+    }
+
+    @Override
+    public void setEnvironment(OpEnvironment opEnvironment) {
+
     }
 
     /**

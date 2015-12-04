@@ -2,6 +2,7 @@ package protoOps;
 
 import ij.ImagePlus;
 import net.imagej.ops.Op;
+import net.imagej.ops.OpEnvironment;
 import org.bonej.common.Centroid;
 import org.bonej.common.Common;
 import org.bonej.geometry.Vectors;
@@ -94,6 +95,16 @@ public class TriplePointAngles implements Op {
     @Override
     public void run() {
         calculateTriplePointAngles();
+    }
+
+    @Override
+    public OpEnvironment ops() {
+        return null;
+    }
+
+    @Override
+    public void setEnvironment(OpEnvironment opEnvironment) {
+
     }
 
     //region -- Utility methods --
