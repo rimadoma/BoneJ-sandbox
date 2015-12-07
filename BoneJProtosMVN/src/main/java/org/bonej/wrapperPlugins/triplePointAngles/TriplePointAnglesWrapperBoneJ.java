@@ -69,6 +69,9 @@ public class TriplePointAnglesWrapperBoneJ implements Command
         final Future<CommandModule> future = commandService.run(OptionsTriplePointAngles.class, true);
         moduleService.waitFor(future);
         OptionsTriplePointAngles options = optionsService.getOptions(OptionsTriplePointAngles.class);
+        if (options.isCanceled()) {
+            return;
+        }
         int nthPoint = options.getNthPoint();
         final Object output = opService.run(TriplePointAngles.class, activeImage, nthPoint);
     }

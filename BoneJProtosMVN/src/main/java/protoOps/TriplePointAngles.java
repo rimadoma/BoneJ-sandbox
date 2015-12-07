@@ -19,7 +19,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 /**
  * @author Michael Doube
  * @author <a href="mailto:rdomander@rvc.ac.uk">Richard Domander</a>
- * @todo test with old tests
  * @todo is there a way to say which image types this Op can handle?
  */
 @Plugin(type=Op.class, name = "triplePointAngles")
@@ -33,7 +32,7 @@ public class TriplePointAngles implements Op {
     @Parameter
     private ImagePlus inputImage = null;
 
-    @Parameter(min = "-1", required = false)
+    @Parameter(min = "0", required = false)
     private int nthPoint = DEFAULT_NTH_POINT;
 
     @Parameter(type = ItemIO.OUTPUT)
