@@ -44,13 +44,6 @@ public class Thickness implements Command
     private static final boolean ROI_DEFAULT = false;
     private static final boolean MASK_DEFAULT = true;
 
-    private static final LocalThicknessWrapper thicknessWrapper = new LocalThicknessWrapper();
-
-    // Need this because we're using ImageJ 1.x classes
-    static {
-        LegacyInjector.preinit();
-    }
-
     // The following service parameters are populated automatically
     // by the SciJava service framework before this command plugin is executed.
     @Parameter
@@ -87,8 +80,6 @@ public class Thickness implements Command
     @Parameter(label = "Help", persist = false, callback = "openHelpPage")
     private org.scijava.widget.Button helpButton;
 
-    private StackStatistics resultStats = null;
-    private RoiManager roiManager = null;
     private ImagePlus resultImage = null;
     private boolean pluginHasRequirements = true;
 
@@ -143,8 +134,6 @@ public class Thickness implements Command
             return;
         }
 
-        roiManager = RoiManager.getInstance();
-
         if (!doThickness && !doSpacing) {
             uiService.showDialog("Nothing to process, shutting down plugin.", "Nothing to process",
                     MessageType.INFORMATION_MESSAGE, OptionType.DEFAULT_OPTION);
@@ -198,11 +187,11 @@ public class Thickness implements Command
     private boolean getLocalThickness(boolean doForeground)
     {
         resultImage = null;
-        resultStats = null;
 
         String suffix = doForeground ? "_" + TRABECULAR_THICKNESS : "_" + TRABECULAR_SPACING;
 
         if (doRoi) {
+            RoiManager roiManager = RoiManager.getInstance();
             ImageStack croppedStack = RoiUtil.cropToRois(roiManager, image.getStack(), true, Common.BINARY_BLACK);
 
             if (croppedStack == null) {
@@ -218,8 +207,6 @@ public class Thickness implements Command
             resultImage = processThicknessSteps(image, doForeground, suffix);
         }
 
-        resultStats = new StackStatistics(resultImage);
-
         return true;
     }
 
@@ -233,6 +220,7 @@ public class Thickness implements Command
      */
     private ImagePlus processThicknessSteps(ImagePlus image, boolean doForeground, String tittleSuffix)
     {
+        LocalThicknessWrapper thicknessWrapper = new LocalThicknessWrapper();
         thicknessWrapper.setSilence(true);
         thicknessWrapper.inverse = !doForeground;
         thicknessWrapper.setShowOptions(false);
@@ -245,6 +233,8 @@ public class Thickness implements Command
 
     private void showThicknessStats(boolean doForeground)
     {
+        StackStatistics resultStats = new StackStatistics(resultImage);
+
         String title = resultImage.getTitle();
         String units = resultImage.getCalibration().getUnits();
         String legend = doForeground ? TRABECULAR_THICKNESS : TRABECULAR_SPACING;
