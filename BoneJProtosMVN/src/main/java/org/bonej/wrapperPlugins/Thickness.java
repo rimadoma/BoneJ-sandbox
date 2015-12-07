@@ -3,7 +3,6 @@ package org.bonej.wrapperPlugins;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.ImageStack;
-import ij.gui.GenericDialog;
 import ij.macro.Interpreter;
 import ij.plugin.frame.RoiManager;
 import ij.process.StackStatistics;
@@ -13,21 +12,25 @@ import org.bonej.common.Common;
 import org.bonej.common.ImageCheck;
 import org.bonej.common.ResultsInserter;
 import org.bonej.common.RoiUtil;
+import org.scijava.ItemIO;
 import org.scijava.command.Command;
+import org.scijava.log.LogService;
+import org.scijava.platform.PlatformService;
 import org.scijava.plugin.Parameter;
 import org.scijava.plugin.Plugin;
 import org.scijava.prefs.PrefService;
 import org.scijava.ui.UIService;
 import sc.fiji.localThickness.LocalThicknessWrapper;
 
-import java.awt.*;
+import java.io.IOException;
+import java.net.URL;
 
 import static org.scijava.ui.DialogPrompt.*;
 
 /**
  * A BoneJ wrapper plugin, which is used for a "bone science" flavour of the LocalThickness ImageJ plugin.
  *
- * @author <a href="mailto:rdomander@rvc.ac.uk">Richard Domander</a>
+ * @author Richard Domander
  */
 @Plugin(type = Command.class, menuPath = "Plugins>BoneJ>Thickness")
 public class Thickness implements Command
@@ -37,15 +40,8 @@ public class Thickness implements Command
         LegacyInjector.preinit();
     }
 
-    private static final String HELP_URL = "http://bonej.org/thickness"; // @todo Read from a file?
     private static final String TRABECULAR_THICKNESS = "Tb.Th";
     private static final String TRABECULAR_SPACING = "Tb.Sp";
-
-    private static final String THICKNESS_PREFERENCE_KEY = "bonej.localThickness.doThickness";
-    private static final String SPACING_PREFERENCE_KEY = "bonej.localThickness.doSpacing";
-    private static final String GRAPHIC_PREFERENCE_KEY = "bonej.localThickness.doGraphic";
-    private static final String ROI_PREFERENCE_KEY = "bonej.localThickness.doRoi";
-    private static final String MASK_PREFERENCE_KEY = "bonej.localThickness.doMask";
 
     private static final boolean THICKNESS_DEFAULT = true;
     private static final boolean SPACING_DEFAULT = false;
@@ -53,7 +49,7 @@ public class Thickness implements Command
     private static final boolean ROI_DEFAULT = false;
     private static final boolean MASK_DEFAULT = true;
 
-    private final LocalThicknessWrapper thicknessWrapper = new LocalThicknessWrapper();
+    private static final LocalThicknessWrapper thicknessWrapper = new LocalThicknessWrapper();
 
     // The following service parameters are populated automatically
     // by the SciJava service framework before this command plugin is executed.
@@ -63,101 +59,99 @@ public class Thickness implements Command
     @Parameter
     private PrefService prefService;
 
-    private ImagePlus image = null;
-    private ImagePlus resultImage = null;
-    private StackStatistics resultStats = null;
-    private GenericDialog setupDialog = null;
-    private RoiManager roiManager = null;
+    @Parameter
+    private PlatformService platformService;
 
+    @Parameter
+    private LogService logService;
+
+    @Parameter(type = ItemIO.INPUT, persist = false, initializer = "checkPluginRequirements")
+    private ImagePlus image = null;
+
+    @Parameter(label = "Trabecular thickness", type = ItemIO.INPUT, required = false)
     private boolean doThickness = THICKNESS_DEFAULT;
+
+    @Parameter(label = "Trabecular spacing", type = ItemIO.INPUT, required = false)
     private boolean doSpacing = SPACING_DEFAULT;
+
+    @Parameter(label = "Show thickness map image", type = ItemIO.INPUT, required = false)
     private boolean doGraphic = GRAPHIC_DEFAULT;
+
+    //@todo Find out how to disable doRoi option if roiManager == null
+    @Parameter(label = "Crop using ROI Manager", type = ItemIO.INPUT, required = false, persist = false)
     private boolean doRoi = ROI_DEFAULT;
+
+    @Parameter(label = "Mask thickness map", type = ItemIO.INPUT, required = false)
     private boolean doMask = MASK_DEFAULT;
 
-    private void createSetupDialog()
-    {
-        setupDialog = new GenericDialog("Plugin options");
-        setupDialog.addCheckbox("Thickness", doThickness);
-        setupDialog.addCheckbox("Spacing", doSpacing);
-        setupDialog.addCheckbox("Graphic Result", doGraphic);
+    @Parameter(label = "Help", persist = false, callback = "openHelpPage")
+    private org.scijava.widget.Button helpButton;
 
-        setupDialog.addCheckbox("Crop using ROI Manager", doRoi);
-        if (roiManager == null) {
-            Checkbox cropCheckbox = (Checkbox) setupDialog.getCheckboxes().elementAt(3);
-            cropCheckbox.setState(false);
-            cropCheckbox.setEnabled(false);
+    private StackStatistics resultStats = null;
+    private RoiManager roiManager = null;
+    private ImagePlus resultImage = null;
+    private boolean pluginHasRequirements = true;
+
+    @SuppressWarnings("unused")
+    private void openHelpPage() {
+        try {
+            URL helpUrl = new URL("http://bonej.org/thickness");
+            platformService.open(helpUrl);
+        } catch (final IOException e) {
+            logService.error(e);
+        }
+    }
+
+    @SuppressWarnings("unused")
+    private void checkPluginRequirements()
+    {
+        if (!ImageCheck.isBoneJEnvironmentValid()) {
+            pluginHasRequirements = false;
+            return;
         }
 
-        setupDialog.addCheckbox("Mask thickness map", doMask);
-        setupDialog.addHelp(HELP_URL);
-    }
-
-    private void getProcessingSettingsFromDialog()
-    {
-        doThickness = setupDialog.getNextBoolean();
-        doSpacing = setupDialog.getNextBoolean();
-        doGraphic = setupDialog.getNextBoolean();
-        doRoi = setupDialog.getNextBoolean();
-        doMask = setupDialog.getNextBoolean();
-    }
-
-    /**
-     * @return true if the current image open in ImageJ can be processed by this plugin
-     */
-    private boolean setCurrentImage()
-    {
         try {
             image = IJ.getImage();
         } catch (RuntimeException rte) {
             // no image currently open
-            return false;
+            pluginHasRequirements = false;
+            return;
         }
 
         if (!ImageCheck.isBinary(image)) {
             uiService.showDialog(Common.NOT_BINARY_IMAGE_ERROR, Common.WRONG_IMAGE_TYPE_DIALOG_TITLE);
-            return false;
+            pluginHasRequirements = false;
+            return;
         }
 
         final double ANISOTROPY_TOLERANCE = 1E-3;
         if (ImageCheck.isVoxelIsotropic(image, ANISOTROPY_TOLERANCE)) {
-            return true;
+            pluginHasRequirements = true;
+            return;
         }
 
         Result result = uiService.showDialog(Common.ANISOTROPY_WARNING, "Anisotropic voxels",
                 MessageType.WARNING_MESSAGE, OptionType.OK_CANCEL_OPTION);
 
-        return result != Result.CANCEL_OPTION;
+        pluginHasRequirements = result != Result.CANCEL_OPTION;
     }
 
     @Override
     public void run()
     {
-        if (!ImageCheck.isBoneJEnvironmentValid()) {
-            return;
-        }
-
-        if (!setCurrentImage()) {
+        if (!pluginHasRequirements) {
             return;
         }
 
         roiManager = RoiManager.getInstance();
 
-        loadSettings();
-        createSetupDialog();
-        setupDialog.showDialog();
-        if (setupDialog.wasCanceled()) {
-            return;
-        }
-        getProcessingSettingsFromDialog();
-
         if (!doThickness && !doSpacing) {
             uiService.showDialog("Nothing to process, shutting down plugin.", "Nothing to process",
                     MessageType.INFORMATION_MESSAGE, OptionType.DEFAULT_OPTION);
+            // set doThickness true so that the next time the plugin is run it has something to do by default
+            doThickness = true;
             return;
         }
-
-        saveSettings();
 
         if (doThickness) {
             boolean processingCompleted = getLocalThickness(true);
@@ -173,24 +167,6 @@ public class Thickness implements Command
             showResultImage();
             showThicknessStats(false);
         }
-    }
-
-    private void loadSettings()
-    {
-        doThickness = prefService.getBoolean(THICKNESS_PREFERENCE_KEY, THICKNESS_DEFAULT);
-        doSpacing = prefService.getBoolean(SPACING_PREFERENCE_KEY, SPACING_DEFAULT);
-        doGraphic = prefService.getBoolean(GRAPHIC_PREFERENCE_KEY, GRAPHIC_DEFAULT);
-        doRoi = prefService.getBoolean(ROI_PREFERENCE_KEY, ROI_DEFAULT);
-        doMask = prefService.getBoolean(MASK_PREFERENCE_KEY, MASK_DEFAULT);
-    }
-
-    private void saveSettings()
-    {
-        prefService.put(THICKNESS_PREFERENCE_KEY, doThickness);
-        prefService.put(SPACING_PREFERENCE_KEY, doSpacing);
-        prefService.put(GRAPHIC_PREFERENCE_KEY, doGraphic);
-        prefService.put(ROI_PREFERENCE_KEY, doRoi);
-        prefService.put(MASK_PREFERENCE_KEY, doMask);
     }
 
     private void showResultImage()
