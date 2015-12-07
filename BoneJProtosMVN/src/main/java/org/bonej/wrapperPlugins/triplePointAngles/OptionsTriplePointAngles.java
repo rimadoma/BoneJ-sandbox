@@ -13,7 +13,7 @@ import java.io.IOException;
 import java.net.URL;
 
 /**
- * @author <a href="mailto:rdomander@rvc.ac.uk">Richard Domander</a>
+ * @author Richard Domander
  */
 @Plugin(type = OptionsPlugin.class)
 public class OptionsTriplePointAngles extends OptionsPlugin {
@@ -32,8 +32,6 @@ public class OptionsTriplePointAngles extends OptionsPlugin {
     @Parameter(label = "Nth point", min = "0")
     private int nthPoint = TriplePointAngles.DEFAULT_NTH_POINT;
 
-    //@todo Can a String @Parameter be made into a link?
-    //@todo use PlatformService to open the url when user presses link / button
     @Parameter(label = "Help", persist = false, callback = "openHelpPage")
     private Button helpButton;
 

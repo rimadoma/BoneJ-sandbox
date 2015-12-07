@@ -35,11 +35,6 @@ import static org.scijava.ui.DialogPrompt.*;
 @Plugin(type = Command.class, menuPath = "Plugins>BoneJ>Thickness")
 public class Thickness implements Command
 {
-    // Need this because we're using ImageJ 1.x classes
-    static {
-        LegacyInjector.preinit();
-    }
-
     private static final String TRABECULAR_THICKNESS = "Tb.Th";
     private static final String TRABECULAR_SPACING = "Tb.Sp";
 
@@ -50,6 +45,11 @@ public class Thickness implements Command
     private static final boolean MASK_DEFAULT = true;
 
     private static final LocalThicknessWrapper thicknessWrapper = new LocalThicknessWrapper();
+
+    // Need this because we're using ImageJ 1.x classes
+    static {
+        LegacyInjector.preinit();
+    }
 
     // The following service parameters are populated automatically
     // by the SciJava service framework before this command plugin is executed.
@@ -169,6 +169,14 @@ public class Thickness implements Command
         }
     }
 
+    //region -- Utility methods --
+    public static void main(final String... args)
+    {
+        Main.launch(args);
+    }
+    //endregion
+
+    //region -- Helper methods --
     private void showResultImage()
     {
         if (!doGraphic || Interpreter.isBatchMode()) {
@@ -235,7 +243,7 @@ public class Thickness implements Command
         return result;
     }
 
-    public void showThicknessStats(boolean doForeground)
+    private void showThicknessStats(boolean doForeground)
     {
         String title = resultImage.getTitle();
         String units = resultImage.getCalibration().getUnits();
@@ -247,9 +255,5 @@ public class Thickness implements Command
         resultsInserter.setMeasurementInFirstFreeRow(title, legend + " Max (" + units + ")", resultStats.max);
         resultsInserter.updateTable();
     }
-
-    public static void main(final String... args)
-    {
-        Main.launch(args);
-    }
+    //endregion
 }
