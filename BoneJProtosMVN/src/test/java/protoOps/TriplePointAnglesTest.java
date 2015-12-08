@@ -19,11 +19,10 @@ public class TriplePointAnglesTest
     // Skeletonization of the cuboid images thins them so that they lose their corner pixels.
     // This moves the centroid of the triple point enough so that angles aren't exactly PI / 2 anymore,
     // at least when measured some pixels away from the vertex (WIRE_FRAME_RESULT_NTH_POINT)
-    private final static double NEARLY_HALF_PI = 1.58555518815571;
+    private final static double NEARLY_HALF_PI = 1.5904976894727854;
 
     private final static double[][][] CROSSED_CIRCLE_RESULT = {{
             {QUARTER_PI, QUARTER_PI, HALF_PI},
-            null,
             {QUARTER_PI, HALF_PI, QUARTER_PI},
             {QUARTER_PI, HALF_PI, QUARTER_PI},
             {QUARTER_PI, QUARTER_PI, HALF_PI}
@@ -31,7 +30,6 @@ public class TriplePointAnglesTest
 
     private final double[][][] CROSSED_CIRCLE_RESULT_NTH_POINT = {{
             {HALF_PI, HALF_PI, Math.PI},
-            null,
             {HALF_PI, Math.PI, HALF_PI},
             {HALF_PI, Math.PI, HALF_PI},
             {HALF_PI, HALF_PI, Math.PI}
@@ -87,6 +85,10 @@ public class TriplePointAnglesTest
         }
     }
 
+    /**
+     * Not a proper test, because the expected results are just magic numbers,
+     * but at least it alerts if the results change
+     */
     @Test
     public void testCalculateTriplePointAnglesWireFrameCuboidNthPoint() {
         ImagePlus testImage = StaticTestImageHelper.createWireFrameCuboid(128, 128, 128, 32);
@@ -108,7 +110,7 @@ public class TriplePointAnglesTest
     @Test
     public void testCalculateTriplePointAnglesCrossedCircle() {
         ImagePlus testImage = StaticTestImageHelper.createCrossedCircle(256);
-        prepareCircleImage(testImage);
+        //prepareCircleImage(testImage);
 
         triplePointAngles.setInputImage(testImage);
         triplePointAngles.setNthPoint(TriplePointAngles.VERTEX_TO_VERTEX);
@@ -131,7 +133,7 @@ public class TriplePointAnglesTest
     @Test
     public void testCalculateTriplePointAnglesCrossedCircleNth() {
         ImagePlus testImage = StaticTestImageHelper.createCrossedCircle(256);
-        prepareCircleImage(testImage);
+        //prepareCircleImage(testImage);
 
         triplePointAngles.setInputImage(testImage);
         triplePointAngles.setNthPoint(8);

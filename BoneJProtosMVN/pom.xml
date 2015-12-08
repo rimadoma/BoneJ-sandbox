@@ -23,6 +23,11 @@
         <relativePath />
     </parent>
 
+    <properties>
+        <enforcer.skip>true</enforcer.skip>
+        <scijava-common.version>2.50.1-SNAPSHOT</scijava-common.version>
+    </properties>
+
     <groupId>org.bonej.bonejprotos</groupId>
     <artifactId>bonejprotos</artifactId>
     <version>0.0.1-SNAPSHOT</version>

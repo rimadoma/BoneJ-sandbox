@@ -10,6 +10,7 @@ import org.scijava.ItemIO;
 import org.scijava.plugin.Parameter;
 import org.scijava.plugin.Plugin;
 import sc.fiji.analyzeSkeleton.*;
+import sc.fiji.skeletonize3D.Skeletonize3D_;
 
 import java.util.ArrayList;
 
@@ -27,6 +28,7 @@ public class TriplePointAngles implements Op {
     public static final int VERTEX_TO_VERTEX = -1;
 
     private static final AnalyzeSkeleton_ skeletonAnalyzer = new AnalyzeSkeleton_();
+    private static final Skeletonize3D_ skeletonizer = new Skeletonize3D_();
 
     //@todo change to Dataset, and then unwrap ImagePlus?
     @Parameter
@@ -35,6 +37,9 @@ public class TriplePointAngles implements Op {
     @Parameter(min = "0", required = false)
     private int nthPoint = DEFAULT_NTH_POINT;
 
+    /**
+     * A list of graphs containing list of triple points (vertices) containing a list angles (3) between each branch
+     */
     @Parameter(type = ItemIO.OUTPUT)
     private double results[][][] = null;
 
@@ -43,32 +48,47 @@ public class TriplePointAngles implements Op {
     }
 
     public void setInputImage(ImagePlus image) {
-        checkImage(image);
-
         inputImage = image;
     }
 
+    /**
+     * Sets the distance of the angle measurement from the centroid of the triple points.
+     *
+     * @param   nthPoint    number pixels from the triple point centroid
+     * @see     TriplePointAngles#nthPoint
+     *
+     */
     public void setNthPoint(int nthPoint) {
         this.nthPoint = nthPoint;
     }
 
     public void calculateTriplePointAngles() {
         checkImage(inputImage);
+        checkNthPoint(nthPoint);
+
+        skeletonizer.setup("", inputImage);
+        skeletonizer.run(null);
 
         skeletonAnalyzer.setup("", inputImage);
         skeletonAnalyzer.run();
         Graph[] graphs = skeletonAnalyzer.getGraphs();
-        results = new double[graphs.length][][];
+
+        if (graphs == null || graphs.length == 0) {
+            // image could not be skeletonized, throw exception?
+            results = null;
+            return;
+        }
+
+        ArrayList<ArrayList<double[]>> graphsVertices = new ArrayList<>();
 
         for (int g = 0; g < graphs.length; g++) {
             ArrayList<Vertex> vertices = graphs[g].getVertices();
-            results[g] = new double[vertices.size()][];
+            ArrayList<double[]> vertexAngles = new ArrayList<>();
 
             for (int v = 0; v < vertices.size(); v++) {
                 Vertex vertex = vertices.get(v);
 
                 if (!isTriplePoint(vertex)) {
-                    results[g][v] = null;
                     continue;
                 }
 
@@ -77,16 +97,30 @@ public class TriplePointAngles implements Op {
                 Edge edge1 = edges.get(1);
                 Edge edge2 = edges.get(2);
 
-                results[g][v] = new double[3];
+                double thetas[] = new double[3];
                 if (nthPoint == VERTEX_TO_VERTEX) {
-                    results[g][v][0] = vertexToVertexAngle(vertex, edge0, edge1);
-                    results[g][v][1] = vertexToVertexAngle(vertex, edge0, edge2);
-                    results[g][v][2] = vertexToVertexAngle(vertex, edge1, edge2);
+                    thetas[0] = vertexToVertexAngle(vertex, edge0, edge1);
+                    thetas[1] = vertexToVertexAngle(vertex, edge0, edge2);
+                    thetas[2] = vertexToVertexAngle(vertex, edge1, edge2);
                 } else {
-                    results[g][v][0] = vertexAngle(vertex, edge0, edge1);
-                    results[g][v][1] = vertexAngle(vertex, edge0, edge2);
-                    results[g][v][2] = vertexAngle(vertex, edge1, edge2);
+                    thetas[0] = vertexAngle(vertex, edge0, edge1);
+                    thetas[1] = vertexAngle(vertex, edge0, edge2);
+                    thetas[2] = vertexAngle(vertex, edge1, edge2);
                 }
+
+                vertexAngles.add(thetas);
+            }
+            graphsVertices.add(vertexAngles);
+        }
+
+        results = new double[graphsVertices.size()][][];
+        final int treeSize = graphsVertices.size();
+        for (int g = 0; g < treeSize; g++) {
+            ArrayList<double []> vertexAngles = graphsVertices.get(g);
+            final int graphSize = vertexAngles.size();
+            results[g] = new double[graphSize][];
+            for (int v = 0; v < graphSize; v++) {
+                results[g][v] = vertexAngles.get(v);
             }
         }
     }
@@ -106,27 +140,40 @@ public class TriplePointAngles implements Op {
 
     }
 
+    /**
+     * @param   image
+     * @throws  NullPointerException if image == null
+     * @throws  IllegalArgumentException if image.getBitDepth() != 8
+     */
     //region -- Utility methods --
-    public static boolean isVoxel26Connected(Point point, Point voxel) {
+    public static void checkImage(ImagePlus image) {
+        checkNotNull(image, "Input image cannot be set null");
+        checkArgument(image.getBitDepth() == 8, "The bit depth of the input image must be 8");
+    }
+
+    /**
+     * @param   nthPoint
+     * @throws  IllegalArgumentException if parameter nthPoint < 0 && nthPoint != TriplePointAngles#VERTEX_TO_VERTEX
+     */
+    public static void checkNthPoint(int nthPoint) {
+        checkArgument(nthPoint >= 0 || nthPoint == VERTEX_TO_VERTEX, "Invalid nth point value");
+    }
+    //endregion
+
+    //region -- Helper methods --
+    private static boolean isVoxel26Connected(Point point, Point voxel) {
         int xDistance = Math.abs(point.x - voxel.x);
         int yDistance = Math.abs(point.y - voxel.y);
         int zDistance = Math.abs(point.z - voxel.z);
 
         return xDistance <= 1 && yDistance <= 1 && zDistance <= 1;
     }
-    //endregion
 
-    //region -- Helper methods --
-    private static void checkImage(ImagePlus image) {
-        checkNotNull(image, "Input image cannot be set null");
-        checkArgument(image.getBitDepth() == 8, "The bit depth of the input image must be 8");
-    }
-
-    private boolean isTriplePoint(Vertex vertex) {
+    private static boolean isTriplePoint(Vertex vertex) {
         return vertex.getBranches().size() == 3;
     }
 
-    private double vertexToVertexAngle(Vertex vertex, Edge edge0, Edge edge1) {
+    private static double vertexToVertexAngle(Vertex vertex, Edge edge0, Edge edge1) {
         Vertex oppositeVertex0 = edge0.getOppositeVertex(vertex);
         Vertex oppositeVertex1 = edge1.getOppositeVertex(vertex);
 

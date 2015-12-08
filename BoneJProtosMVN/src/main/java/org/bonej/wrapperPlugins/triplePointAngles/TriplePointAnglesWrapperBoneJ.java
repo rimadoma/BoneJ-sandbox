@@ -1,83 +1,137 @@
 package org.bonej.wrapperPlugins.triplePointAngles;
 
 import ij.ImagePlus;
+import net.imagej.ImageJ;
 import net.imagej.Main;
 import net.imagej.ops.OpService;
 import org.bonej.common.Common;
 import org.bonej.common.ImageCheck;
+import org.bonej.common.ResultsInserter;
+import org.scijava.Cancelable;
 import org.scijava.ItemIO;
 import org.scijava.command.Command;
-import org.scijava.command.CommandModule;
-import org.scijava.command.CommandService;
-import org.scijava.module.Module;
-import org.scijava.module.ModuleService;
-import org.scijava.options.OptionsService;
+import org.scijava.command.ContextCommand;
+import org.scijava.log.LogService;
+import org.scijava.platform.PlatformService;
 import org.scijava.plugin.Parameter;
 import org.scijava.plugin.Plugin;
+import org.scijava.ui.DialogPrompt;
 import org.scijava.ui.UIService;
+import org.scijava.widget.Button;
+import org.scijava.widget.ChoiceWidget;
 import protoOps.TriplePointAngles;
 
-import java.util.concurrent.Future;
+import java.io.IOException;
+import java.net.URL;
 
 /**
- * @author <a href="mailto:rdomander@rvc.ac.uk">Richard Domander</a>
+ * @author Richard Domander
  */
 @Plugin(type = Command.class, menuPath = "Plugins>BoneJ>TriplePointAngles", headless = true)
-public class TriplePointAnglesWrapperBoneJ implements Command
+public class TriplePointAnglesWrapperBoneJ extends ContextCommand implements Command, Cancelable
 {
-    @Parameter(type = ItemIO.INPUT)
+    private static final String DEFAULT_POINT_CHOICE = "Opposite vertex";
+
+    private double angleResults [][][] = null;
+
+    @Parameter(label = "Calculate angles from:", style = ChoiceWidget.LIST_BOX_STYLE,
+            choices = {"Opposite vertex", "Edge voxel n"})
+    private String pointChoice = DEFAULT_POINT_CHOICE;
+
+    @Parameter(label = "Edge voxel n:o", min = "0")
+    private int nthPoint = TriplePointAngles.DEFAULT_NTH_POINT;
+
+    //@todo check if callback method can be in another class / package
+    //@todo check if callback method can be given params
+    @Parameter(label = "Help", persist = false, callback = "openHelpPage")
+    private Button helpButton;
+
+    @Parameter(type = ItemIO.INPUT, initializer = "checkActiveImage")
     private ImagePlus activeImage = null;
+
+    @Parameter
+    private LogService logService;
 
     @Parameter
     private UIService uiService;
 
     @Parameter
-    private OptionsService optionsService;
-
-    @Parameter
-    private CommandService commandService;
-
-    @Parameter
-    private ModuleService moduleService;
-
-    @Parameter
     private OpService opService;
 
-    private boolean isImageCompatible() {
-        if (!ImageCheck.isBinary(activeImage))
-        {
-            uiService.showDialog(Common.NOT_BINARY_IMAGE_ERROR, Common.WRONG_IMAGE_TYPE_DIALOG_TITLE);
-            activeImage = null;
-            return false;
+    @Parameter
+    private PlatformService platformService;
+
+    public int nthPointFromPointChoice() {
+        if (pointChoice.equals("Opposite vertex")) {
+            return TriplePointAngles.VERTEX_TO_VERTEX;
         }
 
-        return true;
+        return nthPoint;
     }
 
     @Override
     public void run() {
-        if (activeImage == null) {
-            uiService.showDialog("No image open", "Error");
+        nthPoint = nthPointFromPointChoice();
+        angleResults = (double[][][]) opService.run(TriplePointAngles.class, activeImage, nthPoint);
+
+        if (angleResults == null) {
+            uiService.showDialog("Image cannot be converted into skeletons", DialogPrompt.MessageType.ERROR_MESSAGE);
             return;
         }
 
-        if (!isImageCompatible()) {
-            return;
-        }
-
-        //@todo: what happens if the wrapper plugin is run as macro?
-        final Future<CommandModule> future = commandService.run(OptionsTriplePointAngles.class, true);
-        moduleService.waitFor(future);
-        OptionsTriplePointAngles options = optionsService.getOptions(OptionsTriplePointAngles.class);
-        if (options.isCanceled()) {
-            return;
-        }
-        int nthPoint = options.getNthPoint();
-        final Object output = opService.run(TriplePointAngles.class, activeImage, nthPoint);
+        showResults();
     }
 
+    //region -- Utility methods --
     public static void main(final String... args)
     {
-        Main.launch(args);
+        ImageJ ij = Main.launch(args);
     }
+    //endregion
+
+    //region -- Helper methods --
+    @SuppressWarnings("unused")
+    private void checkActiveImage() {
+        if (activeImage == null) {
+            return;
+        }
+
+        if (!ImageCheck.isBinary(activeImage))
+        {
+            System.out.println("Not binary");
+            cancel(Common.NOT_BINARY_IMAGE_ERROR);
+        }
+    }
+
+    @SuppressWarnings("unused")
+    private void openHelpPage() {
+        try {
+            URL helpUrl = new URL("http://bonej.org/triplepointangles");
+            platformService.open(helpUrl);
+        } catch (final IOException e) {
+            logService.error(e);
+        }
+    }
+
+    /**
+     * Shows the angles of the triple points in the default results table
+     * @todo Don't show results if running headless / in macro mode
+     */
+    private void showResults() {
+        ResultsInserter resultsInserter = new ResultsInserter();
+        String label = activeImage.getTitle();
+
+        for (int graph = 0; graph < angleResults.length; graph++) {
+            for (int vertex = 0; vertex < angleResults[graph].length; vertex++) {
+                resultsInserter.setMeasurementInFirstFreeRow(label, "Skeleton #", graph);
+                resultsInserter.setMeasurementInFirstFreeRow(label, "Vertex #", vertex);
+                resultsInserter.setMeasurementInFirstFreeRow(label, "Theta 0", angleResults[graph][vertex][0]);
+                resultsInserter.setMeasurementInFirstFreeRow(label, "Theta 1", angleResults[graph][vertex][1]);
+                resultsInserter.setMeasurementInFirstFreeRow(label, "Theta 2", angleResults[graph][vertex][2]);
+            }
+        }
+
+        resultsInserter.updateTable();
+    }
+    //endregion
 }
