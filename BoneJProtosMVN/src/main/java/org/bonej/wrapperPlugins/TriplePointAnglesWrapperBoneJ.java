@@ -1,13 +1,11 @@
-package org.bonej.wrapperPlugins.triplePointAngles;
+package org.bonej.wrapperPlugins;
 
 import ij.ImagePlus;
-import net.imagej.ImageJ;
 import net.imagej.Main;
 import net.imagej.ops.OpService;
 import org.bonej.common.Common;
 import org.bonej.common.ImageCheck;
 import org.bonej.common.ResultsInserter;
-import org.scijava.Cancelable;
 import org.scijava.ItemIO;
 import org.scijava.command.Command;
 import org.scijava.command.ContextCommand;
@@ -28,7 +26,7 @@ import java.net.URL;
  * @author Richard Domander
  */
 @Plugin(type = Command.class, menuPath = "Plugins>BoneJ>TriplePointAngles", headless = true)
-public class TriplePointAnglesWrapperBoneJ extends ContextCommand implements Command, Cancelable
+public class TriplePointAnglesWrapperBoneJ extends ContextCommand
 {
     private static final String DEFAULT_POINT_CHOICE = "Opposite vertex";
 
@@ -85,7 +83,7 @@ public class TriplePointAnglesWrapperBoneJ extends ContextCommand implements Com
     //region -- Utility methods --
     public static void main(final String... args)
     {
-        ImageJ ij = Main.launch(args);
+       Main.launch(args);
     }
     //endregion
 
