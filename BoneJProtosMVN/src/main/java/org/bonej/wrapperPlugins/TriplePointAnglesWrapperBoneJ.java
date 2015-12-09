@@ -2,9 +2,6 @@ package org.bonej.wrapperPlugins;
 
 import ij.ImagePlus;
 import net.imagej.Main;
-import net.imagej.ops.OpService;
-import org.bonej.common.Common;
-import org.bonej.common.ImageCheck;
 import org.bonej.common.ResultsInserter;
 import org.scijava.ItemIO;
 import org.scijava.command.Command;
@@ -23,12 +20,16 @@ import java.io.IOException;
 import java.net.URL;
 
 /**
+ * A wrapper UI class for the TriplePointAngles Op. Can be thought as the "View" class for the "Model" class that
+ * is TriplePointAngles.
+ *
  * @author Richard Domander
  */
 @Plugin(type = Command.class, menuPath = "Plugins>BoneJ>TriplePointAngles", headless = true)
 public class TriplePointAnglesWrapperBoneJ extends ContextCommand
 {
     private static final String DEFAULT_POINT_CHOICE = "Opposite vertex";
+    private static final TriplePointAngles triplePointAngles = new TriplePointAngles();
 
     private double angleResults [][][] = null;
 
@@ -42,7 +43,8 @@ public class TriplePointAnglesWrapperBoneJ extends ContextCommand
     @Parameter(label = "Help", persist = false, callback = "openHelpPage")
     private Button helpButton;
 
-    @Parameter(type = ItemIO.INPUT, initializer = "checkActiveImage")
+    // set required to false to disable the default, generic error message
+    @Parameter(type = ItemIO.INPUT, initializer = "initializeActiveImage", required = false)
     private ImagePlus activeImage = null;
 
     @Parameter
@@ -52,30 +54,20 @@ public class TriplePointAnglesWrapperBoneJ extends ContextCommand
     private UIService uiService;
 
     @Parameter
-    private OpService opService;
-
-    @Parameter
     private PlatformService platformService;
-
-    public int nthPointFromPointChoice() {
-        if (pointChoice.equals("Opposite vertex")) {
-            return TriplePointAngles.VERTEX_TO_VERTEX;
-        }
-
-        return nthPoint;
-    }
 
     @Override
     public void run() {
         nthPoint = nthPointFromPointChoice();
-        angleResults = (double[][][]) opService.run(TriplePointAngles.class, activeImage, nthPoint);
 
-        if (angleResults == null) {
-            uiService.showDialog("Image cannot be converted into skeletons", DialogPrompt.MessageType.ERROR_MESSAGE);
-            return;
+        try {
+            triplePointAngles.setNthPoint(nthPoint);
+            triplePointAngles.calculateTriplePointAngles();
+            angleResults = triplePointAngles.getResults();
+            showResults();
+        } catch (IllegalArgumentException e) {
+            uiService.showDialog(e.getMessage(), DialogPrompt.MessageType.ERROR_MESSAGE);
         }
-
-        showResults();
     }
 
     //region -- Utility methods --
@@ -86,16 +78,23 @@ public class TriplePointAnglesWrapperBoneJ extends ContextCommand
     //endregion
 
     //region -- Helper methods --
-    @SuppressWarnings("unused")
-    private void checkActiveImage() {
-        if (activeImage == null) {
-            return;
+    private int nthPointFromPointChoice() {
+        if (pointChoice.equals("Opposite vertex")) {
+            return TriplePointAngles.VERTEX_TO_VERTEX;
         }
 
-        if (!ImageCheck.isBinary(activeImage))
-        {
-            System.out.println("Not binary");
-            cancel(Common.NOT_BINARY_IMAGE_ERROR);
+        return nthPoint;
+    }
+
+    /**
+     * @todo Find out why cancel doesn't work
+     */
+    @SuppressWarnings("unused")
+    private void initializeActiveImage() {
+        try {
+            triplePointAngles.setInputImage(activeImage);
+        } catch (IllegalArgumentException | NullPointerException e) {
+            cancel(e.getMessage());
         }
     }
 
@@ -105,7 +104,7 @@ public class TriplePointAnglesWrapperBoneJ extends ContextCommand
             URL helpUrl = new URL("http://bonej.org/triplepointangles");
             platformService.open(helpUrl);
         } catch (final IOException e) {
-            logService.error(e);
+            uiService.showDialog("An error occurred while trying to open the help page");
         }
     }
 

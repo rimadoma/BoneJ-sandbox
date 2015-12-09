@@ -170,7 +170,7 @@ public class TriplePointAngles implements Op {
      * @throws  IllegalArgumentException if image is not binary
      */
     private static void checkImage(ImagePlus image) {
-        checkNotNull(image, "Input image cannot be null");
+        checkNotNull(image, "Must have an input image");
         checkArgument(ImageCheck.isBinary(image), "Input image must be binary");
     }
 
