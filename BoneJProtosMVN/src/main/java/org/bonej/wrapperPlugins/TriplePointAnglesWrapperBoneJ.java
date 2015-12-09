@@ -39,8 +39,6 @@ public class TriplePointAnglesWrapperBoneJ extends ContextCommand
     @Parameter(label = "Edge voxel n:o", min = "0")
     private int nthPoint = TriplePointAngles.DEFAULT_NTH_POINT;
 
-    //@todo check if callback method can be in another class / package
-    //@todo check if callback method can be given params
     @Parameter(label = "Help", persist = false, callback = "openHelpPage")
     private Button helpButton;
 

@@ -5,6 +5,7 @@ import net.imagej.ops.Op;
 import net.imagej.ops.OpEnvironment;
 import org.bonej.common.Centroid;
 import org.bonej.common.Common;
+import org.bonej.common.ImageCheck;
 import org.bonej.geometry.Vectors;
 import org.scijava.ItemIO;
 import org.scijava.plugin.Parameter;
@@ -18,9 +19,12 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
+ * Skeletonizes the input image, and then calculates the angles at each of its triple points. A triple point is a
+ * point where three edges of the skeleton meet at a single vertex. The plugin calculates angles between each of
+ * these edges (branches), at each triple point (vertex) in each skeleton (graph) in the image.
+ *
  * @author Michael Doube
- * @author <a href="mailto:rdomander@rvc.ac.uk">Richard Domander</a>
- * @todo is there a way to say which image types this Op can handle?
+ * @author Richard Domander
  */
 @Plugin(type=Op.class, name = "triplePointAngles")
 public class TriplePointAngles implements Op {
@@ -30,24 +34,36 @@ public class TriplePointAngles implements Op {
     private static final AnalyzeSkeleton_ skeletonAnalyzer = new AnalyzeSkeleton_();
     private static final Skeletonize3D_ skeletonizer = new Skeletonize3D_();
 
-    //@todo change to Dataset, and then unwrap ImagePlus?
-    @Parameter
+    @Parameter(type = ItemIO.INPUT)
     private ImagePlus inputImage = null;
 
-    @Parameter(min = "0", required = false)
+    @Parameter(min = "-1", required = false)
     private int nthPoint = DEFAULT_NTH_POINT;
 
     /**
-     * A list of graphs containing list of triple points (vertices) containing a list angles (3) between each branch
+     * An array of skeletons containing an array of triple points containing an array of angles (3)
+     * between each branch
      */
     @Parameter(type = ItemIO.OUTPUT)
     private double results[][][] = null;
 
+    /**
+     * @return  The angle array from previous run
+     *          Returns null if the plugin hasn't executed yet, or if there was a problem in the previous run
+     * @see     TriplePointAngles#results
+     */
     public double[][][] getResults() {
         return results;
     }
 
+    /**
+     * Sets the input image for processing
+     * @throws NullPointerException if image == null
+     * @throws IllegalArgumentException if image is not binary
+     */
     public void setInputImage(ImagePlus image) {
+        checkImage(image);
+
         inputImage = image;
     }
 
@@ -55,13 +71,21 @@ public class TriplePointAngles implements Op {
      * Sets the distance of the angle measurement from the centroid of the triple points.
      *
      * @param   nthPoint    number pixels from the triple point centroid
-     * @see     TriplePointAngles#nthPoint
-     *
+     * @throws  IllegalArgumentException if nthPoint < 0 && nthPoint != TriplePointAngles#VERTEX_TO_VERTEX
      */
     public void setNthPoint(int nthPoint) {
+        checkNthPoint(nthPoint);
+
         this.nthPoint = nthPoint;
     }
 
+    /**
+     * Calculates the triple point angles of the input image to the results array
+     * @throws NullPointerException if this.inputImage == null
+     * @throws IllegalArgumentException if this.inputImage is not binary
+     * @throws IllegalArgumentException if this.nthPoint < 0 && this.nthPoint != TriplePointAngles#VERTEX_TO_VERTEX
+     * @throws IllegalArgumentException if this.inputImage could not be skeletonized
+     */
     public void calculateTriplePointAngles() {
         checkImage(inputImage);
         checkNthPoint(nthPoint);
@@ -74,20 +98,17 @@ public class TriplePointAngles implements Op {
         Graph[] graphs = skeletonAnalyzer.getGraphs();
 
         if (graphs == null || graphs.length == 0) {
-            // image could not be skeletonized, throw exception?
             results = null;
-            return;
+            throw new IllegalArgumentException("Input image could not be skeletonized");
         }
 
         ArrayList<ArrayList<double[]>> graphsVertices = new ArrayList<>();
 
-        for (int g = 0; g < graphs.length; g++) {
-            ArrayList<Vertex> vertices = graphs[g].getVertices();
+        for (Graph graph : graphs) {
+            ArrayList<Vertex> vertices = graph.getVertices();
             ArrayList<double[]> vertexAngles = new ArrayList<>();
 
-            for (int v = 0; v < vertices.size(); v++) {
-                Vertex vertex = vertices.get(v);
-
+            for (Vertex vertex : vertices) {
                 if (!isTriplePoint(vertex)) {
                     continue;
                 }
@@ -140,27 +161,28 @@ public class TriplePointAngles implements Op {
 
     }
 
-    /**
-     * @param   image
-     * @throws  NullPointerException if image == null
-     * @throws  IllegalArgumentException if image.getBitDepth() != 8
-     */
-    //region -- Utility methods --
-    public static void checkImage(ImagePlus image) {
-        checkNotNull(image, "Input image cannot be set null");
-        checkArgument(image.getBitDepth() == 8, "The bit depth of the input image must be 8");
-    }
-
-    /**
-     * @param   nthPoint
-     * @throws  IllegalArgumentException if parameter nthPoint < 0 && nthPoint != TriplePointAngles#VERTEX_TO_VERTEX
-     */
-    public static void checkNthPoint(int nthPoint) {
-        checkArgument(nthPoint >= 0 || nthPoint == VERTEX_TO_VERTEX, "Invalid nth point value");
-    }
-    //endregion
 
     //region -- Helper methods --
+    /**
+     * Checks if the plugin can process the given image
+     *
+     * @throws  NullPointerException if image == null
+     * @throws  IllegalArgumentException if image is not binary
+     */
+    private static void checkImage(ImagePlus image) {
+        checkNotNull(image, "Input image cannot be null");
+        checkArgument(ImageCheck.isBinary(image), "Input image must be binary");
+    }
+
+    /**
+     * Checks if the the plugin can use the given nthPoint value
+     *
+     * @throws  IllegalArgumentException if parameter nthPoint < 0 && nthPoint != TriplePointAngles#VERTEX_TO_VERTEX
+     */
+    private static void checkNthPoint(int nthPoint) {
+        checkArgument(nthPoint >= 0 || nthPoint == VERTEX_TO_VERTEX, "Invalid nth point value");
+    }
+
     private static boolean isVoxel26Connected(Point point, Point voxel) {
         int xDistance = Math.abs(point.x - voxel.x);
         int yDistance = Math.abs(point.y - voxel.y);
