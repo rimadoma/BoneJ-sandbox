@@ -14,7 +14,7 @@ import org.scijava.ui.DialogPrompt;
 import org.scijava.ui.UIService;
 import org.scijava.widget.Button;
 import org.scijava.widget.ChoiceWidget;
-import protoOps.TriplePointAngles;
+import protoOps.triplePointAngles.TriplePointAngles;
 
 import java.io.IOException;
 import java.net.URL;

@@ -1,9 +1,10 @@
-package protoOps;
+package protoOps.triplePointAngles;
 
 import ij.ImagePlus;
 import org.junit.Before;
 import org.junit.Test;
 import protoOps.testImageCreators.StaticTestImageHelper;
+import protoOps.triplePointAngles.TriplePointAngles;
 import sc.fiji.skeletonize3D.Skeletonize3D_;
 
 import static org.junit.Assert.*;

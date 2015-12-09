@@ -1,4 +1,4 @@
-package protoOps;
+package protoOps.triplePointAngles;
 
 import ij.ImagePlus;
 import net.imagej.ops.Op;
@@ -83,12 +83,10 @@ public class TriplePointAngles implements Op {
      * Calculates the triple point angles of the input image to the results array
      * @throws NullPointerException if this.inputImage == null
      * @throws IllegalArgumentException if this.inputImage is not binary
-     * @throws IllegalArgumentException if this.nthPoint < 0 && this.nthPoint != TriplePointAngles#VERTEX_TO_VERTEX
      * @throws IllegalArgumentException if this.inputImage could not be skeletonized
      */
     public void calculateTriplePointAngles() {
         checkImage(inputImage);
-        checkNthPoint(nthPoint);
 
         skeletonizer.setup("", inputImage);
         skeletonizer.run(null);
