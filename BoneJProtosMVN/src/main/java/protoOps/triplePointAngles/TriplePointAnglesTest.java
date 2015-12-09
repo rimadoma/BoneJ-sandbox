@@ -1,19 +1,26 @@
 package protoOps.triplePointAngles;
 
+import ij.IJ;
 import ij.ImagePlus;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import protoOps.testImageCreators.StaticTestImageHelper;
-import protoOps.triplePointAngles.TriplePointAngles;
-import sc.fiji.skeletonize3D.Skeletonize3D_;
 
 import static org.junit.Assert.*;
 
 /**
+ * Unit tests for the TriplePointAngles Op
+ *
+ * @author Michael Doube
  * @author Richard Domander
  */
 public class TriplePointAnglesTest
 {
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
+
     private final static double HALF_PI = Math.PI / 2.0;
     private final static double QUARTER_PI = Math.PI / 4.0;
 
@@ -111,7 +118,6 @@ public class TriplePointAnglesTest
     @Test
     public void testCalculateTriplePointAnglesCrossedCircle() {
         ImagePlus testImage = StaticTestImageHelper.createCrossedCircle(256);
-        //prepareCircleImage(testImage);
 
         triplePointAngles.setInputImage(testImage);
         triplePointAngles.setNthPoint(TriplePointAngles.VERTEX_TO_VERTEX);
@@ -134,7 +140,6 @@ public class TriplePointAnglesTest
     @Test
     public void testCalculateTriplePointAnglesCrossedCircleNth() {
         ImagePlus testImage = StaticTestImageHelper.createCrossedCircle(256);
-        //prepareCircleImage(testImage);
 
         triplePointAngles.setInputImage(testImage);
         triplePointAngles.setNthPoint(8);
@@ -146,10 +151,40 @@ public class TriplePointAnglesTest
                 assertArrayEquals(CROSSED_CIRCLE_RESULT_NTH_POINT[g][v], result[g][v], 1e-12);
     }
 
-    private void prepareCircleImage(ImagePlus circleImage) {
-        //why do we need to skeletonize the image, and why does it affect test results? Smoothing?
-        Skeletonize3D_ skeletonizer = new Skeletonize3D_();
-        skeletonizer.setup("", circleImage);
-        skeletonizer.run(null);
+    @Test
+    public void testSetInputImageThrowsNullPointerExceptionIfImageIsNull() throws Exception {
+        expectedException.expect(NullPointerException.class);
+        expectedException.expectMessage("Must have an input image");
+
+        triplePointAngles.setInputImage(null);
+    }
+
+    @Test
+    public void testSetInputImageThrowsIllegalArgumentExceptionIfImageIsNotBinary() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Input image must be binary");
+        ImagePlus imagePlus = IJ.createImage("test", 200, 200, 200, 32);
+
+        triplePointAngles.setInputImage(imagePlus);
+    }
+
+    @Test
+    public void testSetNthPointThrowsIllegalArgumentExceptionIfValueIsInvalid() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Invalid nth point value");
+
+        triplePointAngles.setNthPoint(-2);
+    }
+
+    @Test
+    public void testCalculateTriplePointsThrowsIllegalArgumentExceptionIfImageCannotBeSkeletonized() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Input image could not be skeletonized");
+        ImagePlus solidCuboid = StaticTestImageHelper.createCuboid(100, 100, 100, 0xFF, 10);
+        triplePointAngles.setInputImage(solidCuboid);
+
+        triplePointAngles.calculateTriplePointAngles();
+        assertNull("Results must be null after calculateTriplePointAngles() has terminated unsuccessfully",
+                triplePointAngles.getResults());
     }
 }

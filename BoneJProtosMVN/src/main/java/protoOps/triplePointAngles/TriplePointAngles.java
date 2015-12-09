@@ -31,8 +31,8 @@ public class TriplePointAngles implements Op {
     public static final int DEFAULT_NTH_POINT = 0;
     public static final int VERTEX_TO_VERTEX = -1;
 
-    private static final AnalyzeSkeleton_ skeletonAnalyzer = new AnalyzeSkeleton_();
-    private static final Skeletonize3D_ skeletonizer = new Skeletonize3D_();
+    private final AnalyzeSkeleton_ skeletonAnalyzer = new AnalyzeSkeleton_();
+    private final Skeletonize3D_ skeletonizer = new Skeletonize3D_();
 
     @Parameter(type = ItemIO.INPUT)
     private ImagePlus inputImage = null;
@@ -88,6 +88,8 @@ public class TriplePointAngles implements Op {
     public void calculateTriplePointAngles() {
         checkImage(inputImage);
 
+        results = null;
+
         skeletonizer.setup("", inputImage);
         skeletonizer.run(null);
 
@@ -96,7 +98,6 @@ public class TriplePointAngles implements Op {
         Graph[] graphs = skeletonAnalyzer.getGraphs();
 
         if (graphs == null || graphs.length == 0) {
-            results = null;
             throw new IllegalArgumentException("Input image could not be skeletonized");
         }
 
@@ -158,7 +159,6 @@ public class TriplePointAngles implements Op {
     public void setEnvironment(OpEnvironment opEnvironment) {
 
     }
-
 
     //region -- Helper methods --
     /**
