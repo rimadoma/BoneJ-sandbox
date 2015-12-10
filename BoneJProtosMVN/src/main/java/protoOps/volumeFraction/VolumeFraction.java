@@ -1,6 +1,9 @@
 package protoOps.volumeFraction;
 
+import com.sun.istack.internal.NotNull;
+import customnode.CustomTriangleMesh;
 import ij.ImagePlus;
+import ij.plugin.frame.RoiManager;
 import net.imagej.ops.Op;
 import net.imagej.ops.OpEnvironment;
 import org.scijava.ItemIO;
@@ -22,8 +25,7 @@ public class VolumeFraction implements Op
     public static final int VOXEL_ALGORITHM = 0;
     public static final int SURFACE_ALGORITHM = 1;
     public static final int DEFAULT_VOLUME_ALGORITHM = VOXEL_ALGORITHM;
-    private static final int DEFAULT_SURFACE_RESAMPLING = 6;
-    private static final boolean DEFAULT_SHOW_3D_RESULT = false;
+    public static final int DEFAULT_SURFACE_RESAMPLING = 6;
 
     @Parameter(type = ItemIO.INPUT)
     private ImagePlus inputImage = null;
@@ -35,25 +37,28 @@ public class VolumeFraction implements Op
     private int surfaceResampling = DEFAULT_SURFACE_RESAMPLING;
 
     @Parameter(type = ItemIO.INPUT, required = false)
-    private boolean show3DResult = DEFAULT_SHOW_3D_RESULT;
+    private RoiManager roiManager = null;
 
     @Parameter(type = ItemIO.OUTPUT)
-    private double foregroundVolume;
+    private double foregroundVolume = 0.0;
 
     @Parameter(type = ItemIO.OUTPUT)
-    private double backgroundVolume;
+    private double totalVolume = 0.0;
 
     @Parameter(type = ItemIO.OUTPUT)
-    private double volumeRatio;
+    private double volumeRatio = Double.NaN;
 
-    public void setImage(ImagePlus image) {
+    @Parameter(type = ItemIO.OUTPUT)
+    CustomTriangleMesh foregroundSurface = null;
+
+    @Parameter(type = ItemIO.OUTPUT)
+    CustomTriangleMesh totalSurface = null;
+
+
+    public void setImage(@NotNull ImagePlus image) {
         checkImage(image);
 
         inputImage = image;
-    }
-
-    public void setShow3DResult(boolean show3DResult) {
-        this.show3DResult = show3DResult;
     }
 
     public void setSurfaceResampling(int resampling) {
@@ -63,9 +68,16 @@ public class VolumeFraction implements Op
     }
 
     public void setVolumeAlgorithm(int algorithm) {
-        checkArgument(algorithm == VOXEL_ALGORITHM || algorithm == SURFACE_ALGORITHM, "Invalid algorithm option");
+        checkArgument(algorithm == VOXEL_ALGORITHM || algorithm == SURFACE_ALGORITHM, "No such algorithm");
 
         volumeAlgorithm = algorithm;
+    }
+
+    public void setRoiManager(@NotNull RoiManager roiManager) {
+        checkNotNull(roiManager, "May not use a null ROI Manager");
+        checkArgument(roiManager.getCount() != 0, "May not use an empty ROI Manager");
+
+        this.roiManager = roiManager;
     }
 
     @Override
@@ -87,6 +99,7 @@ public class VolumeFraction implements Op
     private static void checkImage(ImagePlus image) {
         checkNotNull(image, "Must have an input image");
 
+        //@todo accept gray scale and binary images
         int bitDepth = image.getBitDepth();
         checkArgument(bitDepth == 8 || bitDepth == 16, "Input image bit depth must be 8 or 16");
     }

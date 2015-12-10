@@ -63,11 +63,13 @@ public class TriplePointAnglesWrapperBoneJ extends ContextCommand
         try {
             triplePointAngles.setNthPoint(nthPoint);
             triplePointAngles.calculateTriplePointAngles();
-            angleResults = triplePointAngles.getResults();
-            showResults();
         } catch (IllegalArgumentException e) {
             uiService.showDialog(e.getMessage(), DialogPrompt.MessageType.ERROR_MESSAGE);
+            return;
         }
+
+        angleResults = triplePointAngles.getResults();
+        showResults();
     }
 
     //region -- Utility methods --
