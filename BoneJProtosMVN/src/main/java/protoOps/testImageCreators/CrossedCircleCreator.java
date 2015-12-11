@@ -21,7 +21,7 @@ public class CrossedCircleCreator implements Op
     @Parameter
     private DatasetService datasetService;
 
-    @Parameter(min = "10", required = false)
+    @Parameter(min = "10", required = false, description = "Width and height of the resulting image (px)")
     private int imageSize = 200;
 
     /**

@@ -60,20 +60,25 @@ public class Thickness implements Command
     @Parameter(type = ItemIO.INPUT, persist = false, initializer = "checkPluginRequirements")
     private ImagePlus image = null;
 
-    @Parameter(label = "Trabecular thickness", type = ItemIO.INPUT, required = false)
+    @Parameter(label = "Trabecular thickness", description = "Calculate the thickness of the trabeculae",
+            type = ItemIO.INPUT, required = false)
     private boolean doThickness = THICKNESS_DEFAULT;
 
-    @Parameter(label = "Trabecular spacing", type = ItemIO.INPUT, required = false)
+    @Parameter(label = "Trabecular spacing", description = "Calculate the thickness of the spaces between trabeculae",
+            type = ItemIO.INPUT, required = false)
     private boolean doSpacing = SPACING_DEFAULT;
 
-    @Parameter(label = "Show thickness map image", type = ItemIO.INPUT, required = false)
+    @Parameter(label = "Show thickness map image", description = "Show thickness map image(s) after calculations",
+            type = ItemIO.INPUT, required = false)
     private boolean doGraphic = GRAPHIC_DEFAULT;
 
     //@todo Find out how to disable doRoi option if roiManager == null
-    @Parameter(label = "Crop using ROI Manager", type = ItemIO.INPUT, required = false, persist = false)
+    @Parameter(label = "Crop using ROI Manager", description = "Limit thickness map(s) toi ROIs in the ROI Manager",
+            type = ItemIO.INPUT, required = false, persist = false)
     private boolean doRoi = ROI_DEFAULT;
 
-    @Parameter(label = "Mask thickness map", type = ItemIO.INPUT, required = false)
+    @Parameter(label = "Mask thickness map", description = "Remove pixel artifacts from the thickness map(s)",
+            type = ItemIO.INPUT, required = false)
     private boolean doMask = MASK_DEFAULT;
 
     @Parameter(label = "Help", persist = false, callback = "openHelpPage")

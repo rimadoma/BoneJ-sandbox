@@ -24,19 +24,19 @@ public class CuboidCreator implements Op
     @Parameter
     private DatasetService datasetService;
 
-    @Parameter(min = "1", required = false)
+    @Parameter(min = "1", required = false, description = "Cuboid width (px)")
     private int cuboidWidth = 100;
 
-    @Parameter(min = "1", required = false)
+    @Parameter(min = "1", required = false, description = "Cuboid height (px)")
     private int cuboidHeight = 100;
 
-    @Parameter(min = "1", required = false)
+    @Parameter(min = "1", required = false, description = "Cuboid depth (px)")
     private int cuboidDepth = 100;
 
-    @Parameter(min = "0", required = false)
+    @Parameter(min = "0", required = false, description = "Empty space around the cuboid (px)")
     private int cuboidPadding = 10;
 
-    @Parameter(min = "0x00", max = "0xFF", required = false)
+    @Parameter(min = "0x00", max = "0xFF", required = false, description = "Grayscale color of the cuboid")
     private int cuboidColor = 0xFF;
 
     @Parameter(type = ItemIO.OUTPUT)

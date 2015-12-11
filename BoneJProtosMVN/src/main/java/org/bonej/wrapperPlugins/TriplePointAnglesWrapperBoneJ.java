@@ -28,16 +28,18 @@ import java.net.URL;
 @Plugin(type = Command.class, menuPath = "Plugins>BoneJ>TriplePointAngles", headless = true)
 public class TriplePointAnglesWrapperBoneJ extends ContextCommand
 {
-    private static final String DEFAULT_POINT_CHOICE = "Opposite vertex";
+    private static final String DEFAULT_POINT_CHOICE = "Branch end";
     private static final TriplePointAngles triplePointAngles = new TriplePointAngles();
 
     private double angleResults [][][] = null;
 
-    @Parameter(label = "Calculate angles from:", style = ChoiceWidget.LIST_BOX_STYLE,
-            choices = {"Opposite vertex", "Edge voxel n"})
+    @Parameter(label = "Angle measurement point:", style = ChoiceWidget.LIST_BOX_STYLE,
+            description = "Measure angles from ends of the branches, or n voxels \"up\" the branch",
+            choices = {"Branch end", "Edge voxel n"})
     private String pointChoice = DEFAULT_POINT_CHOICE;
 
-    @Parameter(label = "Edge voxel n:o", min = "0")
+    @Parameter(label = "Edge voxel #number",
+            description = "Number of voxels the angle measurement point is from the ends of the branches", min = "0")
     private int nthPoint = TriplePointAngles.DEFAULT_NTH_POINT;
 
     @Parameter(label = "Help", persist = false, callback = "openHelpPage")
@@ -81,7 +83,7 @@ public class TriplePointAnglesWrapperBoneJ extends ContextCommand
 
     //region -- Helper methods --
     private int nthPointFromPointChoice() {
-        if (pointChoice.equals("Opposite vertex")) {
+        if (pointChoice.equals("Branch end")) {
             return TriplePointAngles.VERTEX_TO_VERTEX;
         }
 
