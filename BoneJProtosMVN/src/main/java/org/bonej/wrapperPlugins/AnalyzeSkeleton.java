@@ -20,7 +20,7 @@ import sc.fiji.analyzeSkeleton.AnalyzeSkeleton_;
 @Plugin(type = Command.class, menuPath = "Plugins>BoneJ>AnalyzeSkeleton")
 public class AnalyzeSkeleton implements Command
 {
-    private static final AnalyzeSkeleton_ skeletonAnalyzer = new AnalyzeSkeleton_();
+    private final AnalyzeSkeleton_ skeletonAnalyzer = new AnalyzeSkeleton_();
     private ImagePlus inputImage = null;
 
 

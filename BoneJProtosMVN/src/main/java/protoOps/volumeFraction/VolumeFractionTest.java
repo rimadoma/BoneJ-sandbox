@@ -14,7 +14,7 @@ import static org.mockito.Mockito.when;
  * @author Richard Domander
  */
 public class VolumeFractionTest {
-    private static VolumeFraction volumeFraction;
+    private VolumeFraction volumeFraction;
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();

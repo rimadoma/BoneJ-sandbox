@@ -19,7 +19,7 @@ import sc.fiji.skeletonize3D.Skeletonize3D_;
 @Plugin(type = Command.class, menuPath = "Plugins>BoneJ>Skeletonize3D")
 public class Skeletonize3D implements Command
 {
-    private static final Skeletonize3D_ skeletonizer = new Skeletonize3D_();
+    private final Skeletonize3D_ skeletonizer = new Skeletonize3D_();
 
     private ImagePlus inputImage = null;
 
