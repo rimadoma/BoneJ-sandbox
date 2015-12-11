@@ -95,7 +95,10 @@ public class Thickness implements Command
     @SuppressWarnings("unused")
     private void checkPluginRequirements()
     {
-        if (!ImageCheck.isBoneJEnvironmentValid()) {
+        try {
+            ImageCheck.checkIJVersion();
+        } catch (RuntimeException e) {
+            uiService.showDialog(e.getMessage(), MessageType.ERROR_MESSAGE);
             pluginHasRequirements = false;
             return;
         }
@@ -103,7 +106,7 @@ public class Thickness implements Command
         try {
             image = IJ.getImage();
         } catch (RuntimeException rte) {
-            // no image currently open
+            // no image currently open, IJ.getImage() shows an error dialog
             pluginHasRequirements = false;
             return;
         }

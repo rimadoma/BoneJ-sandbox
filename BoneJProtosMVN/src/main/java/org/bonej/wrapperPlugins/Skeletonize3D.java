@@ -7,13 +7,14 @@ import org.bonej.common.ImageCheck;
 import org.scijava.command.Command;
 import org.scijava.plugin.Parameter;
 import org.scijava.plugin.Plugin;
+import org.scijava.ui.DialogPrompt;
 import org.scijava.ui.UIService;
 import sc.fiji.skeletonize3D.Skeletonize3D_;
 
 /**
  * A BoneJ wrapper plugin, which is used for a "bone science" flavour of the Skeletonize3D ImageJ plugin.
  *
- * @author <a href="mailto:rdomander@rvc.ac.uk">Richard Domander</a>
+ * @author >Richard Domander
  */
 @Plugin(type = Command.class, menuPath = "Plugins>BoneJ>Skeletonize3D")
 public class Skeletonize3D implements Command
@@ -48,8 +49,10 @@ public class Skeletonize3D implements Command
     @Override
     public void run()
     {
-        if (!ImageCheck.isBoneJEnvironmentValid()) {
-            return;
+        try {
+            ImageCheck.checkIJVersion();
+        } catch (RuntimeException e) {
+            uiService.showDialog(e.getMessage(), DialogPrompt.MessageType.ERROR_MESSAGE);
         }
 
         if (!setInputImage()) {

@@ -1,7 +1,7 @@
 package org.bonej.common;
 
 /**
- * @author <a href="mailto:rdomander@rvc.ac.uk">Richard Domander</a>
+ * @author Richard Domander
  */
 public class Common {
     public static final int BINARY_BLACK = 0x00;

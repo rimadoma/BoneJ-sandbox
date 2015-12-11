@@ -1,5 +1,6 @@
 package org.bonej.common;
 
+import com.google.common.collect.ImmutableList;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.measure.Calibration;
@@ -23,10 +24,10 @@ public class ImageCheck {
      * ImageJ releases known to produce errors or bugs with BoneJ. Daily builds
      * are not included.
      */
-    public static final String[] blacklistedIJVersions = {
+    private static final ImmutableList<String> blacklistedIJVersions = ImmutableList.of(
             // introduced bug where ROIs added to the ROI Manager
             // lost their z-position information
-            "1.48a" };
+            "1.48a");
 
     /**
      * Check if image is binary
@@ -55,7 +56,7 @@ public class ImageCheck {
      * placed on a cubic grid)
      *
      * @param   imp         image to test
-     * @param   tolerance   tolerated fractional deviation from equal length [0.0, 2.0]
+     * @param   tolerance   tolerated fractional deviation from equal length [0.0, 1.0]
      * @return true if voxel width == height == depth (within tolerance)
      */
     public static boolean isVoxelIsotropic(@Nullable ImagePlus imp, double tolerance) {
@@ -84,70 +85,65 @@ public class ImageCheck {
     }
 
     /**
-     * Show a message and return false if the version of IJ is too old for BoneJ
-     * or is a known bad version
+     * Checks if BoneJ has everything it needs to run properly.
      *
-     * @return false if the IJ version is too old or blacklisted
+     * @throws ClassNotFoundException if 3D environment is lacking
+     * @throws RuntimeException if running an incompatible version of ImageJ
+     * @see ImageCheck#checkBoneJEnvironment()
+     * @see ImageCheck#check3DEnvironment()
      */
-    private static boolean isIJVersionValid() {
-        if (isIJVersionBlacklisted()) {
-            IJ.error(
-                    "Bad ImageJ version",
-                    "The version of ImageJ you are using (v"
-                            + IJ.getVersion()
-                            + ") is known to run BoneJ incorrectly.\n"
-                            + "Please up- or downgrade your ImageJ using Help-Update ImageJ.");
-            return false;
+    public static void checkBoneJEnvironment() throws ClassNotFoundException {
+        try {
+            check3DEnvironment();
+            checkIJVersion();
+        } catch (ClassNotFoundException | RuntimeException e) {
+            throw e;
         }
-
-        if (requiredIJVersion.compareTo(IJ.getVersion()) > 0) {
-            IJ.error(
-                    "Update ImageJ",
-                    "You are using an old version of ImageJ, v"
-                            + IJ.getVersion() + ".\n"
-                            + "Please update to at least ImageJ v"
-                            + requiredIJVersion + " using Help-Update ImageJ.");
-            return false;
-        }
-        return true;
     }
 
     /**
-     * Checks if BoneJ has everything it needs to run properly.
-     * This includes a compatible version of ImageJ, and the required libraries.
+     * Checks if BoneJ can display 3D images
+     *
+     * @throws ClassNotFoundException if either Jave 3D libraries or ImageJ 3D Viewer are not found
      */
-    public static boolean isBoneJEnvironmentValid() {
+    public static void check3DEnvironment() throws ClassNotFoundException {
         try {
             Class.forName("javax.media.j3d.VirtualUniverse");
         } catch (ClassNotFoundException e) {
-            IJ.showMessage("Java 3D libraries are not installed.\n " +
+            throw new ClassNotFoundException("Java 3D libraries are not installed.\n " +
                     "Please install and run the ImageJ 3D Viewer,\n"
                     + "which will automatically install Java's 3D libraries.");
-            return false;
         }
         try {
             Class.forName("ij3d.ImageJ3DViewer");
         } catch (ClassNotFoundException e) {
-            IJ.showMessage("ImageJ 3D Viewer is not installed.\n"
+            throw new ClassNotFoundException("ImageJ 3D Viewer is not installed.\n"
                     + "Please install and run the ImageJ 3D Viewer.");
-            return false;
         }
-
-        return isIJVersionValid();
     }
 
     /**
-     * Check if the version of IJ has been blacklisted as a known broken release
+     * Show a message and return false if the version of IJ is too old for BoneJ
+     * or is a known bad version
      *
-     * @return true if the IJ version is blacklisted, false otherwise
+     * @throws RuntimeException if the current IJ version is too old or blacklisted
      */
-    public static boolean isIJVersionBlacklisted() {
-
-
-        for (String version : blacklistedIJVersions) {
-            if (version.equals(IJ.getVersion()))
-                return true;
+    public static void checkIJVersion() {
+        String ijVersion = IJ.getVersion();
+        if (blacklistedIJVersions.contains(ijVersion)) {
+            throw new RuntimeException(
+                    "The version of ImageJ you are using (v"
+                            + IJ.getVersion()
+                            + ") is known to run BoneJ incorrectly.\n"
+                            + "Please upgrade your ImageJ using Help-Update ImageJ.");
         }
-        return false;
+
+        if (requiredIJVersion.compareToIgnoreCase(ijVersion) > 0) {
+            throw new RuntimeException(
+                    "You are using an old version of ImageJ, v"
+                            + IJ.getVersion() + ".\n"
+                            + "Please update to at least ImageJ v"
+                            + requiredIJVersion + " using Help-Update ImageJ.");
+        }
     }
 }
