@@ -6,6 +6,8 @@ import ij.ImageStack;
 import ij.measure.Calibration;
 import ij.process.ImageStatistics;
 
+import javax.annotation.Nullable;
+
 /**
  * Check if an image conforms to the type defined by each method.
  *
@@ -31,10 +33,13 @@ public class ImageCheck {
      * Check if image is binary
      *
      * @param   imp image to test
-     * @pre     imp != null
      * @return  true if image is binary
      */
-    public static boolean isBinary(ImagePlus imp) {
+    public static boolean isBinary(@Nullable ImagePlus imp) {
+        if (imp == null) {
+            return false;
+        }
+
         if (imp.getType() != ImagePlus.GRAY8) {
             return false;
         }
@@ -63,10 +68,13 @@ public class ImageCheck {
      *
      * @param   imp         image to test
      * @param   tolerance   tolerated fractional deviation from equal length [0.0, 2.0]
-     * @pre     imp != null
      * @return true if voxel width == height == depth (within tolerance)
      */
-    public static boolean isVoxelIsotropic(ImagePlus imp, double tolerance) {
+    public static boolean isVoxelIsotropic(@Nullable ImagePlus imp, double tolerance) {
+        if (imp == null) {
+            return false;
+        }
+
         tolerance = Common.clamp(tolerance, 0.0, 1.0);
 
         Calibration cal = imp.getCalibration();

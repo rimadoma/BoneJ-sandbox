@@ -1,19 +1,18 @@
 package org.bonej.common;
 
-import ij.IJ;
-import ij.ImagePlus;
 import ij.ImageStack;
 import ij.gui.Roi;
 import ij.plugin.frame.RoiManager;
 import ij.process.ImageProcessor;
-
 import java.awt.*;
 import java.util.ArrayList;
+import javax.annotation.Nullable;
 
 /**
+ * A class containing utility methods for a ImageJ RoiManager
+ *
  * @author  Michael Doube
- * @author <a href="mailto:rdomander@rvc.ac.uk">Richard Domander</a>
- * @todo    Functional testing. Does the class work as intended with a real RoiManager created by ImageJ?
+ * @author  Richard Domander
  */
 public class RoiUtil {
     public static final int FIRST_SLICE_NUMBER = 1;
@@ -27,10 +26,12 @@ public class RoiUtil {
      * @param   sliceNumber Number of the slice to be searched
      * @return  In addition to the active ROIs, returns all the ROIs without
      *          a slice number (assumed to be active in all slices).
-     *          Return an empty list sliceNumber is out of bounds
+     *          Return an empty list if sliceNumber is out of bounds,
+     *          or roiMan == null or stack == null
      *
      */
-    public static ArrayList<Roi> getSliceRoi(RoiManager roiMan, ImageStack stack, int sliceNumber) {
+    public static ArrayList<Roi> getSliceRoi(@Nullable RoiManager roiMan, @Nullable ImageStack stack,
+                                             int sliceNumber) {
         ArrayList<Roi> roiList = new ArrayList<>();
 
         if (roiMan == null || stack == null) {
@@ -68,7 +69,8 @@ public class RoiUtil {
      * If for any ROI isActiveOnAllSlices == true, then z min is set to
      * 1 and z max is set to stack.getSize().
      */
-    public static int[] getLimits(RoiManager roiMan, ImageStack stack) {
+    @Nullable
+    public static int[] getLimits(@Nullable RoiManager roiMan, @Nullable ImageStack stack) {
         if (roiMan == null || stack == null) {
             return null;
         }
@@ -181,8 +183,9 @@ public class RoiUtil {
      *          Returns null if sourceStack == null
      *
      */
-    public static ImageStack cropToRois(RoiManager roiMan, ImageStack sourceStack, boolean fillBackground,
-                                        int fillColor, int padding)
+    @Nullable
+    public static ImageStack cropToRois(@Nullable RoiManager roiMan, @Nullable ImageStack sourceStack,
+                                        boolean fillBackground, int fillColor, int padding)
     {
         int[] limits = getLimits(roiMan, sourceStack);
 
@@ -232,8 +235,8 @@ public class RoiUtil {
             targetProcessor.fill();
         }
         for (int i = 0; i < padding; i++) {
-            targetStack.addSlice("", targetProcessor, 0);
-            targetStack.addSlice(targetProcessor);
+            targetStack.addSlice("", targetProcessor.duplicate(), 0);
+            targetStack.addSlice(targetProcessor.duplicate());
         }
 
         return targetStack;

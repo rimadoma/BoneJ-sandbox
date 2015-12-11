@@ -45,7 +45,7 @@ public class VolumeFractionTest {
     @Test
     public void testSetVolumeAlgorithmThrowsIllegalArgumentExceptionIfAlgorithmIsInvalid() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("No such algorithm");
+        expectedException.expectMessage("No such surface algorithm");
 
         volumeFraction.setVolumeAlgorithm(-1);
     }

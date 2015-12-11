@@ -1,6 +1,5 @@
 package protoOps.volumeFraction;
 
-import com.sun.istack.internal.NotNull;
 import customnode.CustomTriangleMesh;
 import ij.ImagePlus;
 import ij.plugin.frame.RoiManager;
@@ -55,7 +54,7 @@ public class VolumeFraction implements Op
     CustomTriangleMesh totalSurface = null;
 
 
-    public void setImage(@NotNull ImagePlus image) {
+    public void setImage(ImagePlus image) {
         checkImage(image);
 
         inputImage = image;
@@ -68,12 +67,12 @@ public class VolumeFraction implements Op
     }
 
     public void setVolumeAlgorithm(int algorithm) {
-        checkArgument(algorithm == VOXEL_ALGORITHM || algorithm == SURFACE_ALGORITHM, "No such algorithm");
+        checkArgument(algorithm == VOXEL_ALGORITHM || algorithm == SURFACE_ALGORITHM, "No such surface algorithm");
 
         volumeAlgorithm = algorithm;
     }
 
-    public void setRoiManager(@NotNull RoiManager roiManager) {
+    public void setRoiManager(RoiManager roiManager) {
         checkNotNull(roiManager, "May not use a null ROI Manager");
         checkArgument(roiManager.getCount() != 0, "May not use an empty ROI Manager");
 

@@ -215,6 +215,7 @@ public class Thickness implements Command
      * @param image         Binary (black & white) ImagePlus
      * @param doForeground  If true, then process the thickness of the foreground.
      *                      If false, then process the thickness of the background
+     * @param tittleSuffix  Suffix added to the thickness map image title
      * @return  A new ImagePlus which contains the thickness
      */
     private ImagePlus processThicknessSteps(ImagePlus image, boolean doForeground, String tittleSuffix)
