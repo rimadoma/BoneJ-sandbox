@@ -1,345 +1,370 @@
 package org.bonej.common;
 
+import java.awt.*;
+import java.util.ArrayList;
+
+import javax.annotation.Nullable;
+
 import ij.ImageStack;
 import ij.gui.Roi;
 import ij.plugin.frame.RoiManager;
 import ij.process.ImageProcessor;
-import java.awt.*;
-import java.util.ArrayList;
-import javax.annotation.Nullable;
 
 /**
  * A class containing utility methods for a ImageJ RoiManager
  *
- * @author  Michael Doube
- * @author  Richard Domander
+ * @author Michael Doube
+ * @author Richard Domander
  */
 public class RoiUtil {
-    public static final int FIRST_SLICE_NUMBER = 1;
-    public static final int NO_SLICE_NUMBER = -1;
+	public static final int FIRST_SLICE_NUMBER = 1;
+	public static final int NO_SLICE_NUMBER = -1;
 
+	/**
+	 * Returns a list of ROIs that are active in the given slice.
+	 *
+	 * @param roiMan
+	 *            The collection of all the current ROIs
+	 * @param sliceNumber
+	 *            Number of the slice to be searched
+	 * @return In addition to the active ROIs, returns all the ROIs without a
+	 *         slice number (assumed to be active in all slices). Return an
+	 *         empty list if sliceNumber is out of bounds, or roiMan == null or
+	 *         stack == null
+	 *
+	 */
+	public static ArrayList<Roi> getSliceRoi(@Nullable RoiManager roiMan, @Nullable ImageStack stack, int sliceNumber) {
+		ArrayList<Roi> roiList = new ArrayList<>();
 
-    /**
-     * Returns a list of ROIs that are active in the given slice.
-     *
-     * @param   roiMan      The collection of all the current ROIs
-     * @param   sliceNumber Number of the slice to be searched
-     * @return  In addition to the active ROIs, returns all the ROIs without
-     *          a slice number (assumed to be active in all slices).
-     *          Return an empty list if sliceNumber is out of bounds,
-     *          or roiMan == null or stack == null
-     *
-     */
-    public static ArrayList<Roi> getSliceRoi(@Nullable RoiManager roiMan, @Nullable ImageStack stack,
-                                             int sliceNumber) {
-        ArrayList<Roi> roiList = new ArrayList<>();
+		if (roiMan == null || stack == null) {
+			return roiList;
+		}
 
-        if (roiMan == null || stack == null) {
-            return roiList;
-        }
+		if (sliceNumber < FIRST_SLICE_NUMBER || sliceNumber > stack.getSize()) {
+			return roiList;
+		}
 
-        if (sliceNumber < FIRST_SLICE_NUMBER || sliceNumber > stack.getSize()) {
-            return roiList;
-        }
+		Roi[] rois = roiMan.getRoisAsArray();
+		for (Roi roi : rois) {
+			String roiName = roi.getName();
+			if (roiName == null) {
+				continue;
+			}
+			int roiSliceNumber = roiMan.getSliceNumber(roiName);
+			if (roiSliceNumber == sliceNumber || roiSliceNumber == NO_SLICE_NUMBER) {
+				roiList.add(roi);
+			}
+		}
+		return roiList;
+	}
 
-        Roi[] rois = roiMan.getRoisAsArray();
-        for (Roi roi : rois) {
-            String roiName = roi.getName();
-            if (roiName == null) {
-                continue;
-            }
-            int roiSliceNumber = roiMan.getSliceNumber(roiName);
-            if (roiSliceNumber == sliceNumber || roiSliceNumber == NO_SLICE_NUMBER) {
-                roiList.add(roi);
-            }
-        }
-        return roiList;
-    }
+	/**
+	 * Find the x, y and z limits of the ROIs in the ROI Manager
+	 *
+	 * @param roiMan
+	 *            The collection of all the current ROIs
+	 * @param stack
+	 *            The stack inside which the ROIs must fit (max limits).
+	 * @return int[] containing x min, x max, y min, y max, z min and z max.
+	 *         Returns null if roiMan == null || roiMan.getCount() == 0 Returns
+	 *         null if stack == null Returns null if every ROI in roiMan is
+	 *         outside the given stack
+	 *
+	 *         If for any ROI isActiveOnAllSlices == true, then z min is set to
+	 *         1 and z max is set to stack.getSize().
+	 */
+	@Nullable
+	public static int[] getLimits(@Nullable RoiManager roiMan, @Nullable ImageStack stack) {
+		if (roiMan == null || stack == null) {
+			return null;
+		}
 
-    /**
-     * Find the x, y and z limits of the ROIs in the ROI Manager
-     *
-     * @param   roiMan  The collection of all the current ROIs
-     * @param   stack   The stack inside which the ROIs must fit (max limits).
-     * @return int[] containing x min, x max, y min, y max, z min and z max.
-     *         Returns null if roiMan == null || roiMan.getCount() == 0
-     *         Returns null if stack == null
-     *         Returns null if every ROI in roiMan is outside the given stack
-     *
-     * If for any ROI isActiveOnAllSlices == true, then z min is set to
-     * 1 and z max is set to stack.getSize().
-     */
-    @Nullable
-    public static int[] getLimits(@Nullable RoiManager roiMan, @Nullable ImageStack stack) {
-        if (roiMan == null || stack == null) {
-            return null;
-        }
+		if (roiMan.getCount() == 0) {
+			return null;
+		}
 
-        if (roiMan.getCount() == 0) {
-            return null;
-        }
+		final int DEFAULT_Z_MIN = 1;
+		final int DEFAULT_Z_MAX = stack.getSize();
 
-        final int DEFAULT_Z_MIN = 1;
-        final int DEFAULT_Z_MAX = stack.getSize();
+		int xMin = stack.getWidth();
+		int xMax = 0;
+		int yMin = stack.getHeight();
+		int yMax = 0;
+		int zMin = DEFAULT_Z_MAX;
+		int zMax = DEFAULT_Z_MIN;
 
-        int xMin = stack.getWidth();
-        int xMax = 0;
-        int yMin = stack.getHeight();
-        int yMax = 0;
-        int zMin = DEFAULT_Z_MAX;
-        int zMax = DEFAULT_Z_MIN;
+		Roi[] rois = roiMan.getRoisAsArray();
+		boolean allSlices = false;
+		boolean noValidRois = true;
 
-        Roi[] rois = roiMan.getRoisAsArray();
-        boolean allSlices = false;
-        boolean noValidRois = true;
+		for (Roi roi : rois) {
+			Rectangle r = roi.getBounds();
+			boolean valid = getSafeRoiBounds(r, stack.getWidth(), stack.getHeight());
 
-        for (Roi roi : rois) {
-            Rectangle r = roi.getBounds();
-            boolean valid = getSafeRoiBounds(r, stack.getWidth(), stack.getHeight());
+			if (!valid) {
+				continue;
+			}
 
-            if (!valid) {
-                continue;
-            }
-            
-            xMin = Math.min(r.x, xMin);
-            xMax = Math.max(r.x + r.width, xMax);
-            yMin = Math.min(r.y, yMin);
-            yMax = Math.max(r.y + r.height, yMax);
+			xMin = Math.min(r.x, xMin);
+			xMax = Math.max(r.x + r.width, xMax);
+			yMin = Math.min(r.y, yMin);
+			yMax = Math.max(r.y + r.height, yMax);
 
-            int sliceNumber = roiMan.getSliceNumber(roi.getName());
-            if (sliceNumber >= FIRST_SLICE_NUMBER && sliceNumber <= stack.getSize()) {
-                zMin = Math.min(sliceNumber, zMin);
-                zMax = Math.max(sliceNumber, zMax);
-                noValidRois = false;
-            } else if (isActiveOnAllSlices(sliceNumber)) {
-                allSlices = true;
-                noValidRois = false;
-            }
-        }
+			int sliceNumber = roiMan.getSliceNumber(roi.getName());
+			if (sliceNumber >= FIRST_SLICE_NUMBER && sliceNumber <= stack.getSize()) {
+				zMin = Math.min(sliceNumber, zMin);
+				zMax = Math.max(sliceNumber, zMax);
+				noValidRois = false;
+			} else if (isActiveOnAllSlices(sliceNumber)) {
+				allSlices = true;
+				noValidRois = false;
+			}
+		}
 
-        if (noValidRois) {
-            return null;
-        }
+		if (noValidRois) {
+			return null;
+		}
 
-        int[] limits = { xMin, xMax, yMin, yMax, zMin, zMax };
+		int[] limits = {xMin, xMax, yMin, yMax, zMin, zMax};
 
-        if (allSlices) {
-            limits[4] = DEFAULT_Z_MIN;
-            limits[5] = DEFAULT_Z_MAX;
-        }
+		if (allSlices) {
+			limits[4] = DEFAULT_Z_MIN;
+			limits[5] = DEFAULT_Z_MAX;
+		}
 
-        return limits;
-    }
+		return limits;
+	}
 
-    private static boolean isActiveOnAllSlices(int sliceNumber)
-    {
-        return sliceNumber == NO_SLICE_NUMBER;
-    }
+	private static boolean isActiveOnAllSlices(int sliceNumber) {
+		return sliceNumber == NO_SLICE_NUMBER;
+	}
 
-    /**
-     * Crops the given rectangle to the area [0, 0, width, height]
-     *
-     * @param bounds    The rectangle to be fitted
-     * @param width     Maximum width of the rectangle
-     * @param height    Maximum height of the rectangle
-     * @return          false if the height or width of the fitted rectangle is 0
-     *                  (Couldn't be cropped inside the area).
-     */
-    public static boolean getSafeRoiBounds(Rectangle bounds, int width, int height)
-    {
-        int xMin = Common.clamp(bounds.x, 0, width);
-        int xMax = Common.clamp(bounds.x + bounds.width, 0, width);
-        int yMin = Common.clamp(bounds.y, 0, height);
-        int yMax = Common.clamp(bounds.y + bounds.height, 0, height);
-        int newWidth = xMax - xMin;
-        int newHeight = yMax - yMin;
+	/**
+	 * Crops the given rectangle to the area [0, 0, width, height]
+	 *
+	 * @param bounds
+	 *            The rectangle to be fitted
+	 * @param width
+	 *            Maximum width of the rectangle
+	 * @param height
+	 *            Maximum height of the rectangle
+	 * @return false if the height or width of the fitted rectangle is 0
+	 *         (Couldn't be cropped inside the area).
+	 */
+	public static boolean getSafeRoiBounds(Rectangle bounds, int width, int height) {
+		int xMin = Common.clamp(bounds.x, 0, width);
+		int xMax = Common.clamp(bounds.x + bounds.width, 0, width);
+		int yMin = Common.clamp(bounds.y, 0, height);
+		int yMax = Common.clamp(bounds.y + bounds.height, 0, height);
+		int newWidth = xMax - xMin;
+		int newHeight = yMax - yMin;
 
-        bounds.setBounds(xMin, yMin, newWidth, newHeight);
-        
-        return newWidth > 0 && newHeight > 0;
-    }
+		bounds.setBounds(xMin, yMin, newWidth, newHeight);
 
-    /**
-     * Same as @see RoiUtil.cropToRois, but with default padding of 0. Handy if padding might affect the results
-     * of your plugin.
-     */
-    public static ImageStack cropToRois(RoiManager roiMan, ImageStack sourceStack, boolean fillBackground,
-                                        int fillColor)
-    {
-        return cropToRois(roiMan, sourceStack, fillBackground, fillColor, 0);
-    }
+		return newWidth > 0 && newHeight > 0;
+	}
 
-    /**
-     * Crop a stack to the limits of the ROIs in the ROI Manager and optionally
-     * fill the background with a single pixel value.
-     *
-     * @param roiMan                The manager containing the ROIs
-     * @param sourceStack           The image to be cropped
-     * @param fillBackground        If true, fill the background of the cropped image
-     * @param fillColor             Color of the background of the cropped image
-     * @param padding               Number of pixels added to the each side of the resulting image
-     * @return  A new image stack containing the cropped version of the given image.
-     *          Returns null if roiMan is null or empty.
-     *          Returns null if sourceStack == null
-     *
-     */
-    @Nullable
-    public static ImageStack cropToRois(@Nullable RoiManager roiMan, @Nullable ImageStack sourceStack,
-                                        boolean fillBackground, int fillColor, int padding)
-    {
-        int[] limits = getLimits(roiMan, sourceStack);
+	/**
+	 * Same as @see RoiUtil.cropToRois, but with default padding of 0. Handy if
+	 * padding might affect the results of your plugin.
+	 */
+	public static ImageStack cropToRois(RoiManager roiMan, ImageStack sourceStack, boolean fillBackground,
+			int fillColor) {
+		return cropToRois(roiMan, sourceStack, fillBackground, fillColor, 0);
+	}
 
-        if (limits == null) {
-            return null;
-        }
+	/**
+	 * Crop a stack to the limits of the ROIs in the ROI Manager and optionally
+	 * fill the background with a single pixel value.
+	 *
+	 * @param roiMan
+	 *            The manager containing the ROIs
+	 * @param sourceStack
+	 *            The image to be cropped
+	 * @param fillBackground
+	 *            If true, fill the background of the cropped image
+	 * @param fillColor
+	 *            Color of the background of the cropped image
+	 * @param padding
+	 *            Number of pixels added to the each side of the resulting image
+	 * @return A new image stack containing the cropped version of the given
+	 *         image. Returns null if roiMan is null or empty. Returns null if
+	 *         sourceStack == null
+	 *
+	 */
+	@Nullable
+	public static ImageStack cropToRois(@Nullable RoiManager roiMan, @Nullable ImageStack sourceStack,
+			boolean fillBackground, int fillColor, int padding) {
+		int[] limits = getLimits(roiMan, sourceStack);
 
-        final int xMin = limits[0];
-        final int xMax = limits[1];
-        final int yMin = limits[2];
-        final int yMax = limits[3];
-        final int zMin = limits[4];
-        final int zMax = limits[5];
+		if (limits == null) {
+			return null;
+		}
 
-        final int croppedWidth = xMax - xMin + 2 * padding;
-        final int croppedHeight = yMax - yMin + 2 * padding;
+		final int xMin = limits[0];
+		final int xMax = limits[1];
+		final int yMin = limits[2];
+		final int yMax = limits[3];
+		final int zMin = limits[4];
+		final int zMax = limits[5];
 
-        ImageStack targetStack = new ImageStack(croppedWidth, croppedHeight);
+		final int croppedWidth = xMax - xMin + 2 * padding;
+		final int croppedHeight = yMax - yMin + 2 * padding;
 
-        // copy
-        ImageProcessor sourceProcessor;
-        ImageProcessor targetProcessor;
-        ArrayList<Roi> sliceRois;
+		ImageStack targetStack = new ImageStack(croppedWidth, croppedHeight);
 
-        for (int sourceZ = zMin; sourceZ <= zMax; sourceZ++) {
-            sliceRois = getSliceRoi(roiMan, sourceStack, sourceZ);
-            if (sliceRois.size() == 0) {
-                continue;
-            }
+		// copy
+		ImageProcessor sourceProcessor;
+		ImageProcessor targetProcessor;
+		ArrayList<Roi> sliceRois;
 
-            sourceProcessor = sourceStack.getProcessor(sourceZ);
-            targetProcessor = sourceProcessor.createProcessor(croppedWidth, croppedHeight);
+		for (int sourceZ = zMin; sourceZ <= zMax; sourceZ++) {
+			sliceRois = getSliceRoi(roiMan, sourceStack, sourceZ);
+			if (sliceRois.size() == 0) {
+				continue;
+			}
 
-            if (fillBackground) {
-                targetProcessor.setColor(fillColor);
-                targetProcessor.fill();
-            }
+			sourceProcessor = sourceStack.getProcessor(sourceZ);
+			targetProcessor = sourceProcessor.createProcessor(croppedWidth, croppedHeight);
 
-            copySlice(sourceProcessor, targetProcessor, sliceRois, padding);
-            targetStack.addSlice("", targetProcessor);
-        }
+			if (fillBackground) {
+				targetProcessor.setColor(fillColor);
+				targetProcessor.fill();
+			}
 
-        // z padding
-        targetProcessor = targetStack.getProcessor(1).createProcessor(croppedWidth, croppedHeight);
-        if (fillBackground) {
-            targetProcessor.setColor(fillColor);
-            targetProcessor.fill();
-        }
-        for (int i = 0; i < padding; i++) {
-            targetStack.addSlice("", targetProcessor.duplicate(), 0);
-            targetStack.addSlice(targetProcessor.duplicate());
-        }
+			copySlice(sourceProcessor, targetProcessor, sliceRois, padding);
+			targetStack.addSlice("", targetProcessor);
+		}
 
-        return targetStack;
-    }
+		// z padding
+		targetProcessor = targetStack.getProcessor(1).createProcessor(croppedWidth, croppedHeight);
+		if (fillBackground) {
+			targetProcessor.setColor(fillColor);
+			targetProcessor.fill();
+		}
+		for (int i = 0; i < padding; i++) {
+			targetStack.addSlice("", targetProcessor.duplicate(), 0);
+			targetStack.addSlice(targetProcessor.duplicate());
+		}
 
-    /**
-     * Copies pixels under all the ROIs on a slide
-     *
-     * @param sourceProcessor   The source image slide
-     * @param targetProcessor   The target slide
-     * @param sliceRois         List of all the ROIs on the source slide
-     * @param padding           Number of pixels added on each side of the target slide
-     */
-    private static void copySlice(ImageProcessor sourceProcessor, ImageProcessor targetProcessor,
-                                  ArrayList<Roi> sliceRois, int padding)
-    {
-        for (Roi sliceRoi : sliceRois) {
-            Rectangle rectangle = sliceRoi.getBounds();
-            boolean valid = getSafeRoiBounds(rectangle, sourceProcessor.getWidth(), sourceProcessor.getHeight());
+		return targetStack;
+	}
 
-            if (!valid) {
-                continue;
-            }
+	/**
+	 * Copies pixels under all the ROIs on a slide
+	 *
+	 * @param sourceProcessor
+	 *            The source image slide
+	 * @param targetProcessor
+	 *            The target slide
+	 * @param sliceRois
+	 *            List of all the ROIs on the source slide
+	 * @param padding
+	 *            Number of pixels added on each side of the target slide
+	 */
+	private static void copySlice(ImageProcessor sourceProcessor, ImageProcessor targetProcessor,
+			ArrayList<Roi> sliceRois, int padding) {
+		for (Roi sliceRoi : sliceRois) {
+			Rectangle rectangle = sliceRoi.getBounds();
+			boolean valid = getSafeRoiBounds(rectangle, sourceProcessor.getWidth(), sourceProcessor.getHeight());
 
-            int minY = rectangle.y;
-            int minX = rectangle.x;
-            int maxY = rectangle.y + rectangle.height;
-            int maxX = rectangle.x + rectangle.width;
+			if (!valid) {
+				continue;
+			}
 
-            ImageProcessor mask = sourceProcessor.getMask();
-            if (mask == null) {
-                copyRoi(sourceProcessor, targetProcessor, minX, minY, maxX, maxY, padding);
-            } else {
-                copyRoiWithMask(sourceProcessor, targetProcessor, minX, minY, maxX, maxY, padding);
-            }
-        }
-    }
+			int minY = rectangle.y;
+			int minX = rectangle.x;
+			int maxY = rectangle.y + rectangle.height;
+			int maxX = rectangle.x + rectangle.width;
 
-    /**
-     * Copies the pixels in the given ROI from the source image to the target image.
-     * Copies only those pixels where the color of the given mask > 0.
-     *
-     * @param   sourceProcessor Copy source
-     * @param   targetProcessor Copy target
-     * @param   minX            Horizontal start of the copy area 0 <= minX < width
-     * @param   minY            Vertical start of the copy area 0 <= minY < height
-     * @param   maxX            Horizontal end of the copy area 0 <= maxX <= width
-     * @param   maxY            Vertical end of the copy area 0 <= maxY <= height
-     * @param   padding         Number pixels added to each side of the copy target
-     * @pre     sourceProcessor != null
-     * @pre     targetProcessor != null
-     *
-     * Calls copyRoi with the given parameters if sourceProcessor.getMask() == null
-     */
-    public static void copyRoiWithMask(ImageProcessor sourceProcessor, ImageProcessor targetProcessor, final int minX,
-                                        final int minY, final int maxX, final int maxY, final int padding)
-    {
-        ImageProcessor mask = sourceProcessor.getMask();
-        if (mask == null) {
-            copyRoi(sourceProcessor, targetProcessor, minX, minY, maxX, maxY, padding);
-            return;
-        }
+			ImageProcessor mask = sourceProcessor.getMask();
+			if (mask == null) {
+				copyRoi(sourceProcessor, targetProcessor, minX, minY, maxX, maxY, padding);
+			} else {
+				copyRoiWithMask(sourceProcessor, targetProcessor, minX, minY, maxX, maxY, padding);
+			}
+		}
+	}
 
-        int targetY = padding;
-        for (int sourceY = minY; sourceY < maxY; sourceY++) {
-            int targetX = padding;
-            for (int sourceX = minX; sourceX < maxX; sourceX++) {
-                int maskColor = mask.get(sourceX, sourceY);
-                if (maskColor > 0) {
-                    int sourceColor = sourceProcessor.get(sourceX, sourceY);
-                    targetProcessor.set(targetX, targetY, sourceColor);
-                }
-                targetX++;
-            }
-            targetY++;
-        }
-    }
+	/**
+	 * Copies the pixels in the given ROI from the source image to the target
+	 * image. Copies only those pixels where the color of the given mask > 0.
+	 *
+	 * @param sourceProcessor
+	 *            Copy source
+	 * @param targetProcessor
+	 *            Copy target
+	 * @param minX
+	 *            Horizontal start of the copy area 0 <= minX < width
+	 * @param minY
+	 *            Vertical start of the copy area 0 <= minY < height
+	 * @param maxX
+	 *            Horizontal end of the copy area 0 <= maxX <= width
+	 * @param maxY
+	 *            Vertical end of the copy area 0 <= maxY <= height
+	 * @param padding
+	 *            Number pixels added to each side of the copy target
+	 * @pre sourceProcessor != null
+	 * @pre targetProcessor != null
+	 *
+	 *      Calls copyRoi with the given parameters if sourceProcessor.getMask()
+	 *      == null
+	 */
+	public static void copyRoiWithMask(ImageProcessor sourceProcessor, ImageProcessor targetProcessor, final int minX,
+			final int minY, final int maxX, final int maxY, final int padding) {
+		ImageProcessor mask = sourceProcessor.getMask();
+		if (mask == null) {
+			copyRoi(sourceProcessor, targetProcessor, minX, minY, maxX, maxY, padding);
+			return;
+		}
 
-    /**
-     * Copies the pixels in the given ROI from the source image to the target image.
-     *
-     * @param   sourceProcessor Copy source
-     * @param   targetProcessor Copy target
-     * @param   minX            Horizontal start of the copy area 0 <= minX < width
-     * @param   minY            Vertical start of the copy area 0 <= minY < height
-     * @param   maxX            Horizontal end of the copy area 0 <= maxX <= width
-     * @param   maxY            Vertical end of the copy area 0 <= maxY <= height
-     * @param   padding         Number pixels added to each side of the copy target
-     * @pre     sourceProcessor != null
-     * @pre     targetProcessor != null
-     */
-    private static void copyRoi(ImageProcessor sourceProcessor, ImageProcessor targetProcessor, final int minX,
-                                final int minY, final int maxX, final int maxY, final int padding)
-    {
-        int targetY = padding;
-        for (int sourceY = minY; sourceY < maxY; sourceY++) {
-            int targetX = padding;
-            for (int sourceX = minX; sourceX < maxX; sourceX++) {
-                int sourceColor = sourceProcessor.get(sourceX, sourceY);
-                targetProcessor.set(targetX, targetY, sourceColor);
-                targetX++;
-            }
-            targetY++;
-        }
-    }
+		int targetY = padding;
+		for (int sourceY = minY; sourceY < maxY; sourceY++) {
+			int targetX = padding;
+			for (int sourceX = minX; sourceX < maxX; sourceX++) {
+				int maskColor = mask.get(sourceX, sourceY);
+				if (maskColor > 0) {
+					int sourceColor = sourceProcessor.get(sourceX, sourceY);
+					targetProcessor.set(targetX, targetY, sourceColor);
+				}
+				targetX++;
+			}
+			targetY++;
+		}
+	}
+
+	/**
+	 * Copies the pixels in the given ROI from the source image to the target
+	 * image.
+	 *
+	 * @param sourceProcessor
+	 *            Copy source
+	 * @param targetProcessor
+	 *            Copy target
+	 * @param minX
+	 *            Horizontal start of the copy area 0 <= minX < width
+	 * @param minY
+	 *            Vertical start of the copy area 0 <= minY < height
+	 * @param maxX
+	 *            Horizontal end of the copy area 0 <= maxX <= width
+	 * @param maxY
+	 *            Vertical end of the copy area 0 <= maxY <= height
+	 * @param padding
+	 *            Number pixels added to each side of the copy target
+	 * @pre sourceProcessor != null
+	 * @pre targetProcessor != null
+	 */
+	private static void copyRoi(ImageProcessor sourceProcessor, ImageProcessor targetProcessor, final int minX,
+			final int minY, final int maxX, final int maxY, final int padding) {
+		int targetY = padding;
+		for (int sourceY = minY; sourceY < maxY; sourceY++) {
+			int targetX = padding;
+			for (int sourceX = minX; sourceX < maxX; sourceX++) {
+				int sourceColor = sourceProcessor.get(sourceX, sourceY);
+				targetProcessor.set(targetX, targetY, sourceColor);
+				targetX++;
+			}
+			targetY++;
+		}
+	}
 }

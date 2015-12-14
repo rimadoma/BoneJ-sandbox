@@ -1,12 +1,13 @@
 package org.bonej.common;
 
+import javax.annotation.Nullable;
+
 import com.google.common.collect.ImmutableList;
+
 import ij.IJ;
 import ij.ImagePlus;
 import ij.measure.Calibration;
 import ij.process.ImageStatistics;
-
-import javax.annotation.Nullable;
 
 /**
  * Check if an image conforms to the type defined by each method.

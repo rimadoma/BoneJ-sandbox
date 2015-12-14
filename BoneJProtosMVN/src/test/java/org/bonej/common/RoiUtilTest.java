@@ -1,27 +1,28 @@
 package org.bonej.common;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.mockito.Mockito.*;
+
+import java.awt.*;
+import java.util.ArrayList;
+
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
+import protoOps.testImageCreators.StaticTestImageHelper;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.ImageStack;
 import ij.gui.Roi;
 import ij.plugin.frame.RoiManager;
 import ij.process.ImageProcessor;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import protoOps.testImageCreators.StaticTestImageHelper;
-
-import java.awt.*;
-import java.util.ArrayList;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.mockito.Mockito.*;
 
 /**
  * Unit tests for the RoiUtil class
- * @author <a href="mailto:rdomander@rvc.ac.uk">Richard Domander</a>
+ * @author Richard Domander
  */
 public class RoiUtilTest {
     RoiManager mockRoiManager = mock(RoiManager.class);
@@ -224,7 +225,7 @@ public class RoiUtilTest {
 
         limitsResult = RoiUtil.getLimits(mockRoiManager, mockStack);
         assertEquals(null, limitsResult);
-     }
+    }
 
     @Test
     public void testCropStack() throws Exception
@@ -444,7 +445,7 @@ public class RoiUtilTest {
         polygon.addPoint(0, 0);
 
         ImageProcessor result = mockStack.getProcessor(1).createProcessor(mockImage.getWidth(),
-            mockImage.getHeight());
+                mockImage.getHeight());
         ImageProcessor ip = mockStack.getProcessor(1).createProcessor(mockImage.getWidth(),
                 mockImage.getHeight());
         ip.setRoi(polygon);

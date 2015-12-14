@@ -1,9 +1,10 @@
 package org.bonej.geometry;
 
-import static org.junit.Assert.*;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
 import javax.vecmath.Vector3d;
+
+import org.junit.Test;
 
 /**
  * Unit tests for BoneJ Vectors class
@@ -29,7 +30,7 @@ public class VectorsTest {
         assertEquals("Vector parameter must not change", true, originalV.equals(v));
         assertEquals("Vector parameter must not change", true, originalTail.equals(tail));
 
-        result  = Vectors.joinedVectorAngle(u, v, origin);
+        result = Vectors.joinedVectorAngle(u, v, origin);
         double expected = Math.acos(32.0 / (Math.sqrt(14.0) * Math.sqrt(77.0)));
         assertEquals("Vector angle was calculated wrong", expected, result, DELTA);
     }
