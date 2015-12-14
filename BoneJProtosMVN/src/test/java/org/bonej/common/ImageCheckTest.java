@@ -81,7 +81,7 @@ public class ImageCheckTest {
 
 	@Test
 	public void testIsVoxelIsotropicReturnsFalseIfImageIsNull() throws Exception {
-		boolean result = ImageCheck.isBinary(null);
+		boolean result = ImageCheck.isVoxelIsotropic(null, 0.0);
 		assertFalse("Null image should not be isotropic", result);
 	}
 
@@ -109,7 +109,29 @@ public class ImageCheckTest {
 		when(testImage.getStackSize()).thenReturn(100);
 
 		result = ImageCheck.isVoxelIsotropic(testImage, 1.0);
-		assertFalse(result);
+		assertFalse("Pixel depth too great to be anisotropic within tolerance", result);
 	}
 
+	@Test
+	public void testIsGrayscaleReturnsFalseIfImageIsNull() throws Exception {
+		boolean result = ImageCheck.isGrayscale(null);
+		assertFalse("Null image should not be grayscale", result);
+	}
+
+	@Test
+	public void testIsGrayscale() throws Exception {
+		final int colorTypes[] = {ImagePlus.COLOR_RGB, ImagePlus.COLOR_256};
+		final int grayscaleTypes[] = {ImagePlus.GRAY8, ImagePlus.GRAY16, ImagePlus.GRAY32};
+		ImagePlus testImage = mock(ImagePlus.class);
+
+		for (int colorType : colorTypes) {
+			when(testImage.getType()).thenReturn(colorType);
+			assertFalse("Color type should not be grayscale", ImageCheck.isGrayscale(testImage));
+		}
+
+		for (int grayscaleType : grayscaleTypes) {
+			when(testImage.getType()).thenReturn(grayscaleType);
+			assertTrue("Grayscale type should be grayscale", ImageCheck.isGrayscale(testImage));
+		}
+	}
 }

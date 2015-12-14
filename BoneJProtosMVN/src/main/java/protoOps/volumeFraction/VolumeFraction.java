@@ -6,6 +6,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import net.imagej.ops.Op;
 import net.imagej.ops.OpEnvironment;
 
+import org.bonej.common.ImageCheck;
 import org.scijava.ItemIO;
 import org.scijava.plugin.Parameter;
 import org.scijava.plugin.Plugin;
@@ -98,9 +99,10 @@ public class VolumeFraction implements Op {
 	private static void checkImage(ImagePlus image) {
 		checkNotNull(image, "Must have an input image");
 
-		// @todo accept gray scale and binary images
 		int bitDepth = image.getBitDepth();
 		checkArgument(bitDepth == 8 || bitDepth == 16, "Input image bit depth must be 8 or 16");
+
+		checkArgument(ImageCheck.isBinary(image) || ImageCheck.isGrayscale(image), "Need a binary or grayscale image");
 	}
 	// endregion
 }

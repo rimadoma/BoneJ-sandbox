@@ -44,6 +44,17 @@ public class VolumeFractionTest {
 	}
 
 	@Test
+	public void testSetImageThrowsIllegalArgumentExceptionIfColorImage() throws Exception {
+		expectedException.expect(IllegalArgumentException.class);
+		expectedException.expectMessage("Need a binary or grayscale image");
+		ImagePlus mockImage = mock(ImagePlus.class);
+		when(mockImage.getBitDepth()).thenReturn(8);
+		when(mockImage.getType()).thenReturn(ImagePlus.COLOR_256);
+
+		volumeFraction.setImage(mockImage);
+	}
+
+	@Test
 	public void testSetVolumeAlgorithmThrowsIllegalArgumentExceptionIfAlgorithmIsInvalid() throws Exception {
 		expectedException.expect(IllegalArgumentException.class);
 		expectedException.expectMessage("No such surface algorithm");
