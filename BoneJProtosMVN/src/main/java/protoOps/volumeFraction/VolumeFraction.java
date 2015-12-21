@@ -168,10 +168,14 @@ public class VolumeFraction implements Op {
         final long sliceTotalVolumes[] = new long[stackSize + 1];
         final long sliceForeGroundsVolumes[] = new long[stackSize + 1];
 
-        for (int s = 1; s <= stackSize; s++) {
-            ImageProcessor ipSlice = stack.getProcessor(s);
-            ipSlice.setRoi(inputImage.getRoi()); // if getRoi == null, ROI will be set to (0, 0, width, height)
-            calculateVoxelSliceVolumes(ipSlice, sliceTotalVolumes, sliceForeGroundsVolumes, s);
+        for (int slice = 1; slice <= stackSize; slice++) {
+            ImageProcessor processor = stack.getProcessor(slice);
+            processor.setRoi(inputImage.getRoi()); // if getRoi == null, ROI will be set to (0, 0, width, height)
+            if (processor.getMask() != null) {
+                calculateVoxelSliceVolumesWithMask(processor, sliceTotalVolumes, sliceForeGroundsVolumes, slice);
+            } else {
+                calculateVoxelSliceVolumes(processor, sliceTotalVolumes, sliceForeGroundsVolumes, slice);
+            }
         }
 
         foregroundVolume = Arrays.stream(sliceForeGroundsVolumes).sum();
@@ -187,29 +191,54 @@ public class VolumeFraction implements Op {
         volumeRatio = foregroundVolume / totalVolume;
     }
 
-    private void calculateVoxelSliceVolumes(ImageProcessor imageProcessor, long[] sliceTotalVolumes,
-                                            long[] sliceForeGroundsVolumes, int sliceNumber) {
+    private void calculateVoxelSliceVolumesWithMask(ImageProcessor imageProcessor, long[] sliceTotalVolumes,
+                                                    long[] sliceForeGroundsVolumes, int sliceNumber) {
         final Rectangle r = imageProcessor.getRoi();
-        final int rLeft = r.x;
-        final int rTop = r.y;
-        final int rRight = rLeft + r.width;
-        final int rBottom = rTop + r.height;
+        final int x0 = r.x;
+        final int y0 = r.y;
+        final int x1 = x0 + r.width;
+        final int y1 = y0 + r.height;
         ImageProcessor mask = imageProcessor.getMask();
-        final boolean hasMask = (mask != null);
 
-        for (int y = rTop; y < rBottom; y++) {
-            final int maskY = y - rTop;
-            for (int x = rLeft; x < rRight; x++) {
-                final int maskX = x - rLeft;
-                if (!hasMask || mask.get(maskX, maskY) > 0) {
-                    sliceTotalVolumes[sliceNumber]++;
-                    final double pixel = imageProcessor.get(x, y);
-                    if (pixel >= minThreshold && pixel <= maxThreshold) {
-                        sliceForeGroundsVolumes[sliceNumber]++;
-                    }
+        for (int y = y0; y < y1; y++) {
+            final int maskY = y - y0;
+            for (int x = x0; x < x1; x++) {
+                final int maskX = x - x0;
+                if (mask.get(maskX, maskY) == 0) {
+                    continue;
+                }
+
+                sliceTotalVolumes[sliceNumber]++;
+                final int pixel = imageProcessor.get(x, y);
+                if (withinThreshold(pixel)) {
+                    sliceForeGroundsVolumes[sliceNumber]++;
                 }
             }
         }
+    }
+
+    private void calculateVoxelSliceVolumes(ImageProcessor imageProcessor, long[] sliceTotalVolumes,
+                                            long[] sliceForeGroundsVolumes, int sliceNumber) {
+        final Rectangle r = imageProcessor.getRoi();
+        final int x0 = r.x;
+        final int y0 = r.y;
+        final int x1 = x0 + r.width;
+        final int y1 = y0 + r.height;
+
+        for (int y = y0; y < y1; y++) {
+            for (int x = x0; x < x1; x++) {
+                final int pixel = imageProcessor.get(x, y);
+                if (withinThreshold(pixel)) {
+                    sliceForeGroundsVolumes[sliceNumber]++;
+                }
+            }
+        }
+
+        sliceTotalVolumes[sliceNumber] = imageProcessor.getPixelCount();
+    }
+
+    private boolean withinThreshold(final int pixel) {
+        return pixel >= minThreshold && pixel <= maxThreshold;
     }
 
     private static void checkImage(ImagePlus image) {
