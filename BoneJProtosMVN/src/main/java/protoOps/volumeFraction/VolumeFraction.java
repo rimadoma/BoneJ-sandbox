@@ -3,10 +3,13 @@ package protoOps.volumeFraction;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import ij.ImageStack;
-import ij.gui.Roi;
-import ij.measure.Calibration;
-import ij.process.ImageProcessor;
+import java.awt.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+
+import javax.vecmath.Color3f;
+
+import marchingcubes.MCTriangulator;
 import net.imagej.ops.Op;
 import net.imagej.ops.OpEnvironment;
 
@@ -16,14 +19,14 @@ import org.scijava.ItemIO;
 import org.scijava.plugin.Parameter;
 import org.scijava.plugin.Plugin;
 
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 import customnode.CustomTriangleMesh;
 import ij.ImagePlus;
+import ij.ImageStack;
+import ij.gui.Roi;
+import ij.measure.Calibration;
 import ij.plugin.frame.RoiManager;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
-
-import java.awt.*;
-import java.util.ArrayList;
-import java.util.Arrays;
+import ij.process.ImageProcessor;
 
 /**
  * @author Michael Doube
@@ -146,20 +149,104 @@ public class VolumeFraction implements Op {
             volumeFractionVoxel();
         } else if (volumeAlgorithm == SURFACE_ALGORITHM) {
             volumeFractionSurface();
+        } else {
+            throw new RuntimeException("Bad volume algorithm - execution shouldn't end up here!");
         }
 	}
 
     // region -- Helper methods --
-    private void volumeFractionSurface() {
-        throw new NotImplementedException();
-    }
-
     private void resetResults() {
         foregroundVolume = 0.0;
         totalVolume = 0.0;
         volumeRatio = Double.NaN;
         foregroundSurface = null;
         totalSurface = null;
+    }
+
+    /**
+     * @todo support for RoiManager
+     */
+    private void volumeFractionSurface() {
+        final ImageStack stack = inputImage.getImageStack();
+        int xMin = 0;
+        int xMax = stack.getWidth();
+        int yMin = 0;
+        int yMax = stack.getHeight();
+        int zMin = 1;
+        int zMax = stack.getSize();
+
+        final int width = xMax - xMin;
+        final int height = yMax - yMin;
+        final int depth = zMax - zMin + 1;
+
+        ImageStack outStack = new ImageStack(width, height);
+        ImageStack maskStack = new ImageStack(width, height);
+        ImageProcessor processor = stack.getProcessor(1).createProcessor(width, height);
+        for (int i = 0; i < depth; i++) {
+            outStack.addSlice(processor.duplicate());
+            maskStack.addSlice(processor.duplicate());
+        }
+
+        for (int sliceNumber = zMin; sliceNumber <= zMax; sliceNumber++) {
+            ImageProcessor slice = stack.getProcessor(sliceNumber);
+            slice.setRoi(inputImage.getRoi());
+            drawMasks(slice, maskStack, outStack, sliceNumber, xMin, yMin, zMin);
+        }
+
+        Calibration calibration = inputImage.getCalibration();
+
+        ImagePlus outImp = new ImagePlus();
+        outImp.setStack("Out", outStack);
+        outImp.setCalibration(calibration);
+
+        ImagePlus maskImp = new ImagePlus();
+        maskImp.setStack("Mask", maskStack);
+        maskImp.setCalibration(calibration);
+
+        Color3f yellow = new Color3f(1.0f, 1.0f, 0.0f);
+        boolean[] channels = { true, false, false };
+        MCTriangulator mct = new MCTriangulator();
+        java.util.List points = mct.getTriangles(outImp, 128, channels, surfaceResampling);
+        foregroundSurface = new CustomTriangleMesh(points, yellow, 0.4f);
+        foregroundVolume = Math.abs(foregroundSurface.getVolume());
+
+        Color3f blue = new Color3f(0.0f, 0.0f, 1.0f);
+        points = mct.getTriangles(maskImp, 128, channels, surfaceResampling);
+        totalSurface = new CustomTriangleMesh(points, blue, 0.65f);
+        totalVolume = Math.abs(totalSurface.getVolume());
+
+        volumeRatio = foregroundVolume / totalVolume;
+    }
+
+    /**
+     * @todo add support for (ImageProcessor mask)
+     */
+    private void drawMasks(final ImageProcessor slice, final ImageStack maskStack, final ImageStack outStack,
+                           final int sliceNumber, final int xMin, final int yMin, final int zMin) {
+        final int white = 255;
+
+        final Rectangle r = slice.getRoi();
+        final int x0 = r.x;
+        final int y0 = r.y;
+        final int x1 = x0 + r.width;
+        final int y1 = y0 + r.height;
+
+        final int outSlice = sliceNumber - zMin + 1;
+        final ImageProcessor maskProcessor = maskStack.getProcessor(outSlice);
+        final ImageProcessor outProcessor = outStack.getProcessor(outSlice);
+
+
+        for (int y = y0; y < y1; y++) {
+            final int outY = y - yMin;
+            for (int x = x0; x < x1; x++) {
+                final int outX = x - xMin;
+                maskProcessor.set(outX, outY, white);
+                    final double pixel = slice.get(x, y);
+                    if (pixel >= minThreshold && pixel <= maxThreshold) {
+                        outProcessor.set(outX, outY, white);
+                    }
+                }
+        }
     }
 
     private void volumeFractionVoxel() {
@@ -177,6 +264,7 @@ public class VolumeFraction implements Op {
         foregroundVolume = Arrays.stream(sliceForeGroundsVolumes).sum();
         totalVolume = Arrays.stream(sliceTotalVolumes).sum();
         calibrateVolumes();
+        volumeRatio = foregroundVolume / totalVolume;
     }
 
     private void voxelVolumeWithNoRois(ImageStack stack, long[] sliceTotalVolumes, long[] sliceForeGroundsVolumes) {
@@ -218,7 +306,7 @@ public class VolumeFraction implements Op {
     }
 
     private void calculateVoxelSliceVolumesWithMask(ImageProcessor imageProcessor, long[] sliceTotalVolumes,
-                                                    long[] sliceForeGroundsVolumes, int sliceNumber) {
+                                                    long[] sliceForegroundVolumes, int sliceNumber) {
         final Rectangle r = imageProcessor.getRoi();
         final int x0 = r.x;
         final int y0 = r.y;
@@ -236,8 +324,8 @@ public class VolumeFraction implements Op {
 
                 sliceTotalVolumes[sliceNumber]++;
                 final int pixel = imageProcessor.get(x, y);
-                if (withinThreshold(pixel)) {
-                    sliceForeGroundsVolumes[sliceNumber]++;
+                if (pixel >= minThreshold && pixel <= maxThreshold) {
+                    sliceForegroundVolumes[sliceNumber]++;
                 }
             }
         }
@@ -254,7 +342,7 @@ public class VolumeFraction implements Op {
         for (int y = y0; y < y1; y++) {
             for (int x = x0; x < x1; x++) {
                 final int pixel = imageProcessor.get(x, y);
-                if (withinThreshold(pixel)) {
+                if (pixel >= minThreshold && pixel <= maxThreshold) {
                     sliceForeGroundsVolumes[sliceNumber]++;
                 }
             }
@@ -263,16 +351,11 @@ public class VolumeFraction implements Op {
         sliceTotalVolumes[sliceNumber] = imageProcessor.getPixelCount();
     }
 
-    private boolean withinThreshold(final int pixel) {
-        return pixel >= minThreshold && pixel <= maxThreshold;
-    }
-
     private void calibrateVolumes() {
         Calibration calibration = inputImage.getCalibration();
         double volumeScale = calibration.pixelWidth * calibration.pixelHeight * calibration.pixelDepth;
         foregroundVolume *= volumeScale;
         totalVolume *= volumeScale;
-        volumeRatio = foregroundVolume / totalVolume;
     }
 
     private static void checkImage(ImagePlus image) {
