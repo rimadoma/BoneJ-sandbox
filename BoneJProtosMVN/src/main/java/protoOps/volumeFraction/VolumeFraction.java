@@ -4,12 +4,14 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import ij.ImageStack;
+import ij.gui.Roi;
 import ij.measure.Calibration;
 import ij.process.ImageProcessor;
 import net.imagej.ops.Op;
 import net.imagej.ops.OpEnvironment;
 
 import org.bonej.common.ImageCheck;
+import org.bonej.common.RoiUtil;
 import org.scijava.ItemIO;
 import org.scijava.plugin.Parameter;
 import org.scijava.plugin.Plugin;
@@ -20,6 +22,7 @@ import ij.plugin.frame.RoiManager;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.awt.*;
+import java.util.ArrayList;
 import java.util.Arrays;
 
 /**
@@ -159,23 +162,16 @@ public class VolumeFraction implements Op {
         totalSurface = null;
     }
 
-    /**
-     * @todo Add support for ROIs
-     */
     private void volumeFractionVoxel() {
         final ImageStack stack = inputImage.getStack();
         final int stackSize = stack.getSize();
         final long sliceTotalVolumes[] = new long[stackSize + 1];
         final long sliceForeGroundsVolumes[] = new long[stackSize + 1];
 
-        for (int slice = 1; slice <= stackSize; slice++) {
-            ImageProcessor processor = stack.getProcessor(slice);
-            processor.setRoi(inputImage.getRoi()); // if getRoi == null, ROI will be set to (0, 0, width, height)
-            if (processor.getMask() != null) {
-                calculateVoxelSliceVolumesWithMask(processor, sliceTotalVolumes, sliceForeGroundsVolumes, slice);
-            } else {
-                calculateVoxelSliceVolumes(processor, sliceTotalVolumes, sliceForeGroundsVolumes, slice);
-            }
+        if (roiManager == null) {
+            voxelVolumeWithNoRois(stack, sliceTotalVolumes, sliceForeGroundsVolumes);
+        } else {
+            voxelVolumeWithRois(stack, sliceTotalVolumes, sliceForeGroundsVolumes);
         }
 
         foregroundVolume = Arrays.stream(sliceForeGroundsVolumes).sum();
@@ -183,12 +179,42 @@ public class VolumeFraction implements Op {
         calibrateVolumes();
     }
 
-    private void calibrateVolumes() {
-        Calibration calibration = inputImage.getCalibration();
-        double volumeScale = calibration.pixelWidth * calibration.pixelHeight * calibration.pixelDepth;
-        foregroundVolume *= volumeScale;
-        totalVolume *= volumeScale;
-        volumeRatio = foregroundVolume / totalVolume;
+    private void voxelVolumeWithNoRois(ImageStack stack, long[] sliceTotalVolumes, long[] sliceForeGroundsVolumes) {
+        final Roi defaultRoi = new Roi(0, 0, stack.getWidth(), stack.getHeight());
+        final int stackSize = stack.getSize();
+
+        for (int slice = 1; slice <= stackSize; slice++) {
+            ImageProcessor processor = stack.getProcessor(slice);
+            calculateVoxelSliceVolumes(processor, defaultRoi, sliceTotalVolumes, sliceForeGroundsVolumes, slice);
+        }
+    }
+
+    private void voxelVolumeWithRois(ImageStack stack, long[] sliceTotalVolumes, long[] sliceForeGroundsVolumes) {
+        final int stackSize = stack.getSize();
+
+        for (int slice = 1; slice <= stackSize; slice++) {
+            ArrayList<Roi> rois = RoiUtil.getSliceRoi(roiManager, stack, slice);
+
+            if (rois.isEmpty()) {
+                continue;
+            }
+
+            ImageProcessor processor = stack.getProcessor(slice);
+
+            for (Roi roi : rois) {
+                calculateVoxelSliceVolumes(processor, roi, sliceTotalVolumes, sliceForeGroundsVolumes, slice);
+            }
+        }
+    }
+
+    private void calculateVoxelSliceVolumes(ImageProcessor processor, Roi roi, long[] sliceTotalVolumes,
+                                            long[] sliceForeGroundsVolumes, int sliceNumber) {
+        processor.setRoi(roi);
+        if (processor.getMask() != null) {
+            calculateVoxelSliceVolumesWithMask(processor, sliceTotalVolumes, sliceForeGroundsVolumes, sliceNumber);
+        } else {
+            calculateVoxelSliceVolumesWithNoMask(processor, sliceTotalVolumes, sliceForeGroundsVolumes, sliceNumber);
+        }
     }
 
     private void calculateVoxelSliceVolumesWithMask(ImageProcessor imageProcessor, long[] sliceTotalVolumes,
@@ -217,8 +243,8 @@ public class VolumeFraction implements Op {
         }
     }
 
-    private void calculateVoxelSliceVolumes(ImageProcessor imageProcessor, long[] sliceTotalVolumes,
-                                            long[] sliceForeGroundsVolumes, int sliceNumber) {
+    private void calculateVoxelSliceVolumesWithNoMask(ImageProcessor imageProcessor, long[] sliceTotalVolumes,
+                                                      long[] sliceForeGroundsVolumes, int sliceNumber) {
         final Rectangle r = imageProcessor.getRoi();
         final int x0 = r.x;
         final int y0 = r.y;
@@ -239,6 +265,14 @@ public class VolumeFraction implements Op {
 
     private boolean withinThreshold(final int pixel) {
         return pixel >= minThreshold && pixel <= maxThreshold;
+    }
+
+    private void calibrateVolumes() {
+        Calibration calibration = inputImage.getCalibration();
+        double volumeScale = calibration.pixelWidth * calibration.pixelHeight * calibration.pixelDepth;
+        foregroundVolume *= volumeScale;
+        totalVolume *= volumeScale;
+        volumeRatio = foregroundVolume / totalVolume;
     }
 
     private static void checkImage(ImagePlus image) {
