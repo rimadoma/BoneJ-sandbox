@@ -19,7 +19,6 @@ import org.scijava.ItemIO;
 import org.scijava.plugin.Parameter;
 import org.scijava.plugin.Plugin;
 
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 import customnode.CustomTriangleMesh;
 import ij.ImagePlus;
 import ij.ImageStack;
@@ -190,7 +189,12 @@ public class VolumeFraction implements Op {
         for (int sliceNumber = zMin; sliceNumber <= zMax; sliceNumber++) {
             ImageProcessor slice = stack.getProcessor(sliceNumber);
             slice.setRoi(inputImage.getRoi());
-            drawMasks(slice, maskStack, outStack, sliceNumber, xMin, yMin, zMin);
+            ImageProcessor mask = slice.getMask();
+            if (mask == null) {
+                drawSurfaceMasks(slice, maskStack, outStack, sliceNumber, xMin, yMin, zMin);
+            } else {
+                drawSurfaceMasksWithProcessorMask(slice, mask, maskStack, outStack, sliceNumber, xMin, yMin, zMin);
+            }
         }
 
         Calibration calibration = inputImage.getCalibration();
@@ -218,11 +222,46 @@ public class VolumeFraction implements Op {
         volumeRatio = foregroundVolume / totalVolume;
     }
 
+    private void drawSurfaceMasksWithProcessorMask(final ImageProcessor slice, final ImageProcessor mask,
+                                                   final ImageStack maskStack, final ImageStack outStack,
+                                                   final int sliceNumber, final int xMin, final int yMin,
+                                                   final int zMin) {
+        final int white = 255;
+
+        final Rectangle r = slice.getRoi();
+        final int x0 = r.x;
+        final int y0 = r.y;
+        final int x1 = x0 + r.width;
+        final int y1 = y0 + r.height;
+
+        final int outSlice = sliceNumber - zMin + 1;
+        final ImageProcessor maskProcessor = maskStack.getProcessor(outSlice);
+        final ImageProcessor outProcessor = outStack.getProcessor(outSlice);
+
+
+        for (int y = y0; y < y1; y++) {
+            final int maskY = y - y0;
+            final int outY = y - yMin;
+            for (int x = x0; x < x1; x++) {
+                final int outX = x - xMin;
+                final int maskX = x - x0;
+                if (mask.get(maskX, maskY) == 0) {
+                    continue;
+                }
+                maskProcessor.set(outX, outY, white);
+                final int pixel = slice.get(x, y);
+                if (pixel >= minThreshold && pixel <= maxThreshold) {
+                    outProcessor.set(outX, outY, white);
+                }
+            }
+        }
+    }
+
     /**
      * @todo add support for (ImageProcessor mask)
      */
-    private void drawMasks(final ImageProcessor slice, final ImageStack maskStack, final ImageStack outStack,
-                           final int sliceNumber, final int xMin, final int yMin, final int zMin) {
+    private void drawSurfaceMasks(final ImageProcessor slice, final ImageStack maskStack, final ImageStack outStack,
+                                  final int sliceNumber, final int xMin, final int yMin, final int zMin) {
         final int white = 255;
 
         final Rectangle r = slice.getRoi();
@@ -241,11 +280,11 @@ public class VolumeFraction implements Op {
             for (int x = x0; x < x1; x++) {
                 final int outX = x - xMin;
                 maskProcessor.set(outX, outY, white);
-                    final double pixel = slice.get(x, y);
-                    if (pixel >= minThreshold && pixel <= maxThreshold) {
-                        outProcessor.set(outX, outY, white);
-                    }
+                final double pixel = slice.get(x, y);
+                if (pixel >= minThreshold && pixel <= maxThreshold) {
+                    outProcessor.set(outX, outY, white);
                 }
+            }
         }
     }
 
