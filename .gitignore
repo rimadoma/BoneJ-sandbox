@@ -1,0 +1,9 @@
+META-INF/
+
+# IntelliJ
+.idea/
+BoneJProtosMVN/target/
+out/
+
+*.iml
+*.txt~
