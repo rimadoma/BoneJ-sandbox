@@ -7,8 +7,6 @@ import java.awt.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-import javax.vecmath.Color3f;
-
 import marchingcubes.MCTriangulator;
 import net.imagej.ops.Op;
 import net.imagej.ops.OpEnvironment;
@@ -26,6 +24,7 @@ import ij.gui.Roi;
 import ij.measure.Calibration;
 import ij.plugin.frame.RoiManager;
 import ij.process.ImageProcessor;
+import org.scijava.vecmath.Color3f;
 
 /**
  * @author Michael Doube
