@@ -94,6 +94,14 @@ public class VolumeFraction implements Op {
     public int getMaxThreshold() {
         return maxThreshold;
     }
+
+    public CustomTriangleMesh getForegroundSurface() {
+        return foregroundSurface;
+    }
+
+    public CustomTriangleMesh getTotalSurface() {
+        return totalSurface;
+    }
     // endregion
 
     // region -- Setters --

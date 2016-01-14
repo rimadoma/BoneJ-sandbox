@@ -3,6 +3,8 @@ package org.bonej.wrapperPlugins;
 import java.io.IOException;
 import java.net.URL;
 
+import customnode.CustomTriangleMesh;
+import ij3d.Image3DUniverse;
 import net.imagej.Main;
 
 import org.bonej.common.ResultsInserter;
@@ -91,6 +93,10 @@ public class VolumeFractionWrapperBoneJ extends ContextCommand {
 		volumeFraction.run();
 
         showVolumeResults();
+
+        if (show3DResult) {
+            renderVolumeSurfaces();
+        }
 	}
 
     // region -- Utility methods --
@@ -142,6 +148,16 @@ public class VolumeFractionWrapperBoneJ extends ContextCommand {
                 volumeFraction.getTotalVolume());
         resultsInserter.setMeasurementInFirstFreeRow(label, "Volume ratio", volumeFraction.getVolumeRatio());
         resultsInserter.updateTable();
+    }
+
+    private void renderVolumeSurfaces() {
+        CustomTriangleMesh foregroundSurface = volumeFraction.getForegroundSurface();
+        CustomTriangleMesh totalSurface = volumeFraction.getTotalSurface();
+
+        Image3DUniverse universe = new Image3DUniverse();
+        universe.addCustomMesh(foregroundSurface, "Bone volume");
+        universe.addCustomMesh(totalSurface, "Total volume");
+        universe.show();
     }
 	// endregion
 }
