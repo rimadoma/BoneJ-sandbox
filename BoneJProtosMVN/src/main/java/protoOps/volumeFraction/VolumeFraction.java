@@ -30,8 +30,6 @@ import ij.process.ImageProcessor;
 /**
  * @author Michael Doube
  * @author Richard Domander
- *
- * @todo RoiManager input @Parameter
  */
 @Plugin(type = Op.class, name = "volumeFraction")
 public class VolumeFraction implements Op {
@@ -162,9 +160,6 @@ public class VolumeFraction implements Op {
         totalSurface = null;
     }
 
-    /**
-     * @todo support for RoiManager
-     */
     private void volumeFractionSurface() {
         final ImageStack stack = inputImage.getImageStack();
         int xMin = 0;
@@ -186,15 +181,10 @@ public class VolumeFraction implements Op {
             maskStack.addSlice(processor.duplicate());
         }
 
-        for (int sliceNumber = zMin; sliceNumber <= zMax; sliceNumber++) {
-            ImageProcessor slice = stack.getProcessor(sliceNumber);
-            slice.setRoi(inputImage.getRoi());
-            ImageProcessor mask = slice.getMask();
-            if (mask == null) {
-                drawSurfaceMasks(slice, maskStack, outStack, sliceNumber, xMin, yMin, zMin);
-            } else {
-                drawSurfaceMasksWithProcessorMask(slice, mask, maskStack, outStack, sliceNumber, xMin, yMin, zMin);
-            }
+        if (roiManager != null) {
+            drawSurfaceMasksWithRois(zMin, zMax, xMin, yMin, stack, maskStack, outStack);
+        } else {
+            drawSurfaceMasksWithNoRoi(zMin, zMax, xMin, yMin, stack, maskStack, outStack);
         }
 
         Calibration calibration = inputImage.getCalibration();
@@ -220,6 +210,47 @@ public class VolumeFraction implements Op {
         totalVolume = Math.abs(totalSurface.getVolume());
 
         volumeRatio = foregroundVolume / totalVolume;
+    }
+
+    private void drawSurfaceMasksWithNoRoi(final int zMin, final int zMax, final int xMin, final int yMin,
+                                           final ImageStack inputStack, final ImageStack maskStack,
+                                           final ImageStack outStack) {
+        final Roi defaultRoi = new Roi(0, 0, inputStack.getWidth(), inputStack.getHeight());
+
+        for (int sliceNumber = zMin; sliceNumber <= zMax; sliceNumber++) {
+            final ImageProcessor slice = inputStack.getProcessor(sliceNumber);
+            slice.setRoi(defaultRoi);
+            ImageProcessor mask = slice.getMask();
+            if (mask == null) {
+                drawSurfaceMasks(slice, maskStack, outStack, sliceNumber, xMin, yMin, zMin);
+            } else {
+                drawSurfaceMasksWithProcessorMask(slice, mask, maskStack, outStack, sliceNumber, xMin, yMin, zMin);
+            }
+        }
+    }
+
+    private void drawSurfaceMasksWithRois(final int zMin, final int zMax, final int xMin, final int yMin,
+                                          final ImageStack inputStack, final ImageStack maskStack,
+                                          final ImageStack outStack) {
+        for (int sliceNumber = zMin; sliceNumber <= zMax; sliceNumber++) {
+            ArrayList<Roi> rois = RoiUtil.getSliceRoi(roiManager, inputStack, sliceNumber);
+            if (rois.isEmpty()) {
+                continue;
+            }
+
+            final ImageProcessor slice = inputStack.getProcessor(sliceNumber);
+
+            for (Roi roi : rois) {
+                slice.setRoi(roi);
+
+                ImageProcessor mask = slice.getMask();
+                if (mask == null) {
+                    drawSurfaceMasks(slice, maskStack, outStack, sliceNumber, xMin, yMin, zMin);
+                } else {
+                    drawSurfaceMasksWithProcessorMask(slice, mask, maskStack, outStack, sliceNumber, xMin, yMin, zMin);
+                }
+            }
+        }
     }
 
     private void drawSurfaceMasksWithProcessorMask(final ImageProcessor slice, final ImageProcessor mask,
@@ -257,9 +288,6 @@ public class VolumeFraction implements Op {
         }
     }
 
-    /**
-     * @todo add support for (ImageProcessor mask)
-     */
     private void drawSurfaceMasks(final ImageProcessor slice, final ImageStack maskStack, final ImageStack outStack,
                                   final int sliceNumber, final int xMin, final int yMin, final int zMin) {
         final int white = 255;
