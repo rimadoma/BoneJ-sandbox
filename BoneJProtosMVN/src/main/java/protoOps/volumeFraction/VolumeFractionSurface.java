@@ -15,7 +15,6 @@ import org.bonej.common.RoiUtil;
 import org.scijava.ItemIO;
 import org.scijava.plugin.Parameter;
 import org.scijava.plugin.Plugin;
-import org.scijava.vecmath.Color3f;
 
 import customnode.CustomTriangleMesh;
 import ij.ImagePlus;
@@ -25,9 +24,12 @@ import ij.measure.Calibration;
 import ij.plugin.frame.RoiManager;
 import ij.process.ImageProcessor;
 
+import javax.vecmath.Color3f;
+
 /**
- * An Op which calculates sample volumes by counting the voxels in the image
+ * An Op which calculates the volumes of the sample by generating a surface mesh
  *
+ * @todo Solve issues with Fiji 20.0.0
  * @author Richard Domander
  */
 @Plugin(type = Op.class, name = "volumeFractionVoxel")
@@ -145,11 +147,15 @@ public class VolumeFractionSurface implements VolumeFractionOp {
         volumeFractionSurface();
     }
 
-    // region -- Helper methods --
-    private void resetResults() {
+    public void resetResults() {
+        foregroundVolume = 0.0;
+        totalVolume = 0.0;
+        volumeRatio = Double.NaN;
         foregroundSurface = null;
         totalSurface = null;
     }
+
+    // region -- Helper methods --
 
     private void volumeFractionSurface() {
         final ImageStack stack = inputImage.getImageStack();
@@ -172,11 +178,17 @@ public class VolumeFractionSurface implements VolumeFractionOp {
             maskStack.addSlice(processor.duplicate());
         }
 
+        totalVoxels = 0;
+        fgVoxels = 0;
+
         if (roiManager != null) {
             drawSurfaceMasksWithRois(zMin, zMax, xMin, yMin, stack, maskStack, outStack);
         } else {
             drawSurfaceMasksWithNoRoi(zMin, zMax, xMin, yMin, stack, maskStack, outStack);
         }
+
+        System.out.println("Total voxels: " + totalVoxels);
+        System.out.println("Foreground voxels: " + fgVoxels);
 
         Calibration calibration = inputImage.getCalibration();
 
@@ -279,6 +291,9 @@ public class VolumeFractionSurface implements VolumeFractionOp {
         }
     }
 
+    private int totalVoxels = 0;
+    private int fgVoxels = 0;
+
     private void drawSurfaceMasks(final ImageProcessor slice, final ImageStack maskStack, final ImageStack outStack,
                                   final int sliceNumber, final int xMin, final int yMin, final int zMin) {
         final int white = 255;
@@ -293,15 +308,16 @@ public class VolumeFractionSurface implements VolumeFractionOp {
         final ImageProcessor maskProcessor = maskStack.getProcessor(outSlice);
         final ImageProcessor outProcessor = outStack.getProcessor(outSlice);
 
-
         for (int y = y0; y < y1; y++) {
             final int outY = y - yMin;
             for (int x = x0; x < x1; x++) {
                 final int outX = x - xMin;
                 maskProcessor.set(outX, outY, white);
+                totalVoxels++;
                 final double pixel = slice.get(x, y);
                 if (pixel >= minThreshold && pixel <= maxThreshold) {
                     outProcessor.set(outX, outY, white);
+                    fgVoxels++;
                 }
             }
         }

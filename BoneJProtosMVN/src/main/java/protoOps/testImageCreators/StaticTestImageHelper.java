@@ -52,7 +52,7 @@ public class StaticTestImageHelper {
 		int paddedHeight = height + totalPadding;
 		int paddedDepth = depth + totalPadding;
 
-		ImageStack cuboidStack = createEmptyStack(paddedWidth, paddedDepth, paddedHeight);
+		ImageStack cuboidStack = createEmptyStack(paddedWidth, paddedHeight, paddedDepth);
 
 		final int firstCuboidSlice = padding + 1;
 		final int lastCuboidSlice = padding + depth;

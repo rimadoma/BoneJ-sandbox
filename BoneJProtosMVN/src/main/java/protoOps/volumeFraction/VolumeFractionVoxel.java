@@ -22,7 +22,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
- * An Op which calculates sample volumes by counting the voxels in the image
+ * An Op which calculates the volumes of the sample by counting the voxels in the image
  *
  * @author Michael Doube
  * @author Richard Domander
@@ -115,12 +115,13 @@ public class VolumeFractionVoxel implements VolumeFractionOp {
         volumeFractionVoxel();
 	}
 
-    // region -- Helper methods --
-    private void resetResults() {
+    public void resetResults() {
         foregroundVolume = 0.0;
         totalVolume = 0.0;
         volumeRatio = Double.NaN;
     }
+
+    // region -- Helper methods --
 
     private void volumeFractionVoxel() {
         final ImageStack stack = inputImage.getStack();
