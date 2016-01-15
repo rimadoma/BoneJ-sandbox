@@ -3,8 +3,6 @@ package org.bonej.wrapperPlugins;
 import java.io.IOException;
 import java.net.URL;
 
-//import customnode.CustomTriangleMesh;
-//import ij3d.Image3DUniverse;
 import net.imagej.Main;
 
 import org.bonej.common.ResultsInserter;
@@ -18,7 +16,9 @@ import org.scijava.ui.UIService;
 import org.scijava.widget.Button;
 import org.scijava.widget.ChoiceWidget;
 
-import protoOps.volumeFraction.VolumeFraction;
+import protoOps.volumeFraction.VolumeFractionOp;
+import protoOps.volumeFraction.VolumeFractionSurface;
+import protoOps.volumeFraction.VolumeFractionVoxel;
 
 import com.google.common.collect.ImmutableList;
 
@@ -26,16 +26,18 @@ import ij.ImagePlus;
 import ij.plugin.frame.RoiManager;
 
 /**
- * BoneJ UI wrapper class for the VolumeFraction Op class
+ * A class which wraps the two VolumeFractionOp classes as a single BoneJ plugin in the UI
  *
  * @author Richard Domander
  * @todo Fix settings dialog - should not pop up when init fails
  * @todo Fix render volume surface
+ * @todo Threshold dialog (run threshold?)
  */
 @Plugin(type = Command.class, menuPath = "Plugins>BoneJ>VolumeFraction", headless = true)
 public class VolumeFractionWrapperBoneJ extends ContextCommand {
 	private static final ImmutableList<String> algorithmChoiceStrings = ImmutableList.of("Voxel", "Surface");
-	private final VolumeFraction volumeFraction = new VolumeFraction();
+
+    private VolumeFractionOp volumeFractionOp;
 	private RoiManager roiManager = null;
 
 	@Parameter
@@ -49,12 +51,12 @@ public class VolumeFractionWrapperBoneJ extends ContextCommand {
 	private ImagePlus activeImage = null;
 
 	@Parameter(label = "Volume algorithm:", description = "The method used to calculate volume fraction",
-            style = ChoiceWidget.LIST_BOX_STYLE, choices = {"Voxel", "Surface"})
-	private String volumeAlgorithm = algorithmChoiceStrings.get(VolumeFraction.DEFAULT_VOLUME_ALGORITHM);
+            style = ChoiceWidget.LIST_BOX_STYLE, choices = {"Voxel", "Surface"}, persist = false)
+	private String volumeAlgorithm = algorithmChoiceStrings.get(0);
 
 	@Parameter(label = "Surface resampling",
             description = "Voxel resampling (surface algorithm) - higher values result in simpler surfaces", min = "0")
-	private int surfaceResampling = VolumeFraction.DEFAULT_SURFACE_RESAMPLING;
+	private int surfaceResampling = VolumeFractionSurface.DEFAULT_SURFACE_RESAMPLING;
 
 	// @todo Disable on init if there is no RoiManager
 	@Parameter(label = "Use ROI Manager", initializer = "initRoiManager",
@@ -65,7 +67,6 @@ public class VolumeFractionWrapperBoneJ extends ContextCommand {
 	@Parameter(label = "Show 3D result", description = "Show the bone and total volume surfaces in the 3D Viewer")
 	private boolean show3DResult = false;
 
-    // @todo get thresholds with @Parameters, or try to run ImageJ "Threshold" plugin?
     // @todo add callbacks to keep values sensible (min <= max etc.)
     @Parameter(label = "Minimum threshold", min = "0", stepSize = "5",
             description = "The minimum value for pixels included in the volume calculation", persist = false)
@@ -81,18 +82,22 @@ public class VolumeFractionWrapperBoneJ extends ContextCommand {
 	@Override
 	public void run() {
 		try {
-			int algorithm = algorithmChoiceStrings.indexOf(volumeAlgorithm);
-			volumeFraction.setVolumeAlgorithm(algorithm);
-			volumeFraction.setSurfaceResampling(surfaceResampling);
+            if (volumeAlgorithm.equals("Surface")) {
+                volumeFractionOp = new VolumeFractionSurface();
+                ((VolumeFractionSurface)volumeFractionOp).setSurfaceResampling(surfaceResampling);
+            } else {
+                volumeFractionOp = new VolumeFractionVoxel();
+            }
+
 			if (useRoiManager) {
-				volumeFraction.setRoiManager(roiManager);
+				volumeFractionOp.setRoiManager(roiManager);
 			}
 		} catch (NullPointerException | IllegalArgumentException e) {
 			uiService.showDialog(e.getMessage(), DialogPrompt.MessageType.ERROR_MESSAGE);
 			return;
 		}
 
-		volumeFraction.run();
+		volumeFractionOp.run();
 
         showVolumeResults();
 
@@ -117,11 +122,10 @@ public class VolumeFractionWrapperBoneJ extends ContextCommand {
 	@SuppressWarnings("unused")
 	private void initializeActiveImage() {
 		try {
-			volumeFraction.setImage(activeImage);
-            minThreshold = volumeFraction.getMinThreshold();
-            maxThreshold = volumeFraction.getMaxThreshold();
+			volumeFractionOp.setImage(activeImage);
+            minThreshold = volumeFractionOp.getMinThreshold();
+            maxThreshold = volumeFractionOp.getMaxThreshold();
 		} catch (IllegalArgumentException | NullPointerException e) {
-            // @todo Switch uiService.showDialog to cancel
 			uiService.showDialog(e.getMessage(), DialogPrompt.MessageType.ERROR_MESSAGE);
 		}
     }
@@ -145,18 +149,26 @@ public class VolumeFractionWrapperBoneJ extends ContextCommand {
         String label = activeImage.getTitle();
         char superScriptThree = '\u00B3';
         resultsInserter.setMeasurementInFirstFreeRow(label, "Bone volume (" + unit + superScriptThree + ")",
-                volumeFraction.getForegroundVolume());
+                volumeFractionOp.getForegroundVolume());
         resultsInserter.setMeasurementInFirstFreeRow(label, "Total volume (" + unit + superScriptThree + ")",
-                volumeFraction.getTotalVolume());
-        resultsInserter.setMeasurementInFirstFreeRow(label, "Volume ratio", volumeFraction.getVolumeRatio());
+                volumeFractionOp.getTotalVolume());
+        resultsInserter.setMeasurementInFirstFreeRow(label, "Volume ratio", volumeFractionOp.getVolumeRatio());
         resultsInserter.updateTable();
     }
 
+    /**
+     * @todo Don't show if run from CLI
+     */
     private void renderVolumeSurfaces() {
+        if (!(volumeFractionOp instanceof VolumeFractionSurface)) {
+            return;
+        }
+
         uiService.showDialog("Volume surface rendering not functional due Java3D issues with Java 8");
 
-        /*CustomTriangleMesh foregroundSurface = volumeFraction.getForegroundSurface();
-        CustomTriangleMesh totalSurface = volumeFraction.getTotalSurface();
+        /*VolumeFractionSurface volumeFractionSurface = (VolumeFractionSurface)volumeFractionOp;
+        CustomTriangleMesh foregroundSurface = volumeFractionSurface.getForegroundSurface();
+        CustomTriangleMesh totalSurface = volumeFractionSurface.getTotalSurface();
 
         Image3DUniverse universe = new Image3DUniverse();
         universe.addCustomMesh(foregroundSurface, "Bone volume");

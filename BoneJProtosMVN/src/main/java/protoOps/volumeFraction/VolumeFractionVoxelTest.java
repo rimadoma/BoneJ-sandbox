@@ -5,7 +5,6 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import ij.process.ImageStatistics;
 import org.bonej.common.Common;
 import org.bonej.common.ImageCheck;
 import org.junit.Before;
@@ -15,21 +14,22 @@ import org.junit.rules.ExpectedException;
 
 import ij.ImagePlus;
 import ij.plugin.frame.RoiManager;
+import ij.process.ImageStatistics;
 
 /**
- * Unit tests for the VolumeFraction class
+ * Unit tests for the VolumeFractionVoxel class
  *
  * @author Richard Domander
  */
-public class VolumeFractionTest {
-    private VolumeFraction volumeFraction;
+public class VolumeFractionVoxelTest {
+    private VolumeFractionVoxel volumeFractionVoxel;
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
     @Before
     public void setup() {
-        volumeFraction = new VolumeFraction();
+        volumeFractionVoxel = new VolumeFractionVoxel();
     }
 
     @Test
@@ -37,7 +37,7 @@ public class VolumeFractionTest {
         expectedException.expect(NullPointerException.class);
         expectedException.expectMessage("Must have an input image");
 
-        volumeFraction.setImage(null);
+        volumeFractionVoxel.setImage(null);
     }
 
     @Test
@@ -47,7 +47,7 @@ public class VolumeFractionTest {
         ImagePlus mockImage = mock(ImagePlus.class);
         when(mockImage.getBitDepth()).thenReturn(24);
 
-        volumeFraction.setImage(mockImage);
+        volumeFractionVoxel.setImage(mockImage);
     }
 
     @Test
@@ -58,7 +58,7 @@ public class VolumeFractionTest {
         when(mockImage.getBitDepth()).thenReturn(8);
         when(mockImage.getType()).thenReturn(ImagePlus.COLOR_256);
 
-        volumeFraction.setImage(mockImage);
+        volumeFractionVoxel.setImage(mockImage);
     }
 
     @Test
@@ -76,9 +76,9 @@ public class VolumeFractionTest {
 
         assertTrue("Sanity check failed: image is not binary", ImageCheck.isBinary(mockImage));
 
-        volumeFraction.setImage(mockImage);
-        assertEquals("Incorrect minimum threshold for a binary image", 127, volumeFraction.getMinThreshold());
-        assertEquals("Incorrect maximum threshold for a binary image", 255, volumeFraction.getMaxThreshold());
+        volumeFractionVoxel.setImage(mockImage);
+        assertEquals("Incorrect minimum threshold for a binary image", 127, volumeFractionVoxel.getMinThreshold());
+        assertEquals("Incorrect maximum threshold for a binary image", 255, volumeFractionVoxel.getMaxThreshold());
     }
 
     @Test
@@ -95,9 +95,9 @@ public class VolumeFractionTest {
         assertTrue("Sanity check failed: image is not grayscale", ImageCheck.isGrayscale(mockImage));
         assertEquals("Sanity check failed: image is not 8-bit", 8, mockImage.getBitDepth());
 
-        volumeFraction.setImage(mockImage);
-        assertEquals("Incorrect minimum threshold for a 8-bit grayscale image", 0, volumeFraction.getMinThreshold());
-        assertEquals("Incorrect maximum threshold for a 8-bit grayscale image", 255, volumeFraction.getMaxThreshold());
+        volumeFractionVoxel.setImage(mockImage);
+        assertEquals("Incorrect minimum threshold for a 8-bit grayscale image", 0, volumeFractionVoxel.getMinThreshold());
+        assertEquals("Incorrect maximum threshold for a 8-bit grayscale image", 255, volumeFractionVoxel.getMaxThreshold());
     }
 
     @Test
@@ -114,26 +114,10 @@ public class VolumeFractionTest {
         assertTrue("Sanity check failed: image is not grayscale", ImageCheck.isGrayscale(mockImage));
         assertEquals("Sanity check failed: image is not 16-bit", 16, mockImage.getBitDepth());
 
-        volumeFraction.setImage(mockImage);
-        assertEquals("Incorrect minimum threshold for a 16-bit grayscale image", 0, volumeFraction.getMinThreshold());
+        volumeFractionVoxel.setImage(mockImage);
+        assertEquals("Incorrect minimum threshold for a 16-bit grayscale image", 0, volumeFractionVoxel.getMinThreshold());
         assertEquals("Incorrect maximum threshold for a 16-bit grayscale image", 65_535,
-                volumeFraction.getMaxThreshold());
-    }
-
-    @Test
-    public void testSetVolumeAlgorithmThrowsIllegalArgumentExceptionIfAlgorithmIsInvalid() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("No such surface algorithm");
-
-        volumeFraction.setVolumeAlgorithm(-1);
-    }
-
-    @Test
-    public void testSetSurfaceResamplingThrowsIllegalArgumentExceptionIfValueIsNegative() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Resampling value must be >= 0");
-
-        volumeFraction.setSurfaceResampling(-1);
+                volumeFractionVoxel.getMaxThreshold());
     }
 
     @Test
@@ -141,7 +125,7 @@ public class VolumeFractionTest {
         expectedException.expect(NullPointerException.class);
         expectedException.expectMessage("May not use a null ROI Manager");
 
-        volumeFraction.setRoiManager(null);
+        volumeFractionVoxel.setRoiManager(null);
     }
 
     @Test
@@ -151,6 +135,6 @@ public class VolumeFractionTest {
         RoiManager roiManager = mock(RoiManager.class);
         when(roiManager.getCount()).thenReturn(0);
 
-        volumeFraction.setRoiManager(roiManager);
+        volumeFractionVoxel.setRoiManager(roiManager);
     }
 }
