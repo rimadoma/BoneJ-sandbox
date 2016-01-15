@@ -13,7 +13,6 @@ import org.bonej.common.ResultsInserter;
 import org.bonej.common.RoiUtil;
 import org.scijava.ItemIO;
 import org.scijava.command.Command;
-import org.scijava.log.LogService;
 import org.scijava.platform.PlatformService;
 import org.scijava.plugin.Parameter;
 import org.scijava.plugin.Plugin;
@@ -33,6 +32,7 @@ import ij.process.StackStatistics;
  * LocalThickness ImageJ plugin.
  *
  * @author Richard Domander
+ * @todo Fix settings dialog - should not pop up when init fails
  */
 @Plugin(type = Command.class, menuPath = "Plugins>BoneJ>Thickness")
 public class Thickness implements Command {
@@ -56,26 +56,28 @@ public class Thickness implements Command {
 	@Parameter
 	private PlatformService platformService;
 
-	@Parameter
-	private LogService logService;
-
 	@Parameter(type = ItemIO.INPUT, persist = false, initializer = "checkPluginRequirements")
 	private ImagePlus image = null;
 
-	@Parameter(label = "Trabecular thickness", description = "Calculate the thickness of the trabeculae", type = ItemIO.INPUT, required = false)
+	@Parameter(label = "Trabecular thickness", description = "Calculate the thickness of the trabeculae",
+            type = ItemIO.INPUT, required = false)
 	private boolean doThickness = THICKNESS_DEFAULT;
 
-	@Parameter(label = "Trabecular spacing", description = "Calculate the thickness of the spaces between trabeculae", type = ItemIO.INPUT, required = false)
+	@Parameter(label = "Trabecular spacing", description = "Calculate the thickness of the spaces between trabeculae",
+            type = ItemIO.INPUT, required = false)
 	private boolean doSpacing = SPACING_DEFAULT;
 
-	@Parameter(label = "Show thickness map image", description = "Show thickness map image(s) after calculations", type = ItemIO.INPUT, required = false)
+	@Parameter(label = "Show thickness map image", description = "Show thickness map image(s) after calculations",
+            type = ItemIO.INPUT, required = false)
 	private boolean doGraphic = GRAPHIC_DEFAULT;
 
 	// @todo Find out how to disable doRoi option if roiManager == null
-	@Parameter(label = "Crop using ROI Manager", description = "Limit thickness map(s) toi ROIs in the ROI Manager", type = ItemIO.INPUT, required = false, persist = false)
+	@Parameter(label = "Crop using ROI Manager", description = "Limit thickness map(s) toi ROIs in the ROI Manager",
+            type = ItemIO.INPUT, required = false, persist = false)
 	private boolean doRoi = ROI_DEFAULT;
 
-	@Parameter(label = "Mask thickness map", description = "Remove pixel artifacts from the thickness map(s)", type = ItemIO.INPUT, required = false)
+	@Parameter(label = "Mask thickness map", description = "Remove pixel artifacts from the thickness map(s)",
+            type = ItemIO.INPUT, required = false)
 	private boolean doMask = MASK_DEFAULT;
 
 	@Parameter(label = "Help", persist = false, callback = "openHelpPage")
@@ -90,7 +92,7 @@ public class Thickness implements Command {
 			URL helpUrl = new URL("http://bonej.org/thickness");
 			platformService.open(helpUrl);
 		} catch (final IOException e) {
-			logService.error(e);
+            uiService.showDialog("An error occurred while trying to open the help page");
 		}
 	}
 
@@ -233,8 +235,7 @@ public class Thickness implements Command {
 		thicknessWrapper.maskThicknessMap = doMask;
 		thicknessWrapper.setTitleSuffix(tittleSuffix);
 		thicknessWrapper.calibratePixels = true;
-		ImagePlus result = thicknessWrapper.processImage(image);
-		return result;
+        return thicknessWrapper.processImage(image);
 	}
 
 	private void showThicknessStats(boolean doForeground) {

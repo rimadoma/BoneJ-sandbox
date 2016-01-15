@@ -3,8 +3,8 @@ package org.bonej.wrapperPlugins;
 import java.io.IOException;
 import java.net.URL;
 
-import customnode.CustomTriangleMesh;
-import ij3d.Image3DUniverse;
+//import customnode.CustomTriangleMesh;
+//import ij3d.Image3DUniverse;
 import net.imagej.Main;
 
 import org.bonej.common.ResultsInserter;
@@ -29,6 +29,8 @@ import ij.plugin.frame.RoiManager;
  * BoneJ UI wrapper class for the VolumeFraction Op class
  *
  * @author Richard Domander
+ * @todo Fix settings dialog - should not pop up when init fails
+ * @todo Fix render volume surface
  */
 @Plugin(type = Command.class, menuPath = "Plugins>BoneJ>VolumeFraction", headless = true)
 public class VolumeFractionWrapperBoneJ extends ContextCommand {
@@ -151,13 +153,15 @@ public class VolumeFractionWrapperBoneJ extends ContextCommand {
     }
 
     private void renderVolumeSurfaces() {
-        CustomTriangleMesh foregroundSurface = volumeFraction.getForegroundSurface();
+        uiService.showDialog("Volume surface rendering not functional due Java3D issues with Java 8");
+
+        /*CustomTriangleMesh foregroundSurface = volumeFraction.getForegroundSurface();
         CustomTriangleMesh totalSurface = volumeFraction.getTotalSurface();
 
         Image3DUniverse universe = new Image3DUniverse();
         universe.addCustomMesh(foregroundSurface, "Bone volume");
         universe.addCustomMesh(totalSurface, "Total volume");
-        universe.show();
+        universe.show();*/
     }
 	// endregion
 }

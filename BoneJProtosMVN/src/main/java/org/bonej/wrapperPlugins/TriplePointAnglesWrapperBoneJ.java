@@ -9,7 +9,6 @@ import org.bonej.common.ResultsInserter;
 import org.scijava.ItemIO;
 import org.scijava.command.Command;
 import org.scijava.command.ContextCommand;
-import org.scijava.log.LogService;
 import org.scijava.platform.PlatformService;
 import org.scijava.plugin.Parameter;
 import org.scijava.plugin.Plugin;
@@ -26,6 +25,7 @@ import ij.ImagePlus;
  * class for the "Model" class that is TriplePointAngles.
  *
  * @author Richard Domander
+ * @todo Fix cancel()
  */
 @Plugin(type = Command.class, menuPath = "Plugins>BoneJ>TriplePointAngles", headless = true)
 public class TriplePointAnglesWrapperBoneJ extends ContextCommand {
@@ -34,11 +34,13 @@ public class TriplePointAnglesWrapperBoneJ extends ContextCommand {
 
 	private double angleResults[][][] = null;
 
-	@Parameter(label = "Angle measurement point:", style = ChoiceWidget.LIST_BOX_STYLE, description = "Measure angles from ends of the branches, or n voxels \"up\" the branch", choices = {
+	@Parameter(label = "Angle measurement point:", style = ChoiceWidget.LIST_BOX_STYLE,
+            description = "Measure angles from ends of the branches, or n voxels \"up\" the branch", choices = {
 			"Branch end", "Edge voxel n"})
 	private String pointChoice = DEFAULT_POINT_CHOICE;
 
-	@Parameter(label = "Edge voxel #number", description = "Number of voxels the angle measurement point is from the ends of the branches", min = "0")
+	@Parameter(label = "Edge voxel #number",
+            description = "Number of voxels the angle measurement point is from the ends of the branches", min = "0")
 	private int nthPoint = TriplePointAngles.DEFAULT_NTH_POINT;
 
 	@Parameter(label = "Help", persist = false, callback = "openHelpPage")
@@ -47,9 +49,6 @@ public class TriplePointAnglesWrapperBoneJ extends ContextCommand {
 	// set required to false to disable the default, generic error message
 	@Parameter(type = ItemIO.INPUT, initializer = "initializeActiveImage", required = false)
 	private ImagePlus activeImage = null;
-
-	@Parameter
-	private LogService logService;
 
 	@Parameter
 	private UIService uiService;
@@ -88,9 +87,6 @@ public class TriplePointAnglesWrapperBoneJ extends ContextCommand {
 		return nthPoint;
 	}
 
-	/**
-	 * @todo Find out why cancel doesn't work
-	 */
 	@SuppressWarnings("unused")
 	private void initializeActiveImage() {
 		try {
