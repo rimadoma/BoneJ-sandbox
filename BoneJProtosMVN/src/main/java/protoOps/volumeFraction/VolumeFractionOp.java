@@ -16,5 +16,7 @@ public interface VolumeFractionOp extends Op {
     double getTotalVolume();
     double getVolumeRatio();
     void setImage(ImagePlus image);
+    void setThresholds(int min, int max);
     void setRoiManager(RoiManager roiManager);
+    boolean needThresholds();
 }

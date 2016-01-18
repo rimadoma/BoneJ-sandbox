@@ -24,6 +24,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 /**
  * An Op which calculates the volumes of the sample by counting the voxels in the image
  *
+ * @todo add thresholding
  * @author Michael Doube
  * @author Richard Domander
  */
@@ -45,9 +46,9 @@ public class VolumeFractionVoxel implements VolumeFractionOp {
 	private double volumeRatio;
 
     // @todo make min & max threshold parameters
-    // @todo write setters for thresholds
-    private int minThreshold = 127;
+    private int minThreshold = 128;
     private int maxThreshold = 255;
+    private int thresholdBound = 0xFF;
 
     public VolumeFractionVoxel() {
         reset();
@@ -86,7 +87,7 @@ public class VolumeFractionVoxel implements VolumeFractionOp {
 
 		inputImage = image;
 
-        setThresholds();
+        initThresholds();
 	}
 
 	public void setRoiManager(RoiManager roiManager) {
@@ -95,6 +96,15 @@ public class VolumeFractionVoxel implements VolumeFractionOp {
 
 		this.roiManager = roiManager;
 	}
+
+    public void setThresholds(int min, int max) {
+        checkArgument(0 <= min && min <= thresholdBound, "Min threshold out of bounds");
+        checkArgument(0 <= max && max <= thresholdBound, "Max threshold out of bounds");
+        checkArgument(min <= max, "Minimum threshold must be less or equal to maximum threshold");
+
+        minThreshold = min;
+        maxThreshold = max;
+    }
     // endregion
 
 	@Override
@@ -110,9 +120,14 @@ public class VolumeFractionVoxel implements VolumeFractionOp {
 	@Override
 	public void run() {
         checkImage(inputImage);
-        setThresholds();
+
         volumeFractionVoxel();
 	}
+
+    @Override
+    public boolean needThresholds() {
+        return !ImageCheck.isBinary(inputImage);
+    }
 
     public void reset() {
         roiManager = null;
@@ -241,21 +256,17 @@ public class VolumeFractionVoxel implements VolumeFractionOp {
 		checkArgument(ImageCheck.isBinary(image) || ImageCheck.isGrayscale(image), "Need a binary or grayscale image");
 	}
 
-    private void setThresholds() {
-        if (ImageCheck.isBinary(inputImage)) {
-            minThreshold = 127;
-            maxThreshold = 255;
-            return;
-        }
-
+    private void initThresholds() {
         switch (inputImage.getType()) {
             case ImagePlus.GRAY8:
-                minThreshold = 0;
+                minThreshold = 128;
                 maxThreshold = 255;
+                thresholdBound = 0xFF;
                 break;
             case ImagePlus.GRAY16:
                 minThreshold = 2424;
                 maxThreshold = 11_215;
+                thresholdBound = 0xFFFF;
                 break;
             default:
                 throw new RuntimeException("Bad image type, Execution shouldn't go here!");

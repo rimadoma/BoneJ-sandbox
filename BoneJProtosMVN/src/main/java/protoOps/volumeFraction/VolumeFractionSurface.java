@@ -63,8 +63,9 @@ public class VolumeFractionSurface implements VolumeFractionOp {
 
     // @todo make min & max threshold parameters
     // @todo write setters for thresholds
-    private int minThreshold = 127;
+    private int minThreshold = 128;
     private int maxThreshold = 255;
+    private int thresholdBound = 0xFF;
 
     public VolumeFractionSurface() {
         reset();
@@ -119,7 +120,7 @@ public class VolumeFractionSurface implements VolumeFractionOp {
 
         inputImage = image;
 
-        setThresholds();
+        initThresholds();
     }
 
     public void setRoiManager(RoiManager roiManager) {
@@ -128,6 +129,20 @@ public class VolumeFractionSurface implements VolumeFractionOp {
 
         this.roiManager = roiManager;
     }
+
+    @Override
+    public boolean needThresholds() {
+        return !ImageCheck.isBinary(inputImage);
+    }
+
+    public void setThresholds(int min, int max) {
+		checkArgument(0 <= min && min <= thresholdBound, "Min threshold out of bounds");
+		checkArgument(0 <= max && max <= thresholdBound, "Max threshold out of bounds");
+		checkArgument(min <= max, "Minimum threshold must be less or equal to maximum threshold");
+
+		minThreshold = min;
+		maxThreshold = max;
+	}
     // endregion
 
     @Override
@@ -143,7 +158,6 @@ public class VolumeFractionSurface implements VolumeFractionOp {
     @Override
     public void run() {
         checkImage(inputImage);
-        setThresholds();
         volumeFractionSurface();
     }
 
@@ -171,25 +185,22 @@ public class VolumeFractionSurface implements VolumeFractionOp {
         final int height = yMax - yMin;
         final int depth = zMax - zMin + 1;
 
+
+        final byte[] pixels = new byte[width * height];
         ImageStack outStack = new ImageStack(width, height);
         ImageStack maskStack = new ImageStack(width, height);
-        ImageProcessor processor = stack.getProcessor(1).createProcessor(width, height);
+
         for (int i = 0; i < depth; i++) {
-            outStack.addSlice(processor.duplicate());
-            maskStack.addSlice(processor.duplicate());
+            int sliceNo = i + 1;
+            outStack.addSlice("slice " + sliceNo, pixels);
+            maskStack.addSlice("slice" + sliceNo, pixels);
         }
-
-        totalVoxels = 0;
-        fgVoxels = 0;
-
+        
         if (roiManager != null) {
             drawSurfaceMasksWithRois(zMin, zMax, xMin, yMin, stack, maskStack, outStack);
         } else {
             drawSurfaceMasksWithNoRoi(zMin, zMax, xMin, yMin, stack, maskStack, outStack);
         }
-
-        System.out.println("Total voxels: " + totalVoxels);
-        System.out.println("Foreground voxels: " + fgVoxels);
 
         Calibration calibration = inputImage.getCalibration();
 
@@ -292,9 +303,6 @@ public class VolumeFractionSurface implements VolumeFractionOp {
         }
     }
 
-    private int totalVoxels = 0;
-    private int fgVoxels = 0;
-
     private void drawSurfaceMasks(final ImageProcessor slice, final ImageStack maskStack, final ImageStack outStack,
                                   final int sliceNumber, final int xMin, final int yMin, final int zMin) {
         final int white = 255;
@@ -314,11 +322,9 @@ public class VolumeFractionSurface implements VolumeFractionOp {
             for (int x = x0; x < x1; x++) {
                 final int outX = x - xMin;
                 maskProcessor.set(outX, outY, white);
-                totalVoxels++;
-                final double pixel = slice.get(x, y);
+                final int pixel = slice.get(x, y);
                 if (pixel >= minThreshold && pixel <= maxThreshold) {
                     outProcessor.set(outX, outY, white);
-                    fgVoxels++;
                 }
             }
         }
@@ -333,25 +339,21 @@ public class VolumeFractionSurface implements VolumeFractionOp {
         checkArgument(ImageCheck.isBinary(image) || ImageCheck.isGrayscale(image), "Need a binary or grayscale image");
     }
 
-    private void setThresholds() {
-        if (ImageCheck.isBinary(inputImage)) {
-            minThreshold = 127;
-            maxThreshold = 255;
-            return;
-        }
-
+    private void initThresholds() {
         switch (inputImage.getType()) {
             case ImagePlus.GRAY8:
-                minThreshold = 0;
+                minThreshold = 128;
                 maxThreshold = 255;
+                thresholdBound = 0xFF;
                 break;
             case ImagePlus.GRAY16:
-                minThreshold = 0;
-                maxThreshold = 65_535;
+                minThreshold = 2424;
+                maxThreshold = 11_215;
+                thresholdBound = 0xFFFF;
                 break;
             default:
                 throw new RuntimeException("Bad image type, Execution shouldn't go here!");
         }
-        //endregion
     }
+    //endregion
 }

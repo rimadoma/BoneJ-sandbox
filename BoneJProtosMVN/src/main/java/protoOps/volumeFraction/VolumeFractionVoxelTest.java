@@ -60,27 +60,7 @@ public class VolumeFractionVoxelTest {
 
         volumeFractionVoxel.setImage(mockImage);
     }
-
-    @Test
-    public void testSetImageSetsBinaryDefaultThresholds() throws Exception {
-        // create a mock binary image
-        ImagePlus mockImage = mock(ImagePlus.class);
-        ImageStatistics statistics = new ImageStatistics();
-        statistics.pixelCount = 2;
-        statistics.histogram = new int[256];
-        statistics.histogram[Common.BINARY_BLACK] = 1;
-        statistics.histogram[Common.BINARY_WHITE] = 1;
-        when(mockImage.getBitDepth()).thenReturn(8);
-        when(mockImage.getType()).thenReturn(ImagePlus.GRAY8);
-        when(mockImage.getStatistics()).thenReturn(statistics);
-
-        assertTrue("Sanity check failed: image is not binary", ImageCheck.isBinary(mockImage));
-
-        volumeFractionVoxel.setImage(mockImage);
-        assertEquals("Incorrect minimum threshold for a binary image", 127, volumeFractionVoxel.getMinThreshold());
-        assertEquals("Incorrect maximum threshold for a binary image", 255, volumeFractionVoxel.getMaxThreshold());
-    }
-
+    
     @Test
     public void testSetImageSets8BitGrayscaleDefaultThresholds() throws Exception {
         // create a mock 8-bit grayscale image
@@ -96,7 +76,7 @@ public class VolumeFractionVoxelTest {
         assertEquals("Sanity check failed: image is not 8-bit", 8, mockImage.getBitDepth());
 
         volumeFractionVoxel.setImage(mockImage);
-        assertEquals("Incorrect minimum threshold for a 8-bit grayscale image", 0, volumeFractionVoxel.getMinThreshold());
+        assertEquals("Incorrect minimum threshold for a 8-bit grayscale image", 128, volumeFractionVoxel.getMinThreshold());
         assertEquals("Incorrect maximum threshold for a 8-bit grayscale image", 255, volumeFractionVoxel.getMaxThreshold());
     }
 
@@ -105,7 +85,7 @@ public class VolumeFractionVoxelTest {
         // create a mock 16-bit grayscale image
         ImagePlus mockImage = mock(ImagePlus.class);
         ImageStatistics statistics = new ImageStatistics();
-        statistics.histogram = new int[65_535];
+        statistics.histogram = new int[0xFFFF];
         statistics.pixelCount = 21342;
         when(mockImage.getBitDepth()).thenReturn(16);
         when(mockImage.getType()).thenReturn(ImagePlus.GRAY16);
@@ -115,8 +95,8 @@ public class VolumeFractionVoxelTest {
         assertEquals("Sanity check failed: image is not 16-bit", 16, mockImage.getBitDepth());
 
         volumeFractionVoxel.setImage(mockImage);
-        assertEquals("Incorrect minimum threshold for a 16-bit grayscale image", 0, volumeFractionVoxel.getMinThreshold());
-        assertEquals("Incorrect maximum threshold for a 16-bit grayscale image", 65_535,
+        assertEquals("Incorrect minimum threshold for a 16-bit grayscale image", 2424, volumeFractionVoxel.getMinThreshold());
+        assertEquals("Incorrect maximum threshold for a 16-bit grayscale image", 11_215,
                 volumeFractionVoxel.getMaxThreshold());
     }
 

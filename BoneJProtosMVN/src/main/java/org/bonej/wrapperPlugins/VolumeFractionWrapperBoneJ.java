@@ -3,6 +3,9 @@ package org.bonej.wrapperPlugins;
 import java.io.IOException;
 import java.net.URL;
 
+import ij.IJ;
+import ij.gui.WaitForUserDialog;
+import ij.process.ImageProcessor;
 import net.imagej.Main;
 
 import org.bonej.common.ResultsInserter;
@@ -31,7 +34,6 @@ import ij.plugin.frame.RoiManager;
  * @author Richard Domander
  * @todo Fix settings dialog - should not pop up when init fails
  * @todo Fix render volume surface
- * @todo Threshold dialog (run threshold?)
  */
 @Plugin(type = Command.class, menuPath = "Plugins>BoneJ>VolumeFraction", headless = true)
 public class VolumeFractionWrapperBoneJ extends ContextCommand {
@@ -69,15 +71,6 @@ public class VolumeFractionWrapperBoneJ extends ContextCommand {
 	@Parameter(label = "Show 3D result", description = "Show the bone and total volume surfaces in the 3D Viewer")
 	private boolean show3DResult = false;
 
-    // @todo add callbacks to keep values sensible (min <= max etc.)
-    @Parameter(label = "Minimum threshold", min = "0", stepSize = "5",
-            description = "The minimum value for pixels included in the volume calculation", persist = false)
-    private int minThreshold;
-
-    @Parameter(label = "Maximum threshold", min = "0", stepSize = "5",
-            description = "The maximum value for pixels included in the volume calculation", persist = false)
-    private int maxThreshold;
-
 	@Parameter(label = "Help", persist = false, callback = "openHelpPage")
 	private Button helpButton;
 
@@ -95,6 +88,10 @@ public class VolumeFractionWrapperBoneJ extends ContextCommand {
             }
 
             volumeFractionOp.setImage(activeImage);
+
+            if (volumeFractionOp.needThresholds()) {
+                thresholdImage();
+            }
 
 			if (useRoiManager) {
 				volumeFractionOp.setRoiManager(roiManager);
@@ -128,12 +125,10 @@ public class VolumeFractionWrapperBoneJ extends ContextCommand {
 
 	@SuppressWarnings("unused")
 	private void initializeActiveImage() {
-        volumeFractionOp = volumeFractionVoxel;
+        volumeFractionOp = volumeFractionSurface;
 
 		try {
             volumeFractionOp.setImage(activeImage);
-            minThreshold = volumeFractionOp.getMinThreshold();
-            maxThreshold = volumeFractionOp.getMaxThreshold();
 		} catch (IllegalArgumentException | NullPointerException e) {
 			uiService.showDialog(e.getMessage(), DialogPrompt.MessageType.ERROR_MESSAGE);
 		}
@@ -183,6 +178,15 @@ public class VolumeFractionWrapperBoneJ extends ContextCommand {
         universe.addCustomMesh(foregroundSurface, "Bone volume");
         universe.addCustomMesh(totalSurface, "Total volume");
         universe.show();*/
+    }
+
+    private void thresholdImage() {
+        IJ.run("Threshold...");
+        new WaitForUserDialog("Set the threshold, then click OK.").show();
+        ImageProcessor activeProcessor = activeImage.getProcessor();
+        int min = (int) Math.round(activeProcessor.getMinThreshold());
+        int max = (int) Math.round(activeProcessor.getMaxThreshold());
+        volumeFractionOp.setThresholds(min, max);
     }
 	// endregion
 }
