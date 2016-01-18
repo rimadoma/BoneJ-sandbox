@@ -36,6 +36,8 @@ import ij.plugin.frame.RoiManager;
 @Plugin(type = Command.class, menuPath = "Plugins>BoneJ>VolumeFraction", headless = true)
 public class VolumeFractionWrapperBoneJ extends ContextCommand {
 	private static final ImmutableList<String> algorithmChoiceStrings = ImmutableList.of("Voxel", "Surface");
+    private static final VolumeFractionSurface volumeFractionSurface = new VolumeFractionSurface();
+    private static final VolumeFractionVoxel volumeFractionVoxel = new VolumeFractionVoxel();
 
     private VolumeFractionOp volumeFractionOp;
 	private RoiManager roiManager = null;
@@ -52,7 +54,7 @@ public class VolumeFractionWrapperBoneJ extends ContextCommand {
 
 	@Parameter(label = "Volume algorithm:", description = "The method used to calculate volume fraction",
             style = ChoiceWidget.LIST_BOX_STYLE, choices = {"Voxel", "Surface"}, persist = false)
-	private String volumeAlgorithm = algorithmChoiceStrings.get(0);
+	private String volumeAlgorithm = algorithmChoiceStrings.get(0); // Voxel is the default algorithm
 
 	@Parameter(label = "Surface resampling",
             description = "Voxel resampling (surface algorithm) - higher values result in simpler surfaces", min = "0")
@@ -81,13 +83,18 @@ public class VolumeFractionWrapperBoneJ extends ContextCommand {
 
 	@Override
 	public void run() {
+        volumeFractionSurface.reset();
+        volumeFractionVoxel.reset();
+
 		try {
             if (volumeAlgorithm.equals("Surface")) {
-                volumeFractionOp = new VolumeFractionSurface();
+                volumeFractionOp = volumeFractionSurface;
                 ((VolumeFractionSurface)volumeFractionOp).setSurfaceResampling(surfaceResampling);
             } else {
-                volumeFractionOp = new VolumeFractionVoxel();
+                volumeFractionOp = volumeFractionVoxel;
             }
+
+            volumeFractionOp.setImage(activeImage);
 
 			if (useRoiManager) {
 				volumeFractionOp.setRoiManager(roiManager);
@@ -121,8 +128,10 @@ public class VolumeFractionWrapperBoneJ extends ContextCommand {
 
 	@SuppressWarnings("unused")
 	private void initializeActiveImage() {
+        volumeFractionOp = volumeFractionVoxel;
+
 		try {
-			volumeFractionOp.setImage(activeImage);
+            volumeFractionOp.setImage(activeImage);
             minThreshold = volumeFractionOp.getMinThreshold();
             maxThreshold = volumeFractionOp.getMaxThreshold();
 		} catch (IllegalArgumentException | NullPointerException e) {

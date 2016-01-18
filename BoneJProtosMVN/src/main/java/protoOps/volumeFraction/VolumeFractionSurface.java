@@ -30,6 +30,7 @@ import javax.vecmath.Color3f;
  * An Op which calculates the volumes of the sample by generating a surface mesh
  *
  * @todo Solve issues with Fiji 20.0.0
+ * @todo add thresholding
  * @author Richard Domander
  */
 @Plugin(type = Op.class, name = "volumeFractionVoxel")
@@ -66,7 +67,7 @@ public class VolumeFractionSurface implements VolumeFractionOp {
     private int maxThreshold = 255;
 
     public VolumeFractionSurface() {
-        resetResults();
+        reset();
     }
 
     // region -- Getters --
@@ -143,11 +144,11 @@ public class VolumeFractionSurface implements VolumeFractionOp {
     public void run() {
         checkImage(inputImage);
         setThresholds();
-        resetResults();
         volumeFractionSurface();
     }
 
-    public void resetResults() {
+    public void reset() {
+        roiManager = null;
         foregroundVolume = 0.0;
         totalVolume = 0.0;
         volumeRatio = Double.NaN;

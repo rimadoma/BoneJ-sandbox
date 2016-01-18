@@ -50,7 +50,7 @@ public class VolumeFractionVoxel implements VolumeFractionOp {
     private int maxThreshold = 255;
 
     public VolumeFractionVoxel() {
-        resetResults();
+        reset();
     }
 
     // region -- Getters --
@@ -111,11 +111,11 @@ public class VolumeFractionVoxel implements VolumeFractionOp {
 	public void run() {
         checkImage(inputImage);
         setThresholds();
-        resetResults();
         volumeFractionVoxel();
 	}
 
-    public void resetResults() {
+    public void reset() {
+        roiManager = null;
         foregroundVolume = 0.0;
         totalVolume = 0.0;
         volumeRatio = Double.NaN;
@@ -254,8 +254,8 @@ public class VolumeFractionVoxel implements VolumeFractionOp {
                 maxThreshold = 255;
                 break;
             case ImagePlus.GRAY16:
-                minThreshold = 0;
-                maxThreshold = 65_535;
+                minThreshold = 2424;
+                maxThreshold = 11_215;
                 break;
             default:
                 throw new RuntimeException("Bad image type, Execution shouldn't go here!");
