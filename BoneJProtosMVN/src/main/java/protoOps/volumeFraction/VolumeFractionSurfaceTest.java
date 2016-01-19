@@ -4,7 +4,9 @@ import ij.ImagePlus;
 import static org.junit.Assert.assertEquals;
 
 import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import protoOps.testImageCreators.StaticTestImageHelper;
 
 /**
@@ -12,6 +14,9 @@ import protoOps.testImageCreators.StaticTestImageHelper;
  * @todo exception tests for setters
  */
 public class VolumeFractionSurfaceTest {
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
+
     private static final double DELTA = 1E-12;
 	private static final int CUBOID_WIDTH = 32;
 	private static final int CUBOID_HEIGHT = 64;
@@ -49,4 +54,28 @@ public class VolumeFractionSurfaceTest {
         volumeRatio = volumeFractionSurface.getVolumeRatio();
         assertEquals(CUBOID_VOLUME / TOTAL_VOLUME, volumeRatio, DELTA);
 	}
+
+    @Test
+    public void testSetThresholdsThrowsIllegalArgumentExceptionIfMinOverMax() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Minimum threshold must be less or equal to maximum threshold");
+
+        volumeFractionSurface.setThresholds(100, 90);
+    }
+
+    @Test
+    public void testSetThresholdsThrowsIllegalArgumentExceptionIfThresholdIsNegative() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Min threshold out of bounds");
+
+        volumeFractionSurface.setThresholds(-12, 90);
+    }
+
+    @Test
+    public void testSetThresholdsThrowsIllegalArgumentExceptionIfThresholdIsTooLarge() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Max threshold out of bounds");
+
+        volumeFractionSurface.setThresholds(100, 214156);
+    }
 }
