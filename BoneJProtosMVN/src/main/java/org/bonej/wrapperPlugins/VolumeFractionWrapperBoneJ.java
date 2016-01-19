@@ -150,13 +150,27 @@ public class VolumeFractionWrapperBoneJ extends ContextCommand {
         ResultsInserter resultsInserter = new ResultsInserter();
         String unit = activeImage.getCalibration().getUnits();
         String label = activeImage.getTitle();
-        char superScriptThree = '\u00B3';
-        resultsInserter.setMeasurementInFirstFreeRow(label, "Bone volume (" + unit + superScriptThree + ")",
-                volumeFractionOp.getForegroundVolume());
-        resultsInserter.setMeasurementInFirstFreeRow(label, "Total volume (" + unit + superScriptThree + ")",
-                volumeFractionOp.getTotalVolume());
-        resultsInserter.setMeasurementInFirstFreeRow(label, "Volume ratio", volumeFractionOp.getVolumeRatio());
-        resultsInserter.updateTable();
+
+        String degreeDescription;
+        String capitalDescription;
+        char degreeSign;
+        if (activeImage.getNSlices() == 1) {
+            degreeDescription = "area";
+            capitalDescription = "Area";
+            degreeSign = '\u00B2';
+        } else {
+            degreeDescription = "volume";
+            capitalDescription = "Volume";
+            degreeSign = '\u00B3';
+        }
+
+		resultsInserter.setMeasurementInFirstFreeRow(label,
+				"Bone " + degreeDescription + " (" + unit + degreeSign + ")", volumeFractionOp.getForegroundVolume());
+		resultsInserter.setMeasurementInFirstFreeRow(label,
+				"Total " + degreeDescription + " (" + unit + degreeSign + ")", volumeFractionOp.getTotalVolume());
+		resultsInserter.setMeasurementInFirstFreeRow(label, capitalDescription + " ratio",
+				volumeFractionOp.getVolumeRatio());
+		resultsInserter.updateTable();
     }
 
     /**
