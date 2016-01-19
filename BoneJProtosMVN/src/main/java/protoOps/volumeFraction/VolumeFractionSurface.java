@@ -10,6 +10,7 @@ import marchingcubes.MCTriangulator;
 import net.imagej.ops.Op;
 import net.imagej.ops.OpEnvironment;
 
+import org.bonej.common.Common;
 import org.bonej.common.ImageCheck;
 import org.bonej.common.RoiUtil;
 import org.scijava.ItemIO;
@@ -185,15 +186,13 @@ public class VolumeFractionSurface implements VolumeFractionOp {
         final int height = yMax - yMin;
         final int depth = zMax - zMin + 1;
 
-
-        final byte[] pixels = new byte[width * height];
         ImageStack outStack = new ImageStack(width, height);
         ImageStack maskStack = new ImageStack(width, height);
 
         for (int i = 0; i < depth; i++) {
             int sliceNo = i + 1;
-            outStack.addSlice("slice " + sliceNo, pixels);
-            maskStack.addSlice("slice" + sliceNo, pixels);
+            outStack.addSlice("slice " + sliceNo, Common.getEmptyPixels(width, height, ImagePlus.GRAY8));
+            maskStack.addSlice("slice" + sliceNo, Common.getEmptyPixels(width, height, ImagePlus.GRAY8));
         }
         
         if (roiManager != null) {

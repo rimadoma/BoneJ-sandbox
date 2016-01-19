@@ -1,5 +1,7 @@
 package org.bonej.common;
 
+import ij.ImagePlus;
+
 /**
  * @author Richard Domander
  */
@@ -36,4 +38,28 @@ public class Common {
 		}
 		return value;
 	}
+
+    public static Object getEmptyPixels(final int w, final int h, final int imageType) {
+        Object emptyPixels;
+
+        switch (imageType) {
+            case ImagePlus.GRAY8:
+            case ImagePlus.COLOR_256:
+                emptyPixels = new byte[w * h];
+                break;
+            case ImagePlus.GRAY16:
+                emptyPixels = new short[w * h];
+                break;
+            case ImagePlus.COLOR_RGB:
+                emptyPixels = new int[w * h];
+                break;
+            case ImagePlus.GRAY32:
+                emptyPixels = new float[w * h];
+                break;
+            default:
+                throw new IllegalArgumentException("Invalid image type");
+        }
+
+        return emptyPixels;
+    }
 }
