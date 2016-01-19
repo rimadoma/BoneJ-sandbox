@@ -38,6 +38,12 @@ public class VolumeFractionVoxel implements VolumeFractionOp {
 	@Parameter(type = ItemIO.INPUT, required = false)
 	private RoiManager roiManager = null;
 
+    @Parameter(type = ItemIO.INPUT, required = false)
+    private int minThreshold = 128;
+
+    @Parameter(type = ItemIO.INPUT, required = false)
+    private int maxThreshold = 255;
+
     @Parameter(type = ItemIO.OUTPUT)
 	private double foregroundVolume;
 
@@ -47,9 +53,6 @@ public class VolumeFractionVoxel implements VolumeFractionOp {
 	@Parameter(type = ItemIO.OUTPUT)
 	private double volumeRatio;
 
-    // @todo make min & max threshold parameters
-    private int minThreshold = 128;
-    private int maxThreshold = 255;
     private int thresholdBound = 0xFF;
 
     public VolumeFractionVoxel() {

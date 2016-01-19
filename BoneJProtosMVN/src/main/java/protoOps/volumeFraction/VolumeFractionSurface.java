@@ -48,6 +48,12 @@ public class VolumeFractionSurface implements VolumeFractionOp {
     @Parameter(type = ItemIO.INPUT, required = false, min = "0")
     private int surfaceResampling = DEFAULT_SURFACE_RESAMPLING;
 
+    @Parameter(type = ItemIO.INPUT, required = false)
+    private int minThreshold = 128;
+
+    @Parameter(type = ItemIO.INPUT, required = false)
+    private int maxThreshold = 255;
+
     @Parameter(type = ItemIO.OUTPUT)
     private double foregroundVolume;
 
@@ -62,11 +68,7 @@ public class VolumeFractionSurface implements VolumeFractionOp {
 
     @Parameter(type = ItemIO.OUTPUT)
     private CustomTriangleMesh totalSurface;
-
-    // @todo make min & max threshold parameters
-    // @todo write setters for thresholds
-    private int minThreshold = 128;
-    private int maxThreshold = 255;
+    
     private int thresholdBound = 0xFF;
 
     public VolumeFractionSurface() {
