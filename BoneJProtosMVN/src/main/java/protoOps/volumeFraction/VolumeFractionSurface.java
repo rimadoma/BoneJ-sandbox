@@ -6,6 +6,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.awt.*;
 import java.util.ArrayList;
 
+import javax.vecmath.Color3f;
+
 import marchingcubes.MCTriangulator;
 import net.imagej.ops.Op;
 import net.imagej.ops.OpEnvironment;
@@ -25,13 +27,12 @@ import ij.measure.Calibration;
 import ij.plugin.frame.RoiManager;
 import ij.process.ImageProcessor;
 
-import javax.vecmath.Color3f;
-
 /**
  * An Op which calculates the volumes of the sample by generating a surface mesh
  *
  * @todo Solve issues with Fiji 20.0.0
- * @todo add thresholding
+ * @todo check that plugin works when run trough OpService
+ * @author Michael Doube
  * @author Richard Domander
  */
 @Plugin(type = Op.class, name = "volumeFractionVoxel")
@@ -117,7 +118,7 @@ public class VolumeFractionSurface implements VolumeFractionOp {
     }
 
     public void setImage(ImagePlus image) {
-        checkImage(image);
+        VolumeFractionOp.checkImage(image);
 
         inputImage = image;
 
@@ -131,11 +132,6 @@ public class VolumeFractionSurface implements VolumeFractionOp {
         this.roiManager = roiManager;
     }
 
-    @Override
-    public boolean needThresholds() {
-        return !ImageCheck.isBinary(inputImage);
-    }
-
     public void setThresholds(int min, int max) {
 		checkArgument(0 <= min && min <= thresholdBound, "Min threshold out of bounds");
 		checkArgument(0 <= max && max <= thresholdBound, "Max threshold out of bounds");
@@ -145,6 +141,12 @@ public class VolumeFractionSurface implements VolumeFractionOp {
 		maxThreshold = max;
 	}
     // endregion
+
+
+    @Override
+    public boolean needThresholds() {
+        return !ImageCheck.isBinary(inputImage);
+    }
 
     @Override
     public OpEnvironment ops() {
@@ -158,7 +160,7 @@ public class VolumeFractionSurface implements VolumeFractionOp {
 
     @Override
     public void run() {
-        checkImage(inputImage);
+        VolumeFractionOp.checkImage(inputImage);
         volumeFractionSurface();
     }
 
@@ -327,15 +329,6 @@ public class VolumeFractionSurface implements VolumeFractionOp {
                 }
             }
         }
-    }
-
-    private static void checkImage(ImagePlus image) {
-        checkNotNull(image, "Must have an input image");
-
-        int bitDepth = image.getBitDepth();
-        checkArgument(bitDepth == 8 || bitDepth == 16, "Input image bit depth must be 8 or 16");
-
-        checkArgument(ImageCheck.isBinary(image) || ImageCheck.isGrayscale(image), "Need a binary or grayscale image");
     }
 
     private void initThresholds() {

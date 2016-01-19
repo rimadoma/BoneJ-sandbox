@@ -3,9 +3,6 @@ package org.bonej.wrapperPlugins;
 import java.io.IOException;
 import java.net.URL;
 
-import ij.IJ;
-import ij.gui.WaitForUserDialog;
-import ij.process.ImageProcessor;
 import net.imagej.Main;
 
 import org.bonej.common.ResultsInserter;
@@ -25,8 +22,11 @@ import protoOps.volumeFraction.VolumeFractionVoxel;
 
 import com.google.common.collect.ImmutableList;
 
+import ij.IJ;
 import ij.ImagePlus;
+import ij.gui.WaitForUserDialog;
 import ij.plugin.frame.RoiManager;
+import ij.process.ImageProcessor;
 
 /**
  * A class which wraps the two VolumeFractionOp classes as a single BoneJ plugin in the UI
@@ -34,6 +34,7 @@ import ij.plugin.frame.RoiManager;
  * @author Richard Domander
  * @todo Fix settings dialog - should not pop up when init fails
  * @todo Fix render volume surface
+ * @todo Find a way to set thresholds in UI without a modal dialog
  */
 @Plugin(type = Command.class, menuPath = "Plugins>BoneJ>VolumeFraction", headless = true)
 public class VolumeFractionWrapperBoneJ extends ContextCommand {
@@ -125,10 +126,8 @@ public class VolumeFractionWrapperBoneJ extends ContextCommand {
 
 	@SuppressWarnings("unused")
 	private void initializeActiveImage() {
-        volumeFractionOp = volumeFractionSurface;
-
 		try {
-            volumeFractionOp.setImage(activeImage);
+            VolumeFractionOp.checkImage(activeImage);
 		} catch (IllegalArgumentException | NullPointerException e) {
 			uiService.showDialog(e.getMessage(), DialogPrompt.MessageType.ERROR_MESSAGE);
 		}

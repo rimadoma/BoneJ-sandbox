@@ -1,30 +1,32 @@
 package protoOps.volumeFraction;
 
-import ij.ImagePlus;
-import ij.ImageStack;
-import ij.gui.Roi;
-import ij.measure.Calibration;
-import ij.plugin.frame.RoiManager;
-import ij.process.ImageProcessor;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import java.awt.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+
 import net.imagej.ops.Op;
 import net.imagej.ops.OpEnvironment;
+
 import org.bonej.common.ImageCheck;
 import org.bonej.common.RoiUtil;
 import org.scijava.ItemIO;
 import org.scijava.plugin.Parameter;
 import org.scijava.plugin.Plugin;
 
-import java.awt.*;
-import java.util.ArrayList;
-import java.util.Arrays;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
+import ij.ImagePlus;
+import ij.ImageStack;
+import ij.gui.Roi;
+import ij.measure.Calibration;
+import ij.plugin.frame.RoiManager;
+import ij.process.ImageProcessor;
 
 /**
  * An Op which calculates the volumes of the sample by counting the voxels in the image
  *
- * @todo add thresholding
+ * @todo check that plugin works when run trough OpService
  * @author Michael Doube
  * @author Richard Domander
  */
@@ -83,7 +85,7 @@ public class VolumeFractionVoxel implements VolumeFractionOp {
 
     // region -- Setters --
 	public void setImage(ImagePlus image) {
-		checkImage(image);
+		VolumeFractionOp.checkImage(image);
 
 		inputImage = image;
 
@@ -119,8 +121,7 @@ public class VolumeFractionVoxel implements VolumeFractionOp {
 
 	@Override
 	public void run() {
-        checkImage(inputImage);
-
+        VolumeFractionOp.checkImage(inputImage);
         volumeFractionVoxel();
 	}
 
@@ -246,15 +247,6 @@ public class VolumeFractionVoxel implements VolumeFractionOp {
         foregroundVolume *= volumeScale;
         totalVolume *= volumeScale;
     }
-
-    private static void checkImage(ImagePlus image) {
-		checkNotNull(image, "Must have an input image");
-
-		int bitDepth = image.getBitDepth();
-		checkArgument(bitDepth == 8 || bitDepth == 16, "Input image bit depth must be 8 or 16");
-
-		checkArgument(ImageCheck.isBinary(image) || ImageCheck.isGrayscale(image), "Need a binary or grayscale image");
-	}
 
     private void initThresholds() {
         switch (inputImage.getType()) {
