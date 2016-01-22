@@ -3,10 +3,14 @@ package protoOps.connectivity;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import net.imagej.ops.Op;
 import net.imagej.ops.OpEnvironment;
 
 import org.bonej.common.ImageCheck;
+import org.bonej.common.MultiThreader;
 import org.scijava.ItemIO;
 import org.scijava.plugin.Parameter;
 import org.scijava.plugin.Plugin;
@@ -22,6 +26,7 @@ import ij.process.ImageProcessor;
 @Plugin(type = Op.class, name = "eulerConnectivity")
 public class Connectivity implements Op {
     private static final int EULER_LUT[] = new int[256];
+    private static final int FOREGROUND = -1;
 
     static {
         EULER_LUT[1] = 1;
@@ -237,18 +242,26 @@ public class Connectivity implements Op {
     }
 
     private void calculateEulerCharacteristic() {
-        eulerCharacteristic = 0;
+		eulerCharacteristic = 0;
+		final AtomicInteger atomicCounter = new AtomicInteger(0);
 
-        for (int z = 0; z <= depth; z++) {
-            for (int y = 0; y <= height; y++) {
-                for (int x = 0; x <= width; x++) {
-                    Octant octant = getOctant(x, y, z);
-                    eulerCharacteristic += deltaEuler(octant);
-                }
-            }
-        }
+        // Needed for concurrency. Just summing to eulerCharacteristic won't work if it isn't atomic.
+        // Making it atomic would diminish the benefits of parallelization.
+		final int[] sumEulerInt = new int[depth + 1];
 
-        eulerCharacteristic /= 8.0;
+		MultiThreader.startTask(() -> {
+			for (int z = atomicCounter.getAndIncrement(); z <= depth; z = atomicCounter.getAndIncrement()) {
+				for (int y = 0; y <= height; y++) {
+					for (int x = 0; x <= width; x++) {
+						Octant octant = getOctant(x, y, z);
+						sumEulerInt[z] += deltaEuler(octant);
+					}
+				}
+			}
+		});
+
+		eulerCharacteristic = Arrays.stream(sumEulerInt).sum();
+		eulerCharacteristic /= 8.0;
     }
 
     private int deltaEuler(Octant octant) {
@@ -258,75 +271,75 @@ public class Connectivity implements Op {
 
         int index;
 
-        if (octant.neighbors[8] == -1) {
+        if (octant.neighbors[8] == FOREGROUND) {
             index = 1;
-            if (octant.neighbors[1] == -1)
+            if (octant.neighbors[1] == FOREGROUND)
                 index |= 128;
-            if (octant.neighbors[2] == -1)
+            if (octant.neighbors[2] == FOREGROUND)
                 index |= 64;
-            if (octant.neighbors[3] == -1)
+            if (octant.neighbors[3] == FOREGROUND)
                 index |= 32;
-            if (octant.neighbors[4] == -1)
+            if (octant.neighbors[4] == FOREGROUND)
                 index |= 16;
-            if (octant.neighbors[5] == -1)
+            if (octant.neighbors[5] == FOREGROUND)
                 index |= 8;
-            if (octant.neighbors[6] == -1)
+            if (octant.neighbors[6] == FOREGROUND)
                 index |= 4;
-            if (octant.neighbors[7] == -1)
+            if (octant.neighbors[7] == FOREGROUND)
                 index |= 2;
-        } else if (octant.neighbors[7] == -1) {
+        } else if (octant.neighbors[7] == FOREGROUND) {
             index = 1;
-            if (octant.neighbors[2] == -1)
+            if (octant.neighbors[2] == FOREGROUND)
                 index |= 128;
-            if (octant.neighbors[4] == -1)
+            if (octant.neighbors[4] == FOREGROUND)
                 index |= 64;
-            if (octant.neighbors[1] == -1)
+            if (octant.neighbors[1] == FOREGROUND)
                 index |= 32;
-            if (octant.neighbors[3] == -1)
+            if (octant.neighbors[3] == FOREGROUND)
                 index |= 16;
-            if (octant.neighbors[6] == -1)
+            if (octant.neighbors[6] == FOREGROUND)
                 index |= 8;
-            if (octant.neighbors[5] == -1)
+            if (octant.neighbors[5] == FOREGROUND)
                 index |= 2;
-        } else if (octant.neighbors[6] == -1) {
+        } else if (octant.neighbors[6] == FOREGROUND) {
             index = 1;
-            if (octant.neighbors[3] == -1)
+            if (octant.neighbors[3] == FOREGROUND)
                 index |= 128;
-            if (octant.neighbors[1] == -1)
+            if (octant.neighbors[1] == FOREGROUND)
                 index |= 64;
-            if (octant.neighbors[4] == -1)
+            if (octant.neighbors[4] == FOREGROUND)
                 index |= 32;
-            if (octant.neighbors[2] == -1)
+            if (octant.neighbors[2] == FOREGROUND)
                 index |= 16;
-            if (octant.neighbors[5] == -1)
+            if (octant.neighbors[5] == FOREGROUND)
                 index |= 4;
-        } else if (octant.neighbors[5] == -1) {
+        } else if (octant.neighbors[5] == FOREGROUND) {
             index = 1;
-            if (octant.neighbors[4] == -1)
+            if (octant.neighbors[4] == FOREGROUND)
                 index |= 128;
-            if (octant.neighbors[3] == -1)
+            if (octant.neighbors[3] == FOREGROUND)
                 index |= 64;
-            if (octant.neighbors[2] == -1)
+            if (octant.neighbors[2] == FOREGROUND)
                 index |= 32;
-            if (octant.neighbors[1] == -1)
+            if (octant.neighbors[1] == FOREGROUND)
                 index |= 16;
-        } else if (octant.neighbors[4] == -1) {
+        } else if (octant.neighbors[4] == FOREGROUND) {
             index = 1;
-            if (octant.neighbors[1] == -1)
+            if (octant.neighbors[1] == FOREGROUND)
                 index |= 8;
-            if (octant.neighbors[3] == -1)
+            if (octant.neighbors[3] == FOREGROUND)
                 index |= 4;
-            if (octant.neighbors[2] == -1)
+            if (octant.neighbors[2] == FOREGROUND)
                 index |= 2;
-        } else if (octant.neighbors[3] == -1) {
+        } else if (octant.neighbors[3] == FOREGROUND) {
             index = 1;
-            if (octant.neighbors[2] == -1)
+            if (octant.neighbors[2] == FOREGROUND)
                 index |= 8;
-            if (octant.neighbors[1] == -1)
+            if (octant.neighbors[1] == FOREGROUND)
                 index |= 4;
-        } else if (octant.neighbors[2] == -1) {
+        } else if (octant.neighbors[2] == FOREGROUND) {
             index = 1;
-            if (octant.neighbors[1] == -1)
+            if (octant.neighbors[1] == FOREGROUND)
                 index |= 2;
         } else {
             // if we have got here, all the other voxels are background
