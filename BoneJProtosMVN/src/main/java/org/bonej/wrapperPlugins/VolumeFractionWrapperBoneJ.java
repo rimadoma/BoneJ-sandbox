@@ -22,18 +22,19 @@ import protoOps.volumeFraction.VolumeFractionVoxel;
 
 import com.google.common.collect.ImmutableList;
 
+import customnode.CustomTriangleMesh;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.gui.WaitForUserDialog;
 import ij.plugin.frame.RoiManager;
 import ij.process.ImageProcessor;
+import ij3d.Image3DUniverse;
 
 /**
  * A class which wraps the two VolumeFractionOp classes as a single BoneJ plugin in the UI
  *
  * @author Richard Domander
  * @todo Fix settings dialog - should not pop up when init fails
- * @todo Fix render volume surface
  * @todo Find a way to set thresholds in UI without a modal dialog
  */
 @Plugin(type = Command.class, menuPath = "Plugins>BoneJ>VolumeFraction", headless = true)
@@ -181,16 +182,14 @@ public class VolumeFractionWrapperBoneJ extends ContextCommand {
             return;
         }
 
-        uiService.showDialog("Volume surface rendering not functional due Java3D issues with Java 8");
-
-        /*VolumeFractionSurface volumeFractionSurface = (VolumeFractionSurface)volumeFractionOp;
+        VolumeFractionSurface volumeFractionSurface = (VolumeFractionSurface)volumeFractionOp;
         CustomTriangleMesh foregroundSurface = volumeFractionSurface.getForegroundSurface();
         CustomTriangleMesh totalSurface = volumeFractionSurface.getTotalSurface();
 
         Image3DUniverse universe = new Image3DUniverse();
         universe.addCustomMesh(foregroundSurface, "Bone volume");
         universe.addCustomMesh(totalSurface, "Total volume");
-        universe.show();*/
+        universe.show();
     }
 
     private void thresholdImage() {

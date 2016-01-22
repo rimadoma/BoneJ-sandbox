@@ -30,6 +30,7 @@ import ij.process.ImageProcessor;
 /**
  * An Op which calculates the volumes of the sample by generating a surface mesh
  *
+ * @todo Migrate to imagej-ops DefaultMesh & MarchingCubes
  * @todo Solve issues with Fiji 20.0.0
  * @todo check that plugin works when run trough OpService
  * @author Michael Doube
