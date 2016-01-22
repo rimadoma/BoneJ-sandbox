@@ -21,6 +21,7 @@ public class StaticTestImageHelper {
 	/**
 	 * Creates an ImagePlus with a cuboid in it
 	 *
+     * @todo Fix bug: black image if depth == 1 && padding == 0
 	 * @param width
 	 *            The width of the cuboid
 	 * @param height
@@ -70,6 +71,7 @@ public class StaticTestImageHelper {
 	/**
 	 * Draw the wire-frame model i.e. the edges of the given cuboid
 	 *
+     * @todo Fix bug: black image if depth == 1 && padding == 0
 	 * @param width
 	 *            Width of the cuboid frame in pixels
 	 * @param height
@@ -100,19 +102,19 @@ public class StaticTestImageHelper {
 		final int paddedDepth = depth + totalPadding;
 		final int boxColor = 0xFF;
 
-		ImageStack stack = createEmptyStack(paddedWidth, paddedDepth, paddedHeight);
+		ImageStack stack = createEmptyStack(paddedWidth, paddedHeight, paddedDepth);
 
 		// Draw edges in the xy-plane
 		ImageProcessor ip = new ByteProcessor(paddedWidth, paddedHeight);
 		ip.setColor(boxColor);
 		ip.drawRect(padding, padding, width, height);
-		stack.setProcessor(ip.duplicate(), padding);
-		stack.setProcessor(ip.duplicate(), padding + depth);
+        final int firstCuboidSlice = padding + 1;
+        final int lastCuboidSlice = padding + depth;
+		stack.setProcessor(ip.duplicate(), firstCuboidSlice);
+		stack.setProcessor(ip.duplicate(), lastCuboidSlice);
 
 		// Draw edges in the xz-plane
-		final int firstCuboidSlice = padding + 1;
-		final int lastCuboidSlice = padding + depth;
-		for (int s = firstCuboidSlice; s <= lastCuboidSlice; s++) {
+		for (int s = firstCuboidSlice + 1; s < lastCuboidSlice; s++) {
 			ip = stack.getProcessor(s);
 			ip.setColor(boxColor);
 			ip.drawPixel(padding, padding);
