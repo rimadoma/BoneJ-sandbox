@@ -20,6 +20,12 @@ import ij.ImageStack;
 import ij.process.ImageProcessor;
 
 /**
+ *
+ * How to run programmatically:
+ * You can call the plugin via an opService, or you can initialize an object and then:
+ * 1) call setInputImage(ImagePlus image)
+ * 2) call run()
+ *
  * @author Michael Doube
  * @author Richard Domander
  */
@@ -239,6 +245,331 @@ public class Connectivity implements Op {
     }
 
     private void calculateDeltaChi() {
+        deltaChi = eulerCharacteristic - getEdgeCorrection();
+    }
+
+    private boolean isNeighborhoodForeground(int x, int y, int z, Orientation1D orientation) {
+        switch (orientation) {
+            case X:
+                return getPixel(x, y, z) == FOREGROUND || getPixel(x, y, z) == FOREGROUND;
+            case Y:
+                return getPixel(x, y, z) == FOREGROUND || getPixel(x, y - 1, z) == FOREGROUND;
+            case Z:
+                return getPixel(x, y, z) == FOREGROUND || getPixel(x, y, z - 1) == FOREGROUND;
+            default:
+                return false;
+        }
+    }
+
+    private boolean isNeighborhoodForeground(int x, int y, int z, Orientation2D orientation)
+    {
+        switch (orientation) {
+            case XY:
+                return getPixel(x, y, z) == FOREGROUND || getPixel(x, y - 1, z) == FOREGROUND
+                        || getPixel(x - 1, y - 1, z) == FOREGROUND || getPixel(x - 1, y, z) == FOREGROUND;
+            case XZ:
+                return getPixel(x, y, z) == FOREGROUND || getPixel(x, y, z - 1) == FOREGROUND
+                        || getPixel(x - 1, y, z - 1) == FOREGROUND || getPixel(x - 1, y, z) == FOREGROUND;
+            case YZ:
+                return getPixel(x, y, z) == FOREGROUND || getPixel(x, y - 1, z) == FOREGROUND
+                        || getPixel(x, y - 1, z - 1) == FOREGROUND || getPixel(x, y, z - 1) == FOREGROUND;
+            default:
+                return false;
+        }
+    }
+
+    private double getEdgeCorrection() {
+        double chiZero = getStackVertices();
+        double e = getStackEdges() + 3.0 * chiZero;
+        double c = getStackFaces() + 2.0 * e - 3.0 * chiZero;
+
+        double d = getEdgeVertices() + chiZero;
+        double a = getFaceVertices();
+        double b = getFaceEdges();
+
+        double chiOne = d - e;
+        double chiTwo = a - b + c;
+
+        double edgeCorrection = chiTwo / 2.0 + chiOne / 4.0 + chiZero / 8.0;
+        return edgeCorrection;
+    }
+
+    private double getFaceEdges() {
+        long nFaceEdges = 0;
+        int xInc = Math.max(1, width - 1);
+        int yInc = Math.max(1, height - 1);
+        int zInc = Math.max(1, depth - 1);
+
+        // top and bottom faces (all 4 edges)
+        // check 2 edges per voxel
+        for (int z = 0; z < depth; z += zInc) {
+            for (int y = 0; y <= height; y++) {
+                for (int x = 0; x <= width; x++) {
+                    // if the voxel or any of its neighbours are foreground, the
+                    // vertex is counted
+                    if (getPixel(x, y, z) == FOREGROUND) {
+                        nFaceEdges += 2;
+                        continue;
+                    }
+
+                    if (getPixel(x, y - 1, z) == FOREGROUND) {
+                        nFaceEdges++;
+                    }
+
+                    if (getPixel(x - 1, y, z) == FOREGROUND) {
+                        nFaceEdges++;
+                    }
+                }
+            }
+        }
+
+        // back and front faces, horizontal edges
+        for (int y = 0; y < height; y += yInc) {
+            for (int z = 1; z < depth; z++) {
+                for (int x = 0; x < width; x++) {
+                    if (isNeighborhoodForeground(x, y, z, Orientation1D.Z)) {
+                        nFaceEdges++;
+                    }
+                }
+            }
+        }
+
+        // back and front faces, vertical edges
+        for (int y = 0; y < height; y += yInc) {
+            for (int z = 0; z < depth; z++) {
+                for (int x = 0; x <= width; x++) {
+                    if (isNeighborhoodForeground(x, y, z, Orientation1D.X)) {
+                        nFaceEdges++;
+                    }
+                }
+            }
+        }
+
+        // left and right stack faces, horizontal edges
+        for (int x = 0; x < width; x += xInc) {
+            for (int z = 1; z < depth; z++) {
+                for (int y = 0; y < height; y++) {
+                    if (isNeighborhoodForeground(x, y, z, Orientation1D.Z)) {
+                        nFaceEdges++;
+                    }
+                }
+            }
+        }
+
+        // left and right stack faces, vertical voxel edges
+        for (int x = 0; x < width; x += xInc) {
+            for (int z = 0; z < depth; z++) {
+                for (int y = 1; y < height; y++) {
+                    if (isNeighborhoodForeground(x, y, z, Orientation1D.Y)) {
+                        nFaceEdges++;
+                    }
+                }
+            }
+        }
+        
+        return nFaceEdges;
+    }
+
+    private double getFaceVertices() {
+        int xInc = Math.max(1, width - 1);
+        int yInc = Math.max(1, height - 1);
+        int zInc = Math.max(1, depth - 1);
+        long nFaceVertices = 0;
+
+        // top and bottom faces (all 4 edges)
+        for (int z = 0; z < depth; z += zInc) {
+            for (int y = 0; y <= height; y++) {
+                for (int x = 0; x <= width; x++) {
+                    if (isNeighborhoodForeground(x, y, z, Orientation2D.XY)) {
+                        nFaceVertices++;
+                    }
+                }
+            }
+        }
+
+        // left and right faces (2 vertical edges)
+        for (int x = 0; x < width; x += xInc) {
+            for (int y = 0; y <= height; y++) {
+                for (int z = 1; z < depth; z++) {
+                    if (isNeighborhoodForeground(x, y, z, Orientation2D.YZ)) {
+                        nFaceVertices++;
+                    }
+                }
+            }
+        }
+
+        // back and front faces (0 vertical edges)
+        for (int y = 0; y < height; y += yInc) {
+            for (int x = 1; x < width; x++) {
+                for (int z = 1; z < depth; z++) {
+                    if (isNeighborhoodForeground(x, y, z, Orientation2D.XZ)) {
+                        nFaceVertices++;
+                    }
+                }
+            }
+        }
+
+        return nFaceVertices;
+    }
+
+    private double getEdgeVertices() {
+        int xInc = Math.max(1, width - 1);
+        int yInc = Math.max(1, height - 1);
+        int zInc = Math.max(1, depth - 1);
+        long nEdgeVertices = 0;
+
+        // vertex voxels contribute 1 edge vertex each
+        // this could be taken out into a variable to avoid recalculating it
+        // nEdgeVertices += getStackVertices(stack);
+
+        // left->right edges
+        for (int z = 0; z < depth; z += zInc) {
+            for (int y = 0; y < height; y += yInc) {
+                for (int x = 1; x < width; x++) {
+                    if (isNeighborhoodForeground(x, y, z, Orientation1D.X)) {
+                        nEdgeVertices++;
+                    }
+                }
+            }
+        }
+
+        // back->front edges
+        for (int z = 0; z < depth; z += zInc) {
+            for (int x = 0; x < width; x += xInc) {
+                for (int y = 1; y < height; y++) {
+                    if (isNeighborhoodForeground(x, y, z, Orientation1D.Y)) {
+                        nEdgeVertices++;
+                    }
+                }
+            }
+        }
+
+        // top->bottom edges
+        for (int y = 0; y < height; y += yInc) {
+            for (int x = 0; x < width; x += xInc) {
+                for (int z = 1; z < depth; z++) {
+                    if (isNeighborhoodForeground(x, y, z, Orientation1D.Z)) {
+                        nEdgeVertices++;
+                    }
+                }
+            }
+        }
+
+        return nEdgeVertices;
+    }
+
+    private double getStackFaces() {
+        int xInc = Math.max(1, width - 1);
+        int yInc = Math.max(1, height - 1);
+        int zInc = Math.max(1, depth - 1);
+        long nStackFaces = 0;
+
+        // vertex voxels contribute 3 faces
+        // this could be taken out into a variable to avoid recalculating it
+        // nStackFaces += getStackVertices(stack) * 3;
+
+        // edge voxels contribute 2 faces
+        // this could be taken out into a variable to avoid recalculating it
+        // nStackFaces += getStackEdges(stack) * 2;
+
+        // top and bottom faces
+        for (int z = 0; z < depth; z += zInc) {
+            for (int y = 1; y < height - 1; y++) {
+                for (int x = 1; x < width - 1; x++) {
+                    if (getPixel(x, y, z) == FOREGROUND) {
+                        nStackFaces++;
+                    }
+                }
+            }
+        }
+
+        // back and front faces
+        for (int y = 0; y < height; y += yInc) {
+            for (int z = 1; z < depth - 1; z++) {
+                for (int x = 1; x < width - 1; x++) {
+                    if (getPixel(x, y, z) == FOREGROUND) {
+                        nStackFaces++;
+                    }
+                }
+            }
+        }
+
+        // left and right faces
+        for (int x = 0; x < width; x += xInc) {
+            for (int y = 1; y < height - 1; y++) {
+                for (int z = 1; z < depth - 1; z++) {
+                    if (getPixel(x, y, z) == FOREGROUND) {
+                        nStackFaces++;
+                    }
+                }
+            }
+        }
+        return nStackFaces;
+    }
+
+    private double getStackEdges() {
+        int xInc = Math.max(1, width - 1);
+        int yInc = Math.max(1, height - 1);
+        int zInc = Math.max(1, depth - 1);
+        long nStackEdges = 0;
+
+        // vertex voxels contribute 3 edges
+        // this could be taken out into a variable to avoid recalculating it
+        // nStackEdges += getStackVertices(stack) * 3; = f * 3;
+
+        // left to right stack edges
+        for (int z = 0; z < depth; z += zInc) {
+            for (int y = 0; y < height; y += yInc) {
+                for (int x = 1; x < width - 1; x++) {
+                    if (getPixel(x, y, z) == FOREGROUND) {
+                        nStackEdges++;
+                    }
+                }
+            }
+        }
+
+        // back to front stack edges
+        for (int z = 0; z < depth; z += zInc) {
+            for (int x = 0; x < width; x += xInc) {
+                for (int y = 1; y < height - 1; y++) {
+                    if (getPixel(x, y, z) == FOREGROUND) {
+                        nStackEdges++;
+                    }
+                }
+            }
+        }
+
+        // top to bottom stack edges
+        for (int y = 0; y < height; y += yInc) {
+            for (int x = 0; x < width; x += xInc) {
+                for (int z = 1; z < depth - 1; z++) {
+                    if (getPixel(x, y, z) == FOREGROUND) {
+                        nStackEdges++;
+                    }
+                }
+            }
+        }
+
+        return nStackEdges;
+    }
+
+    private double getStackVertices() {
+        int xInc = Math.max(1, width - 1);
+        int yInc = Math.max(1, height - 1);
+        int zInc = Math.max(1, depth - 1);
+        long nStackVertices = 0;
+        
+        for (int z = 0; z < depth; z += zInc) {
+            for (int y = 0; y < height; y += yInc) {
+                for (int x = 0; x < width; x += xInc) {
+                    if (getPixel(x, y, z) == FOREGROUND) {
+                        nStackVertices++;
+                    }
+                }
+            }
+        }
+
+        return nStackVertices;
     }
 
     private void calculateEulerCharacteristic() {
@@ -390,6 +721,18 @@ public class Connectivity implements Op {
                 neighborCount -= n;
             }
         }
+    }
+
+    private enum Orientation1D {
+        X,
+        Y,
+        Z
+    }
+
+    private enum Orientation2D {
+        XY,
+        XZ,
+        YZ
     }
     //endregion
 }
