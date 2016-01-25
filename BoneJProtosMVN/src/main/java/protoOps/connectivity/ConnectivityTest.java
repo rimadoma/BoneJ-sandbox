@@ -9,6 +9,9 @@ import protoOps.testImageCreators.StaticTestImageHelper;
 import ij.ImagePlus;
 
 /**
+ * @todo   Improve tests, these have bad validity. It's possible for these tests to pass,
+ *          and the plugin still to produce wrong results with a real image
+ *          (binary_trabeculae_small.tif @ commit #3fd445f).
  * @author Richard Domander
  */
 public class ConnectivityTest {
