@@ -6,6 +6,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import ij.measure.Calibration;
 import net.imagej.ops.Op;
 import net.imagej.ops.OpEnvironment;
 
@@ -237,11 +238,18 @@ public class Connectivity implements Op {
     }
 
     private void calculateConnectivityDensity() {
+        double stackVolume = width * height * depth;
 
+        Calibration calibration = inputImage.getCalibration();
+        double pixelVolume = calibration.pixelWidth * calibration.pixelHeight * calibration.pixelDepth;
+
+        double volume = stackVolume * pixelVolume;
+
+        connectivityDensity = connectivity / volume;
     }
 
     private void calculateConnectivity() {
-
+        connectivity = 1.0 - deltaChi;
     }
 
     private void calculateDeltaChi() {
