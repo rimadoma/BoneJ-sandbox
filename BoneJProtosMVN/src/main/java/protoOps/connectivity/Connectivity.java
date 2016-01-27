@@ -4,13 +4,12 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.Arrays;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.IntStream;
 
 import net.imagej.ops.Op;
 import net.imagej.ops.OpEnvironment;
 
 import org.bonej.common.ImageCheck;
-import org.bonej.common.MultiThreader;
 import org.scijava.ItemIO;
 import org.scijava.plugin.Parameter;
 import org.scijava.plugin.Plugin;
@@ -269,17 +268,12 @@ public class Connectivity implements Op {
     private void calculateEulerCharacteristic() {
         // The array sumEulerInt is needed to calculate eulerCharacteristic concurrently
         final int[] sumEulerInt = new int[depth + 1];
-        final AtomicInteger atomicZ = new AtomicInteger(0);
 
-        MultiThreader.startTask(() -> {
-            long deltaEuler = 0;
-            for (int z = atomicZ.getAndIncrement(); z <= depth; z = atomicZ.getAndIncrement()) {
-                for (int y = 0; y <= height; y++) {
-                    for (int x = 0; x <= width; x++) {
-                        final byte[] octant = getOctant(x, y, z);
-                        deltaEuler = getDeltaEuler(octant);
-                        sumEulerInt[z] += deltaEuler;
-                    }
+        IntStream.rangeClosed(0, depth).parallel().forEach(z -> {
+            for (int y = 0; y <= height; y++) {
+                for (int x = 0; x <= width; x++) {
+                    final byte[] octant = getOctant(x, y, z);
+                    sumEulerInt[z] += getDeltaEuler(octant);
                 }
             }
         });
