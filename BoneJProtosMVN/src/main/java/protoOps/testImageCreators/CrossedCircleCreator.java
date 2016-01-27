@@ -15,6 +15,7 @@ import ij.ImagePlus;
  * An Op which creates an image of a circle and a cross. Can be used, e.g. for
  * testing other Ops or Plugins.
  *
+ * @todo inherit AbstractContextual
  * @author Richard Domander
  */
 @Plugin(type = Op.class, name = "crossedCircleCreator", menuPath = "Plugins>Test Images>Crossed circle")

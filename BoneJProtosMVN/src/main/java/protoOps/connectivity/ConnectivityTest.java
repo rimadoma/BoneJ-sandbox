@@ -58,7 +58,8 @@ public class ConnectivityTest {
     }
 
     /**
-     * @todo Test fails if any cuboid dimension < 3
+     *  If any of the cuboid's dimensions is < 3 then the cuboid won't have a hole in it,
+     *  thus it'll produce a different euler characteristic, and the test will fail
      */
     @Test
     public void testGetEulerCharacteristicBoxFrame() throws Exception {

@@ -21,6 +21,7 @@ import ij.ImagePlus;
  * An Op which creates an image of a solid cuboid. Can be used, e.g. for testing
  * other Ops or Plugins.
  *
+ * @todo inherit AbstractContextual
  * @author Richard Domander
  */
 @Plugin(type = Op.class, name = "cuboidCreator", menuPath = "Plugins>Test Images>Cuboid")
