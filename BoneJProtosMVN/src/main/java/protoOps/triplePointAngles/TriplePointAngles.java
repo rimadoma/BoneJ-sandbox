@@ -4,6 +4,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.ArrayList;
+import java.util.stream.IntStream;
 
 import net.imagej.ops.Op;
 import net.imagej.ops.OpEnvironment;
@@ -27,6 +28,8 @@ import ij.ImagePlus;
  * edges (branches), at each triple point (vertex) in each skeleton (graph) in
  * the image.
  *
+ * @todo Check parallelization with a real world image
+ * @todo Fix case nthPoint == 0
  * @author Michael Doube
  * @author Richard Domander
  */
@@ -124,45 +127,22 @@ public class TriplePointAngles implements Op {
 			ArrayList<Vertex> vertices = graph.getVertices();
 			ArrayList<double[]> vertexAngles = new ArrayList<>();
 
-			for (Vertex vertex : vertices) {
-				if (!isTriplePoint(vertex)) {
-					continue;
-				}
+            for (Vertex vertex : vertices) {
+                if (!isTriplePoint(vertex)) {
+                    continue;
+                }
 
-				ArrayList<Edge> edges = vertex.getBranches();
-				Edge edge0 = edges.get(0);
-				Edge edge1 = edges.get(1);
-				Edge edge2 = edges.get(2);
+                double thetas[] = calculateAnglesForVertex(vertex);
+                vertexAngles.add(thetas);
+            }
 
-				double thetas[] = new double[3];
-				if (nthPoint == VERTEX_TO_VERTEX) {
-					thetas[0] = vertexToVertexAngle(vertex, edge0, edge1);
-					thetas[1] = vertexToVertexAngle(vertex, edge0, edge2);
-					thetas[2] = vertexToVertexAngle(vertex, edge1, edge2);
-				} else {
-					thetas[0] = vertexAngle(vertex, edge0, edge1);
-					thetas[1] = vertexAngle(vertex, edge0, edge2);
-					thetas[2] = vertexAngle(vertex, edge1, edge2);
-				}
-
-				vertexAngles.add(thetas);
-			}
 			graphsVertices.add(vertexAngles);
 		}
 
-		results = new double[graphsVertices.size()][][];
-		final int treeSize = graphsVertices.size();
-		for (int g = 0; g < treeSize; g++) {
-			ArrayList<double[]> vertexAngles = graphsVertices.get(g);
-			final int graphSize = vertexAngles.size();
-			results[g] = new double[graphSize][];
-			for (int v = 0; v < graphSize; v++) {
-				results[g][v] = vertexAngles.get(v);
-			}
-		}
+        createResultsArray(graphsVertices);
 	}
 
-	@Override
+    @Override
 	public void run() {
 		calculateTriplePointAngles();
 	}
@@ -178,6 +158,39 @@ public class TriplePointAngles implements Op {
 	}
 
 	// region -- Helper methods --
+    private void createResultsArray(final ArrayList<ArrayList<double[]>> graphsVertices) {
+        results = new double[graphsVertices.size()][][];
+        final int treeSize = graphsVertices.size();
+        for (int g = 0; g < treeSize; g++) {
+            ArrayList<double[]> vertexAngles = graphsVertices.get(g);
+            final int graphSize = vertexAngles.size();
+            results[g] = new double[graphSize][];
+            for (int v = 0; v < graphSize; v++) {
+                results[g][v] = vertexAngles.get(v);
+            }
+        }
+    }
+
+    private double[] calculateAnglesForVertex(final Vertex vertex) {
+        ArrayList<Edge> edges = vertex.getBranches();
+        Edge edge0 = edges.get(0);
+        Edge edge1 = edges.get(1);
+        Edge edge2 = edges.get(2);
+
+        double thetas[] = new double[3];
+        if (nthPoint == VERTEX_TO_VERTEX) {
+            thetas[0] = vertexToVertexAngle(vertex, edge0, edge1);
+            thetas[1] = vertexToVertexAngle(vertex, edge0, edge2);
+            thetas[2] = vertexToVertexAngle(vertex, edge1, edge2);
+        } else {
+            thetas[0] = vertexAngle(vertex, edge0, edge1);
+            thetas[1] = vertexAngle(vertex, edge0, edge2);
+            thetas[2] = vertexAngle(vertex, edge1, edge2);
+        }
+
+        return thetas;
+    }
+
 	/**
 	 * Checks if the plugin can process the given image
 	 *

@@ -13,6 +13,8 @@ import ij.plugin.frame.RoiManager;
 /**
  * An interface for Ops which measure the volume of foreground elements over the total volume of the sample
  *
+ * @todo    Find out if @Parameters work properly with inheritance,
+ *          and thus if you can add default methods / change this from an interface to abstract class
  * @author Richard Domander
  */
 public interface VolumeFractionOp extends Op {

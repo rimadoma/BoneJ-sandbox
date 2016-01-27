@@ -37,6 +37,8 @@ public class VolumeFractionSurfaceTest {
      * Test adopted from doube's unit tests for VolumeFraction in BoneJ1.
      * Ignore test because it basically just tests CustomTriangleMesh.getVolume()
      * whose implementation has apparently changed since bonej1, because the test fails.
+     *
+     * When run with the image binary_trabeculae_small.tif the plugin produces same results than in BoneJ1
      */
     @Ignore
     @Test

@@ -5,6 +5,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.awt.*;
 import java.util.ArrayList;
+import java.util.stream.IntStream;
 
 import javax.vecmath.Color3f;
 
@@ -33,6 +34,7 @@ import ij.process.ImageProcessor;
  * @todo Migrate to imagej-ops DefaultMesh & MarchingCubes
  * @todo Solve issues with Fiji 20.0.0
  * @todo check that plugin works when run trough OpService
+ * @todo Fix run with RoiManager
  * @author Michael Doube
  * @author Richard Domander
  */
@@ -236,16 +238,16 @@ public class VolumeFractionSurface implements VolumeFractionOp {
                                            final ImageStack outStack) {
         final Roi defaultRoi = new Roi(0, 0, inputStack.getWidth(), inputStack.getHeight());
 
-        for (int sliceNumber = zMin; sliceNumber <= zMax; sliceNumber++) {
-            final ImageProcessor slice = inputStack.getProcessor(sliceNumber);
+        IntStream.rangeClosed(zMin, zMax).forEach( z -> {
+            final ImageProcessor slice = inputStack.getProcessor(z);
             slice.setRoi(defaultRoi);
             ImageProcessor mask = slice.getMask();
             if (mask == null) {
-                drawSurfaceMasks(slice, maskStack, outStack, sliceNumber, xMin, yMin, zMin);
+                drawSurfaceMasks(slice, maskStack, outStack, z, xMin, yMin, zMin);
             } else {
-                drawSurfaceMasksWithProcessorMask(slice, mask, maskStack, outStack, sliceNumber, xMin, yMin, zMin);
+                drawSurfaceMasksWithProcessorMask(slice, mask, maskStack, outStack, z, xMin, yMin, zMin);
             }
-        }
+        });
     }
 
     private void drawSurfaceMasksWithRois(final int zMin, final int zMax, final int xMin, final int yMin,

@@ -106,8 +106,14 @@ public class DatasetWrappingExample extends AbstractContextual implements Op {
 
         final DatasetWrappingExample datasetExample = new DatasetWrappingExample();
         datasetExample.setContext(ij.getContext());
-        datasetExample.setDataset(inputDataset);
-        datasetExample.run();
+
+        try {
+            datasetExample.setDataset(inputDataset);
+            datasetExample.run();
+        } catch (Exception e) {
+            System.out.println("Exception: " + e.getMessage());
+            return;
+        }
 
         ij.ui().showUI();
     }
@@ -163,7 +169,7 @@ public class DatasetWrappingExample extends AbstractContextual implements Op {
 
     private void setImagePlus() {
         //@todo Find out why the call to convert pops up a weird image window
-        ImagePlus imagePlus = convertService.convert(this.dataset, ImagePlus.class);
+        ImagePlus imagePlus = convertService.convert(dataset, ImagePlus.class);
         checkImage(imagePlus);
         image = imagePlus;
     }
