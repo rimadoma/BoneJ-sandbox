@@ -3,9 +3,10 @@ package protoOps.volumeFraction;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.awt.*;
+import java.awt.Rectangle;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.stream.IntStream;
 
 import net.imagej.ops.Op;
 import net.imagej.ops.OpEnvironment;
@@ -27,6 +28,7 @@ import ij.process.ImageProcessor;
  * An Op which calculates the volumes of the sample by counting the voxels in the image
  *
  * @todo check that plugin works when run trough OpService
+ * @todo write unit tests with test images
  * @author Michael Doube
  * @author Richard Domander
  */
@@ -141,7 +143,6 @@ public class VolumeFractionVoxel implements VolumeFractionOp {
     }
 
     // region -- Helper methods --
-
     private void volumeFractionVoxel() {
         final ImageStack stack = inputImage.getStack();
         final int stackSize = stack.getSize();
@@ -164,28 +165,27 @@ public class VolumeFractionVoxel implements VolumeFractionOp {
         final Roi defaultRoi = new Roi(0, 0, stack.getWidth(), stack.getHeight());
         final int stackSize = stack.getSize();
 
-        for (int slice = 1; slice <= stackSize; slice++) {
-            ImageProcessor processor = stack.getProcessor(slice);
-            calculateVoxelSliceVolumes(processor, defaultRoi, sliceTotalVolumes, sliceForeGroundsVolumes, slice);
-        }
+        IntStream.rangeClosed(1, stackSize).parallel().forEach(z -> {
+            final ImageProcessor processor = stack.getProcessor(z);
+            calculateVoxelSliceVolumes(processor, defaultRoi, sliceTotalVolumes, sliceForeGroundsVolumes, z);
+        });
     }
 
     private void voxelVolumeWithRois(ImageStack stack, long[] sliceTotalVolumes, long[] sliceForeGroundsVolumes) {
         final int stackSize = stack.getSize();
 
-        for (int slice = 1; slice <= stackSize; slice++) {
-            ArrayList<Roi> rois = RoiUtil.getSliceRoi(roiManager, stack, slice);
+		IntStream.rangeClosed(1, stackSize).parallel().forEach(z -> {
+			final ArrayList<Roi> rois = RoiUtil.getSliceRoi(roiManager, stack, z);
 
-            if (rois.isEmpty()) {
-                continue;
-            }
+			if (rois.isEmpty()) {
+				return;
+			}
 
-            ImageProcessor processor = stack.getProcessor(slice);
-
-            for (Roi roi : rois) {
-                calculateVoxelSliceVolumes(processor, roi, sliceTotalVolumes, sliceForeGroundsVolumes, slice);
-            }
-        }
+			final ImageProcessor processor = stack.getProcessor(z);
+			for (Roi roi : rois) {
+				calculateVoxelSliceVolumes(processor, roi, sliceTotalVolumes, sliceForeGroundsVolumes, z);
+			}
+		});
     }
 
     private void calculateVoxelSliceVolumes(ImageProcessor processor, Roi roi, long[] sliceTotalVolumes,

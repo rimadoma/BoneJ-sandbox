@@ -29,6 +29,8 @@ import ij.measure.Calibration;
  * 1) call setInputImage(ImagePlus image)
  * 2) call run()
  *
+ * @todo Handle special cases where the stack only has two dimensions (XY / XZ / YZ)
+ * @todo Rewrite to use Datasets either directly or by unwrapping them as ImagePlus
  * @author Michael Doube
  * @author Richard Domander
  */
