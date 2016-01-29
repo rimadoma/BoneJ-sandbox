@@ -218,6 +218,9 @@ public class VolumeFractionSurface implements VolumeFractionOp {
         maskImp.setStack("Mask", maskStack);
         maskImp.setCalibration(calibration);
 
+        analyzeMask("Foreground mask", outStack, 1 , 1);
+        analyzeMask("Total sample mask", maskStack, 1, 1);
+
         Color3f yellow = new Color3f(1.0f, 1.0f, 0.0f);
         boolean[] channels = { true, false, false };
         MCTriangulator mct = new MCTriangulator();
@@ -233,15 +236,39 @@ public class VolumeFractionSurface implements VolumeFractionOp {
         volumeRatio = foregroundVolume / totalVolume;
     }
 
+    /**
+     * Code for print debugging
+     * @Todo Remove when no longer necessary
+     */
+    private void analyzeMask(final String maskName, final ImageStack maskStack, final int zMin, final int zMax) {
+        System.out.println(maskName);
+
+        int fgPixels = 0;
+        int totalPixels = 0;
+        for (int z = zMin; z <= zMax; z++) {
+            final byte[] slice = (byte[]) maskStack.getPixels(z);
+            for (int p = 0; p < slice.length; p++) {
+                if (slice[p] != 0) {
+                    fgPixels++;
+                }
+            }
+            totalPixels += slice.length;
+        }
+
+        System.out.println("Foreground / total pixels: " + fgPixels + "/" + totalPixels);
+        System.out.println();
+    }
+
     private void drawSurfaceMasksWithNoRoi(final int zMin, final int zMax, final int xMin, final int yMin,
                                            final ImageStack inputStack, final ImageStack maskStack,
                                            final ImageStack outStack) {
         final Roi defaultRoi = new Roi(0, 0, inputStack.getWidth(), inputStack.getHeight());
 
-        IntStream.rangeClosed(zMin, zMax).forEach( z -> {
+        IntStream.rangeClosed(zMin, zMax).parallel().forEach( z -> {
             final ImageProcessor slice = inputStack.getProcessor(z);
             slice.setRoi(defaultRoi);
-            ImageProcessor mask = slice.getMask();
+
+            final ImageProcessor mask = slice.getMask();
             if (mask == null) {
                 drawSurfaceMasks(slice, maskStack, outStack, z, xMin, yMin, zMin);
             } else {
@@ -253,27 +280,29 @@ public class VolumeFractionSurface implements VolumeFractionOp {
     private void drawSurfaceMasksWithRois(final int zMin, final int zMax, final int xMin, final int yMin,
                                           final ImageStack inputStack, final ImageStack maskStack,
                                           final ImageStack outStack) {
-        for (int sliceNumber = zMin; sliceNumber <= zMax; sliceNumber++) {
-            ArrayList<Roi> rois = RoiUtil.getSliceRoi(roiManager, inputStack, sliceNumber);
-            if (rois.isEmpty()) {
-                continue;
-            }
+		IntStream.rangeClosed(zMin, zMax).parallel().forEach(z -> {
+			final ArrayList<Roi> rois = RoiUtil.getSliceRoi(roiManager, inputStack, z);
+			if (rois.isEmpty()) {
+				return;
+			}
 
-            final ImageProcessor slice = inputStack.getProcessor(sliceNumber);
-
+            final ImageProcessor slice = inputStack.getProcessor(z);
             for (Roi roi : rois) {
                 slice.setRoi(roi);
 
-                ImageProcessor mask = slice.getMask();
+                final ImageProcessor mask = slice.getMask();
                 if (mask == null) {
-                    drawSurfaceMasks(slice, maskStack, outStack, sliceNumber, xMin, yMin, zMin);
+                    drawSurfaceMasks(slice, maskStack, outStack, z, xMin, yMin, zMin);
                 } else {
-                    drawSurfaceMasksWithProcessorMask(slice, mask, maskStack, outStack, sliceNumber, xMin, yMin, zMin);
+                    drawSurfaceMasksWithProcessorMask(slice, mask, maskStack, outStack, z, xMin, yMin, zMin);
                 }
             }
-        }
+		});
     }
 
+    /**
+     * @todo Test results against BoneJ1 with a polygonal ROI (a ROI with a mask)
+     */
     private void drawSurfaceMasksWithProcessorMask(final ImageProcessor slice, final ImageProcessor mask,
                                                    final ImageStack maskStack, final ImageStack outStack,
                                                    final int sliceNumber, final int xMin, final int yMin,
