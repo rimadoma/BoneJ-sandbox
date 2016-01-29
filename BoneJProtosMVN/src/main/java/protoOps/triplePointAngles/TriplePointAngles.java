@@ -21,6 +21,8 @@ import sc.fiji.analyzeSkeleton.*;
 import sc.fiji.skeletonize3D.Skeletonize3D_;
 import ij.ImagePlus;
 
+import javax.annotation.Nullable;
+
 /**
  * Skeletonizes the input image, and then calculates the angles at each of its
  * triple points. A triple point is a point where three edges of the skeleton
@@ -28,8 +30,6 @@ import ij.ImagePlus;
  * edges (branches), at each triple point (vertex) in each skeleton (graph) in
  * the image.
  *
- * @todo Check parallelization with a real world image
- * @todo Fix case nthPoint == 0
  * @author Michael Doube
  * @author Richard Domander
  */
@@ -252,10 +252,18 @@ public class TriplePointAngles implements Op {
 		return Vectors.joinedVectorAngle(p0.x, p0.y, p0.z, p1.x, p1.y, p1.z, cv[0], cv[1], cv[2]);
 	}
 
-	private Point getNthPointOfEdge(Vertex vertex, Edge edge) {
-		ArrayList<Point> vertexPoints = vertex.getPoints();
+    private Point getNthPointOfEdge(Vertex vertex, Edge edge) {
+        ArrayList<Point> vertexPoints = vertex.getPoints();
 		ArrayList<Point> edgePoints = edge.getSlabs();
-		boolean startAtZero = false;
+
+        if (edgePoints.isEmpty()) {
+            // No slabs, edge has only an end-point and a junction point
+            ArrayList<Point> oppositeVertexPoints = edge.getOppositeVertex(vertex).getPoints();
+            Point oppositeVertexCentroid = Centroid.getCentroidPoint(oppositeVertexPoints);
+            return oppositeVertexCentroid;
+        }
+
+        boolean startAtZero = false;
 		Point edgeStart = edgePoints.get(0);
 
 		for (Point vertexPoint : vertexPoints) {
