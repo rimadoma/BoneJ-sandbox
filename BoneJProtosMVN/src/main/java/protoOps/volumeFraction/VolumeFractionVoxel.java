@@ -1,9 +1,6 @@
 package protoOps.volumeFraction;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-
-import java.awt.Rectangle;
+import java.awt.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.stream.IntStream;
@@ -11,13 +8,9 @@ import java.util.stream.IntStream;
 import net.imagej.ops.Op;
 import net.imagej.ops.OpEnvironment;
 
-import org.bonej.common.ImageCheck;
 import org.bonej.common.RoiUtil;
-import org.scijava.ItemIO;
-import org.scijava.plugin.Parameter;
 import org.scijava.plugin.Plugin;
 
-import ij.ImagePlus;
 import ij.ImageStack;
 import ij.gui.Roi;
 import ij.measure.Calibration;
@@ -33,88 +26,12 @@ import ij.process.ImageProcessor;
  * @author Richard Domander
  */
 @Plugin(type = Op.class, name = "volumeFractionVoxel")
-public class VolumeFractionVoxel implements VolumeFractionOp {
-    @Parameter(type = ItemIO.INPUT)
-	private ImagePlus inputImage = null;
-
-	@Parameter(type = ItemIO.INPUT, required = false)
-	private RoiManager roiManager = null;
-
-    @Parameter(type = ItemIO.INPUT, required = false)
-    private int minThreshold = 128;
-
-    @Parameter(type = ItemIO.INPUT, required = false)
-    private int maxThreshold = 255;
-
-    @Parameter(type = ItemIO.OUTPUT)
-	private double foregroundVolume;
-
-	@Parameter(type = ItemIO.OUTPUT)
-	private double totalVolume;
-
-	@Parameter(type = ItemIO.OUTPUT)
-	private double volumeRatio;
-
-    private int thresholdBound = 0xFF;
-
+public class VolumeFractionVoxel extends VolumeFractionOp {
     public VolumeFractionVoxel() {
         reset();
     }
 
-    // region -- Getters --
     @Override
-    public double getForegroundVolume() {
-        return foregroundVolume;
-    }
-
-    @Override
-    public double getTotalVolume() {
-        return totalVolume;
-    }
-
-    @Override
-    public double getVolumeRatio() {
-        return volumeRatio;
-    }
-
-    @Override
-    public int getMinThreshold() {
-        return minThreshold;
-    }
-
-    @Override
-    public int getMaxThreshold() {
-        return maxThreshold;
-    }
-    // endregion
-
-    // region -- Setters --
-	public void setImage(ImagePlus image) {
-		VolumeFractionOp.checkImage(image);
-
-		inputImage = image;
-
-        initThresholds();
-	}
-
-	public void setRoiManager(RoiManager roiManager) {
-		checkNotNull(roiManager, "May not use a null ROI Manager");
-		checkArgument(roiManager.getCount() != 0, "May not use an empty ROI Manager");
-
-		this.roiManager = roiManager;
-	}
-
-    public void setThresholds(int min, int max) {
-        checkArgument(0 <= min && min <= thresholdBound, "Min threshold out of bounds");
-        checkArgument(0 <= max && max <= thresholdBound, "Max threshold out of bounds");
-        checkArgument(min <= max, "Minimum threshold must be less or equal to maximum threshold");
-
-        minThreshold = min;
-        maxThreshold = max;
-    }
-    // endregion
-
-	@Override
 	public OpEnvironment ops() {
 		return null;
 	}
@@ -126,42 +43,34 @@ public class VolumeFractionVoxel implements VolumeFractionOp {
 
 	@Override
 	public void run() {
-        VolumeFractionOp.checkImage(inputImage);
+        checkOpInputs();
+
         volumeFractionVoxel();
 	}
 
-    @Override
-    public boolean needThresholds() {
-        return !ImageCheck.isBinary(inputImage);
-    }
-
-    public void reset() {
-        roiManager = null;
-        foregroundVolume = 0.0;
-        totalVolume = 0.0;
-        volumeRatio = Double.NaN;
-    }
-
     // region -- Helper methods --
     private void volumeFractionVoxel() {
-        final ImageStack stack = inputImage.getStack();
+        final ImageStack stack = getImage().getStack();
         final int stackSize = stack.getSize();
         final long sliceTotalVolumes[] = new long[stackSize + 1];
         final long sliceForeGroundsVolumes[] = new long[stackSize + 1];
 
-        if (roiManager == null) {
+        if (getRoiManager() == null) {
             voxelVolumeWithNoRois(stack, sliceTotalVolumes, sliceForeGroundsVolumes);
         } else {
             voxelVolumeWithRois(stack, sliceTotalVolumes, sliceForeGroundsVolumes);
         }
 
-        foregroundVolume = Arrays.stream(sliceForeGroundsVolumes).sum();
-        totalVolume = Arrays.stream(sliceTotalVolumes).sum();
+        final long foregroundVolume = Arrays.stream(sliceForeGroundsVolumes).sum();
+        setForegroundVolume(foregroundVolume);
+        final long totalVolume = Arrays.stream(sliceTotalVolumes).sum();
+        setTotalVolume(totalVolume);
         calibrateVolumes();
-        volumeRatio = foregroundVolume / totalVolume;
+        setVolumeRatio();
     }
 
-    private void voxelVolumeWithNoRois(ImageStack stack, long[] sliceTotalVolumes, long[] sliceForeGroundsVolumes) {
+    private void voxelVolumeWithNoRois(final ImageStack stack, final long[] sliceTotalVolumes,
+                                       final long[] sliceForeGroundsVolumes) {
         final Roi defaultRoi = new Roi(0, 0, stack.getWidth(), stack.getHeight());
         final int stackSize = stack.getSize();
 
@@ -171,8 +80,10 @@ public class VolumeFractionVoxel implements VolumeFractionOp {
         });
     }
 
-    private void voxelVolumeWithRois(ImageStack stack, long[] sliceTotalVolumes, long[] sliceForeGroundsVolumes) {
+    private void voxelVolumeWithRois(final ImageStack stack, final long[] sliceTotalVolumes,
+                                     final long[] sliceForeGroundsVolumes) {
         final int stackSize = stack.getSize();
+        final RoiManager roiManager = getRoiManager();
 
 		IntStream.rangeClosed(1, stackSize).parallel().forEach(z -> {
 			final ArrayList<Roi> rois = RoiUtil.getSliceRoi(roiManager, stack, z);
@@ -188,24 +99,27 @@ public class VolumeFractionVoxel implements VolumeFractionOp {
 		});
     }
 
-    private void calculateVoxelSliceVolumes(ImageProcessor processor, Roi roi, long[] sliceTotalVolumes,
-                                            long[] sliceForeGroundsVolumes, int sliceNumber) {
+    private void calculateVoxelSliceVolumes(final ImageProcessor processor, final Roi roi,
+                                            final long[] sliceTotalVolumes, final long[] sliceForegroundVolumes,
+                                            final int sliceNumber) {
         processor.setRoi(roi);
         if (processor.getMask() != null) {
-            calculateVoxelSliceVolumesWithMask(processor, sliceTotalVolumes, sliceForeGroundsVolumes, sliceNumber);
+            calculateVoxelSliceVolumesWithMask(processor, sliceTotalVolumes, sliceForegroundVolumes, sliceNumber);
         } else {
-            calculateVoxelSliceVolumesWithNoMask(processor, sliceTotalVolumes, sliceForeGroundsVolumes, sliceNumber);
+            calculateVoxelSliceVolumesWithNoMask(processor, sliceTotalVolumes, sliceForegroundVolumes, sliceNumber);
         }
     }
 
-    private void calculateVoxelSliceVolumesWithMask(ImageProcessor imageProcessor, long[] sliceTotalVolumes,
-                                                    long[] sliceForegroundVolumes, int sliceNumber) {
+    private void calculateVoxelSliceVolumesWithMask(final ImageProcessor imageProcessor, final long[] sliceTotalVolumes,
+                                                    final long[] sliceForegroundVolumes, final int sliceNumber) {
         final Rectangle r = imageProcessor.getRoi();
         final int x0 = r.x;
         final int y0 = r.y;
         final int x1 = x0 + r.width;
         final int y1 = y0 + r.height;
-        ImageProcessor mask = imageProcessor.getMask();
+        final  ImageProcessor mask = imageProcessor.getMask();
+        final int minThreshold = getMinThreshold();
+        final int maxThreshold = getMaxThreshold();
 
         for (int y = y0; y < y1; y++) {
             final int maskY = y - y0;
@@ -224,19 +138,22 @@ public class VolumeFractionVoxel implements VolumeFractionOp {
         }
     }
 
-    private void calculateVoxelSliceVolumesWithNoMask(ImageProcessor imageProcessor, long[] sliceTotalVolumes,
-                                                      long[] sliceForeGroundsVolumes, int sliceNumber) {
+    private void calculateVoxelSliceVolumesWithNoMask(final ImageProcessor imageProcessor,
+                                                      final long[] sliceTotalVolumes,
+                                                      final long[] sliceForegroundVolumes, final int sliceNumber) {
         final Rectangle r = imageProcessor.getRoi();
         final int x0 = r.x;
         final int y0 = r.y;
         final int x1 = x0 + r.width;
         final int y1 = y0 + r.height;
+        final int minThreshold = getMinThreshold();
+        final int maxThreshold = getMaxThreshold();
 
         for (int y = y0; y < y1; y++) {
             for (int x = x0; x < x1; x++) {
                 final int pixel = imageProcessor.get(x, y);
                 if (pixel >= minThreshold && pixel <= maxThreshold) {
-                    sliceForeGroundsVolumes[sliceNumber]++;
+                    sliceForegroundVolumes[sliceNumber]++;
                 }
             }
         }
@@ -245,27 +162,12 @@ public class VolumeFractionVoxel implements VolumeFractionOp {
     }
 
     private void calibrateVolumes() {
-        Calibration calibration = inputImage.getCalibration();
+        Calibration calibration = getImage().getCalibration();
         double volumeScale = calibration.pixelWidth * calibration.pixelHeight * calibration.pixelDepth;
-        foregroundVolume *= volumeScale;
-        totalVolume *= volumeScale;
-    }
-
-    private void initThresholds() {
-        switch (inputImage.getType()) {
-            case ImagePlus.GRAY8:
-                minThreshold = 128;
-                maxThreshold = 255;
-                thresholdBound = 0xFF;
-                break;
-            case ImagePlus.GRAY16:
-                minThreshold = 2424;
-                maxThreshold = 11_215;
-                thresholdBound = 0xFFFF;
-                break;
-            default:
-                throw new RuntimeException("Bad image type, Execution shouldn't go here!");
-        }
+        double scaledForegroundVolume = volumeScale * getForegroundVolume();
+        setForegroundVolume(scaledForegroundVolume);
+        double scaledTotalVolume = volumeScale * getTotalVolume();
+        setTotalVolume(scaledTotalVolume);
     }
     // endregion
 }

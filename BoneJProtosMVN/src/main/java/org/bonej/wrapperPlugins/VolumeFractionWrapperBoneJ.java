@@ -78,9 +78,6 @@ public class VolumeFractionWrapperBoneJ extends ContextCommand {
 
 	@Override
 	public void run() {
-        volumeFractionSurface.reset();
-        volumeFractionVoxel.reset();
-
 		try {
             if (volumeAlgorithm.equals("Surface")) {
                 volumeFractionOp = volumeFractionSurface;
@@ -88,6 +85,8 @@ public class VolumeFractionWrapperBoneJ extends ContextCommand {
             } else {
                 volumeFractionOp = volumeFractionVoxel;
             }
+
+            volumeFractionOp.reset();
 
             volumeFractionOp.setImage(activeImage);
 
@@ -179,6 +178,7 @@ public class VolumeFractionWrapperBoneJ extends ContextCommand {
      */
     private void renderVolumeSurfaces() {
         if (!(volumeFractionOp instanceof VolumeFractionSurface)) {
+            // show error message
             return;
         }
 
