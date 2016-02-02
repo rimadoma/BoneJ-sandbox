@@ -2,6 +2,7 @@ package protoOps.testImageCreators;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import ij.IJ;
 import ij.ImagePlus;
 import ij.ImageStack;
 import ij.process.ByteProcessor;
@@ -21,7 +22,6 @@ public class StaticTestImageHelper {
 	/**
 	 * Creates an ImagePlus with a cuboid in it
 	 *
-     * @todo Fix bug: black image if depth == 1 && padding == 0
 	 * @param width
 	 *            The width of the cuboid
 	 * @param height
@@ -53,7 +53,8 @@ public class StaticTestImageHelper {
 		int paddedHeight = height + totalPadding;
 		int paddedDepth = depth + totalPadding;
 
-		ImageStack cuboidStack = createEmptyStack(paddedWidth, paddedHeight, paddedDepth);
+        ImagePlus imagePlus = IJ.createImage("Cuboid", "8black", paddedWidth, paddedHeight, paddedDepth);
+        ImageStack cuboidStack = imagePlus.getStack();
 
 		final int firstCuboidSlice = padding + 1;
 		final int lastCuboidSlice = padding + depth;
@@ -65,13 +66,12 @@ public class StaticTestImageHelper {
 			cuboidProcessor.fill();
 		}
 
-		return new ImagePlus("Test cuboid", cuboidStack);
+		return imagePlus;
 	}
 
 	/**
 	 * Draw the wire-frame model i.e. the edges of the given cuboid
 	 *
-     * @todo Fix bug: black image if depth == 1 && padding == 0
 	 * @param width
 	 *            Width of the cuboid frame in pixels
 	 * @param height
@@ -102,7 +102,8 @@ public class StaticTestImageHelper {
 		final int paddedDepth = depth + totalPadding;
 		final int boxColor = 0xFF;
 
-		ImageStack stack = createEmptyStack(paddedWidth, paddedHeight, paddedDepth);
+        ImagePlus imagePlus = IJ.createImage("Wire-frame cuboid", "8black", paddedWidth, paddedHeight, paddedDepth);
+		ImageStack stack = imagePlus.getStack();
 
 		// Draw edges in the xy-plane
 		ImageProcessor ip = new ByteProcessor(paddedWidth, paddedHeight);
@@ -123,7 +124,7 @@ public class StaticTestImageHelper {
 			ip.drawPixel(padding + width - 1, padding + height - 1);
 		}
 
-		return new ImagePlus("Wire-frame cuboid", stack);
+		return imagePlus;
 	}
 
 	/**
@@ -150,16 +151,5 @@ public class StaticTestImageHelper {
 		ip.drawLine(half, quarter, half, size - quarter);
 		ip.drawLine(quarter, half, size - quarter, half);
 		return new ImagePlus("Crossed circle", ip);
-	}
-
-	private static ImageStack createEmptyStack(int width, int height, int depth) {
-		ImageStack stack = new ImageStack(width, height);
-		for (int s = 0; s < depth; s++) {
-			ImageProcessor processor = new ByteProcessor(width, height);
-			processor.setColor(0x00);
-			processor.fill();
-			stack.addSlice(processor);
-		}
-		return stack;
 	}
 }
