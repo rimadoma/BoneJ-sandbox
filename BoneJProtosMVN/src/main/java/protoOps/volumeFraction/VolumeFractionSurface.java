@@ -36,7 +36,7 @@ import ij.process.ImageProcessor;
  * @author Michael Doube
  * @author Richard Domander
  */
-@Plugin(type = Op.class, name = "volumeFractionVoxel")
+@Plugin(type = Op.class, name = "volumeFractionSurface")
 public final class VolumeFractionSurface extends VolumeFractionOp {
     public static final int DEFAULT_SURFACE_RESAMPLING = 6;
 

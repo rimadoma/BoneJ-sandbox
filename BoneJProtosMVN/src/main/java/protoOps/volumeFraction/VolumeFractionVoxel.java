@@ -20,8 +20,6 @@ import ij.process.ImageProcessor;
 /**
  * An Op which calculates the volumes of the sample by counting the voxels in the image
  *
- * @todo check that plugin works when run trough OpService
- * @todo write unit tests with test images
  * @author Michael Doube
  * @author Richard Domander
  */

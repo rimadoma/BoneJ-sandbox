@@ -17,7 +17,7 @@ import ij.plugin.frame.RoiManager;
 import ij.process.ImageStatistics;
 
 /**
- * Unit tests for the VolumeFractionVoxel class
+ * Unit tests for the VolumeFractionOp class
  *
  * @author Richard Domander
  */
