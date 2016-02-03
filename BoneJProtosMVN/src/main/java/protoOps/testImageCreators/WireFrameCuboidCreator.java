@@ -21,7 +21,6 @@ import ij.ImagePlus;
  * An Op which creates an image of a wire-frame cuboid. Can be used, e.g. for
  * testing other Ops or Plugins.
  *
- * @todo inherit AbstractContextual
  * @author Richard Domander
  */
 @Plugin(type = Op.class, name = "wireFrameCuboidCreator", menuPath = "Plugins>Test Images>Wire-frame cuboid")
@@ -44,9 +43,13 @@ public class WireFrameCuboidCreator implements Op {
 	@Parameter(type = ItemIO.OUTPUT)
 	private Dataset testImage = null;
 
+    /**
+     * @throws NullPointerException if the Op has no DatasetService
+     */
 	@Override
 	public void run() {
-		createWireFrameCuboid();
+        checkNotNull(datasetService, "No dataset service found");
+        createWireFrameCuboid();
 	}
 
 	@Override
@@ -67,9 +70,7 @@ public class WireFrameCuboidCreator implements Op {
 	 *
 	 */
 	private void createWireFrameCuboid() {
-		checkNotNull(datasetService, "No dataset service found");
-
-		ImagePlus imagePlus = StaticTestImageHelper.createWireFrameCuboid(cuboidWidth, cuboidHeight, cuboidDepth,
+        ImagePlus imagePlus = StaticTestImageHelper.createWireFrameCuboid(cuboidWidth, cuboidHeight, cuboidDepth,
 				cuboidPadding);
 		ImgPlus<UnsignedByteType> imgPlus = ImagePlusAdapter.wrapImgPlus(imagePlus);
 		testImage = datasetService.create(imgPlus);

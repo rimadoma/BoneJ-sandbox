@@ -4,7 +4,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.ArrayList;
-import java.util.stream.IntStream;
 
 import net.imagej.ops.Op;
 import net.imagej.ops.OpEnvironment;
@@ -20,8 +19,6 @@ import org.scijava.plugin.Plugin;
 import sc.fiji.analyzeSkeleton.*;
 import sc.fiji.skeletonize3D.Skeletonize3D_;
 import ij.ImagePlus;
-
-import javax.annotation.Nullable;
 
 /**
  * Skeletonizes the input image, and then calculates the angles at each of its

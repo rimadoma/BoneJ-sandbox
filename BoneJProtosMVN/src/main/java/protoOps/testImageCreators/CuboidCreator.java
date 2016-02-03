@@ -21,7 +21,6 @@ import ij.ImagePlus;
  * An Op which creates an image of a solid cuboid. Can be used, e.g. for testing
  * other Ops or Plugins.
  *
- * @todo inherit AbstractContextual
  * @author Richard Domander
  */
 @Plugin(type = Op.class, name = "cuboidCreator", menuPath = "Plugins>Test Images>Cuboid")
@@ -47,9 +46,13 @@ public class CuboidCreator implements Op {
 	@Parameter(type = ItemIO.OUTPUT)
 	private Dataset testImage = null;
 
-	@Override
+    /**
+     * @throws NullPointerException if the Op has no DatasetService
+     */
+    @Override
 	public void run() {
-		createCuboid();
+        checkNotNull(datasetService, "No dataset service found");
+        createCuboid();
 	}
 
 	@Override
@@ -62,15 +65,7 @@ public class CuboidCreator implements Op {
 
 	}
 
-	/**
-	 * Draw a cuboid to this.testImage
-	 *
-	 * @throws NullPointerException
-	 *             if this.datasetService == null
-	 */
 	private void createCuboid() {
-		checkNotNull(datasetService, "No dataset service found");
-
 		ImagePlus imagePlus = StaticTestImageHelper.createCuboid(cuboidWidth, cuboidHeight, cuboidDepth, cuboidColor,
 				cuboidPadding);
 		final ImgPlus<UnsignedByteType> image = ImagePlusAdapter.wrapImgPlus(imagePlus);

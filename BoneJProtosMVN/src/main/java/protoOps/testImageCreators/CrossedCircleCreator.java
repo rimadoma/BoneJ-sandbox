@@ -1,6 +1,5 @@
 package protoOps.testImageCreators;
 
-import net.imagej.DatasetService;
 import net.imagej.ImageJ;
 import net.imagej.ops.Op;
 import net.imagej.ops.OpEnvironment;
@@ -15,22 +14,16 @@ import ij.ImagePlus;
  * An Op which creates an image of a circle and a cross. Can be used, e.g. for
  * testing other Ops or Plugins.
  *
- * @todo inherit AbstractContextual
- * @author Richard Domander
+ * @todo    Change from ImagePlus to Dataset
+ * @todo    Find out why the user sees nothing if this ImagePlus is converted into a Dataset (pixel values are ok).
+ * @author  Richard Domander
  */
 @Plugin(type = Op.class, name = "crossedCircleCreator", menuPath = "Plugins>Test Images>Crossed circle")
 public class CrossedCircleCreator implements Op {
-	@Parameter
-	private DatasetService datasetService;
-
-	@Parameter(min = "10", required = false, description = "Width and height of the resulting image (px)")
+    @Parameter(min = "10", required = false, description = "Width and height of the resulting image (px)")
 	private int imageSize = 200;
 
-	/**
-	 * @todo Find out why the user sees nothing if this ImagePlus is converted
-	 *       into a Dataset (pixel values are ok).
-	 */
-	@Parameter(type = ItemIO.OUTPUT)
+    @Parameter(type = ItemIO.OUTPUT)
 	private ImagePlus testImage = null;
 
 	@Override
