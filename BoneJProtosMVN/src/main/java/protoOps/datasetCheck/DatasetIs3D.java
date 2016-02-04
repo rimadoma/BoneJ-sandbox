@@ -1,22 +1,22 @@
 package protoOps.datasetCheck;
 
+import java.util.Arrays;
+
 import net.imagej.Dataset;
 import net.imagej.axis.CalibratedAxis;
 import net.imagej.ops.Op;
 import net.imagej.ops.OpEnvironment;
+
 import org.scijava.ItemIO;
 import org.scijava.plugin.Parameter;
 import org.scijava.plugin.Plugin;
-import protoOps.imageCheck.ImagePlusCheck;
-
-import java.util.Arrays;
 
 /**
  * An OP which checks whether the given Dataset is three dimensional, i.e. has three spatial dimensions
  *
  * @author Richard Domander
  */
-@Plugin(type = ImagePlusCheck.ImagePlusCheckOp.class, name = "datasetIs3D")
+@Plugin(type = Op.class, name = "datasetIs3D")
 public class DatasetIs3D implements Op {
     private static final int DIMENSIONS = 3;
 
