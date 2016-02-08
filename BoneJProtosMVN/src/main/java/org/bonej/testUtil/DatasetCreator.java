@@ -1,6 +1,10 @@
 package org.bonej.testUtil;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+
+import java.util.Random;
+import java.util.stream.IntStream;
 
 import javax.annotation.Nullable;
 
@@ -25,11 +29,9 @@ import org.scijava.plugin.Parameter;
  * @todo    Extend to NativeType<T>?
  * @todo    VolatileRealType?
  * @todo    UnsignedVariableBitLengthType?
- * @todo    Create empty dataset
- * @todo    Find out which primitives the Dataset.setPlane function should use
  * @author  Richard Domander
  */
-public class DatasetCreator extends AbstractContextual {
+public final class DatasetCreator extends AbstractContextual {
     private static final long DEFAULT_WIDTH = 10;
     private static final long DEFAULT_HEIGHT = 10;
     private static final long DEFAULT_DEPTH = 10;
@@ -96,6 +98,59 @@ public class DatasetCreator extends AbstractContextual {
             default:
                 return null;
         }
+    }
+
+    /**
+     * Fills the given Dataset with random numbers.
+     *
+     * @todo    write methods for other Dataset types (or a generic version with Cursor?)
+     * @throws  IllegalArgumentException if the Dataset isn't three dimensional, or has the wrong type
+     * @param dataset   A 3D GenericIntType Dataset (X,Y,Z dimensions)
+     * @param minValue  Minimum value of the random numbers (inclusive)
+     * @param maxValue  Maximum value of the random numbers (inclusive)
+     */
+    public static void fillWithRandomData(final Dataset dataset, final int minValue, final int maxValue)
+            throws IllegalArgumentException {
+        checkArgument(dataset.getType() instanceof GenericIntType, "Dataset has the wrong type");
+
+        final long width = datasetWidth(dataset);
+        final long height = datasetHeight(dataset);
+        final long depth = datasetDepth(dataset);
+
+        checkArgument(width >= 0, "Dataset has no x-dimension");
+        checkArgument(height >= 0, "Dataset has no y-dimension");
+        checkArgument(depth >= 0, "Dataset has no z-dimension");
+
+        final long planeSize = width * height;
+        final int modulo = maxValue + 1;
+        final Random random = new Random(System.currentTimeMillis());
+
+        IntStream.range(0, (int)depth).forEach(z -> {
+            int[] plane = random.ints(planeSize, minValue, modulo).toArray();
+            dataset.setPlane(z, plane);
+        });
+    }
+
+    public static long datasetDepth(Dataset dataset) {
+        return datasetNamedDimension(dataset, Axes.Z);
+    }
+
+    public static long datasetHeight(Dataset dataset) {
+        return datasetNamedDimension(dataset, Axes.Y);
+    }
+
+    public static long datasetWidth(Dataset dataset) {
+        return datasetNamedDimension(dataset, Axes.X);
+    }
+
+    private static long datasetNamedDimension(Dataset dataset, AxisType axisType) {
+        int index = dataset.dimensionIndex(axisType);
+
+        if (index < 0) {
+            return -1;
+        }
+
+        return dataset.dimension(index);
     }
 
     /**

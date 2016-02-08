@@ -22,7 +22,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * An Op which checks whether the given Dataset is binary, i.e. whether it contains only two distinct values.
+ * An Op which checks whether the given Dataset is binary, i.e. whether it contains only one or two distinct values.
  * One of these values is considered foreground, and one background. By default the greater value is foreground.
  *
  * @author Richard Domander
@@ -57,23 +57,12 @@ public class DatasetIsBinary implements Op {
 
     @Override
     public void run() {
-        if (datasetIsEmpty() || !isTypeValid()) {
+        if (datasetIsEmpty()) {
             isBinary = false;
             return;
         }
 
         checkElementValues();
-    }
-
-    private boolean isTypeValid() {
-        final RealType<?> element = getFirstDatasetElement();
-        return validTypes.stream().anyMatch(type -> type.getClass() == element.getClass());
-    }
-
-    private RealType<?> getFirstDatasetElement() {
-        final Cursor<RealType<?>> cursor = dataset.cursor();
-        cursor.fwd();
-        return cursor.next();
     }
 
     private void checkElementValues() {
@@ -82,8 +71,7 @@ public class DatasetIsBinary implements Op {
 
         while (cursor.hasNext()) {
             cursor.fwd();
-            RealType<?> element = cursor.next();
-            double value = element.getRealDouble();
+            double value = cursor.next().getRealDouble();
             values.add(value);
             if (values.size() > 2) {
                 isBinary = false;

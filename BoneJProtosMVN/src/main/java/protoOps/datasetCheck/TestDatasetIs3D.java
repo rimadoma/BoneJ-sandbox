@@ -1,14 +1,15 @@
 package protoOps.datasetCheck;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import net.imagej.Dataset;
 import net.imagej.ImageJ;
 import net.imagej.axis.Axes;
 import net.imagej.axis.AxisType;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
-import org.junit.Test;
 
-import static junit.framework.Assert.assertTrue;
-import static junit.framework.TestCase.assertFalse;
+import org.junit.Test;
 
 /**
  * Unit tests for the TestDatasetIs3D Op

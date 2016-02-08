@@ -19,8 +19,6 @@ import org.junit.Test;
 /**
  * Unit tests for the DatasetIsBinary Op
  *
- * @todo Find out if test are exhaustive for possible Dataset types
- *
  * @author Richard Domander
  */
 public class TestDatasetIsBinary {
@@ -55,27 +53,29 @@ public class TestDatasetIsBinary {
     }
 
     @Test
-    public void testInvalidElementTypesFail() throws AssertionError {
-        DatasetType[] invalidTypes = {DatasetType.DOUBLE, DatasetType.FLOAT, DatasetType.INT, DatasetType.LONG,
-                DatasetType.SHORT, DatasetType.UNSIGNED_12_BIT, DatasetType.UNSIGNED_128_BIT, DatasetType.UNSIGNED_INT,
-                DatasetType.UNSIGNED_LONG, DatasetType.UNSIGNED_SHORT};
+    public void testDatasetWithOneValuePasses() throws AssertionError {
+        Dataset dataset = datasetCreator.createDataset(DatasetType.INT);
+        DatasetCreator.fillWithRandomData(dataset, 1, 1);
 
-        for (DatasetType invalidType : invalidTypes) {
-            dataset = datasetCreator.createDataset(invalidType);
-            boolean result = (boolean) ij.op().run(DatasetIsBinary.class, dataset);
-            assertFalse("Should not be binary", result);
-        }
+        boolean result = (boolean) ij.op().run(DatasetIsBinary.class, dataset);
+        assertTrue("A Dataset with one distinct value is binary", result);
     }
 
     @Test
-    public void testValidElementTypesPass() throws AssertionError {
-        DatasetType[] validTypes = {DatasetType.BIT, DatasetType.BYTE, DatasetType.UNSIGNED_2_BIT,
-                DatasetType.UNSIGNED_4_BIT, DatasetType.UNSIGNED_BYTE};
+    public void testDatasetWithTwoValuesPasses() throws AssertionError {
+        Dataset dataset = datasetCreator.createDataset(DatasetType.INT);
+        DatasetCreator.fillWithRandomData(dataset, 0, 1);
 
-        for (DatasetType validType : validTypes) {
-            dataset = datasetCreator.createDataset(validType);
-            boolean result = (boolean) ij.op().run(DatasetIsBinary.class, dataset);
-            assertTrue(dataset.getType().getClass().getName() + " should be binary", result);
-        }
+        boolean result = (boolean) ij.op().run(DatasetIsBinary.class, dataset);
+        assertTrue("A Dataset with two distinct values is binary", result);
+    }
+
+    @Test
+    public void testDatasetWithMoreThanTwoValuesFails() throws AssertionError {
+        Dataset dataset = datasetCreator.createDataset(DatasetType.INT);
+        DatasetCreator.fillWithRandomData(dataset, 0, 2);
+
+        boolean result = (boolean) ij.op().run(DatasetIsBinary.class, dataset);
+        assertFalse("A Dataset containing more than two distinct values is not binary", result);
     }
 }
