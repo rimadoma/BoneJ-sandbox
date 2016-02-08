@@ -1,5 +1,6 @@
 package protoOps.datasetCheck;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -15,6 +16,8 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import java.util.ArrayList;
 
 /**
  * Unit tests for the DatasetIsBinary Op
@@ -47,35 +50,67 @@ public class TestDatasetIsBinary {
         final AxisType[] axisTypes = {Axes.X, Axes.Y};
         dataset = ij.dataset().create(new UnsignedByteType(), dims, "Test set", axisTypes);
 
-        boolean result = (boolean) ij.op().run(DatasetIsBinary.class, dataset);
-
+        boolean result = (boolean) ((ArrayList<Object>)ij.op().run(DatasetIsBinary.class, dataset)).get(0);
         assertFalse("Empty dataset is not binary", result);
     }
 
     @Test
-    public void testDatasetWithOneValuePasses() throws AssertionError {
-        Dataset dataset = datasetCreator.createDataset(DatasetType.INT);
-        DatasetCreator.fillWithRandomData(dataset, 1, 1);
+    public void testDatasetWithOneValue() throws AssertionError {
+        final int minValue = 1;
+        final int maxValue = 1;
+        dataset = datasetCreator.createDataset(DatasetType.INT);
+        DatasetCreator.fillWithRandomData(dataset, minValue, maxValue);
 
-        boolean result = (boolean) ij.op().run(DatasetIsBinary.class, dataset);
-        assertTrue("A Dataset with one distinct value is binary", result);
+        ArrayList<Object> results = (ArrayList<Object>) ij.op().run(DatasetIsBinary.class, dataset);
+        final boolean isBinary = (boolean) results.get(0);
+        final long background = (long) results.get(1);
+        final long foreground = (long) results.get(2);
+
+        assertTrue("A Dataset with one distinct value is binary", isBinary);
+        assertEquals("Background value is incorrect", minValue, background);
+        assertEquals("Foreground value is incorrect", maxValue, foreground);
+        assertEquals("Background should equal foreground", foreground, background);
     }
 
     @Test
-    public void testDatasetWithTwoValuesPasses() throws AssertionError {
-        Dataset dataset = datasetCreator.createDataset(DatasetType.INT);
-        DatasetCreator.fillWithRandomData(dataset, 0, 1);
+    public void testDatasetWithTwoValues() throws AssertionError {
+        final int minValue = 1;
+        final int maxValue = 2;
+        dataset = datasetCreator.createDataset(DatasetType.INT);
+        DatasetCreator.fillWithRandomData(dataset, minValue, maxValue);
 
-        boolean result = (boolean) ij.op().run(DatasetIsBinary.class, dataset);
-        assertTrue("A Dataset with two distinct values is binary", result);
+        ArrayList<Object> results = (ArrayList<Object>) ij.op().run(DatasetIsBinary.class, dataset);
+        final boolean isBinary = (boolean) results.get(0);
+        final long background = (long) results.get(1);
+        final long foreground = (long) results.get(2);
+
+        assertTrue("A Dataset with two distinct values is binary", isBinary);
+        assertEquals("Background value is incorrect", minValue, background);
+        assertEquals("Foreground value is incorrect", maxValue, foreground);
     }
 
     @Test
     public void testDatasetWithMoreThanTwoValuesFails() throws AssertionError {
-        Dataset dataset = datasetCreator.createDataset(DatasetType.INT);
+        dataset = datasetCreator.createDataset(DatasetType.INT);
         DatasetCreator.fillWithRandomData(dataset, 0, 2);
 
-        boolean result = (boolean) ij.op().run(DatasetIsBinary.class, dataset);
+        boolean result = (boolean) ((ArrayList<Object>)ij.op().run(DatasetIsBinary.class, dataset)).get(0);
         assertFalse("A Dataset containing more than two distinct values is not binary", result);
+    }
+
+    @Test
+    public void testValuesAreInverted() throws AssertionError {
+        final int minValue = -1;
+        final int maxValue = 0;
+        dataset = datasetCreator.createDataset(DatasetType.INT);
+        DatasetCreator.fillWithRandomData(dataset, minValue, maxValue);
+
+        ArrayList<Object> results = (ArrayList<Object>) ij.op().run(DatasetIsBinary.class, dataset, true);
+        final long background = (long) results.get(1);
+        final long foreground = (long) results.get(2);
+
+        assertEquals("Background value is incorrect", maxValue, background);
+        assertEquals("Foreground value is incorrect", minValue, foreground);
+        assertTrue("Foreground value should be smaller when using the inverted option", foreground <= background);
     }
 }

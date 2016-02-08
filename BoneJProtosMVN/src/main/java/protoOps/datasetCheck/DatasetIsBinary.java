@@ -1,49 +1,40 @@
 package protoOps.datasetCheck;
 
+import java.util.TreeSet;
+
 import net.imagej.Dataset;
 import net.imagej.ops.Op;
 import net.imagej.ops.OpEnvironment;
 import net.imglib2.Cursor;
-import net.imglib2.type.logic.BitType;
-import net.imglib2.type.numeric.IntegerType;
 import net.imglib2.type.numeric.RealType;
-import net.imglib2.type.numeric.integer.ByteType;
-import net.imglib2.type.numeric.integer.Unsigned2BitType;
-import net.imglib2.type.numeric.integer.Unsigned4BitType;
-import net.imglib2.type.numeric.integer.UnsignedByteType;
 
 import org.scijava.ItemIO;
 import org.scijava.plugin.Parameter;
 import org.scijava.plugin.Plugin;
-
-import com.google.common.collect.ImmutableList;
-
-import java.util.HashSet;
-import java.util.Set;
 
 /**
  * An Op which checks whether the given Dataset is binary, i.e. whether it contains only one or two distinct values.
  * One of these values is considered foreground, and one background. By default the greater value is foreground.
  *
  * @author Richard Domander
- * @todo Handle unsigned and signed types?
  * @todo Make unary?
- * @todo BitType is automatically Binary
- * @todo Does it make sense to check for bit depth?
- * @todo What's the value of white for different bit depths?
  */
 @Plugin(type = Op.class, name = "datasetIsBinary")
 public class DatasetIsBinary implements Op {
-    private static final ImmutableList<IntegerType<?>> validTypes = ImmutableList.of(new BitType(), new ByteType(),
-            new Unsigned2BitType(), new Unsigned4BitType(), new UnsignedByteType());
-
     @Parameter(type = ItemIO.INPUT)
     private Dataset dataset = null;
+
+    @Parameter(type = ItemIO.INPUT, required = false)
+    private boolean invertedValues = false;
 
     @Parameter(type = ItemIO.OUTPUT)
     private boolean isBinary = false;
 
-    //@todo fg and bg output @params
+    @Parameter(type = ItemIO.OUTPUT)
+    private long backgroundValue = 0;
+
+    @Parameter(type = ItemIO.OUTPUT)
+    private long foregroundValue = 0;
 
     @Override
     public OpEnvironment ops() {
@@ -65,8 +56,9 @@ public class DatasetIsBinary implements Op {
         checkElementValues();
     }
 
+    //region -- Helper methods --
     private void checkElementValues() {
-        Set<Double> values = new HashSet<>(4);
+        TreeSet<Double> values = new TreeSet<>();
         final Cursor<RealType<?>> cursor = dataset.cursor();
 
         while (cursor.hasNext()) {
@@ -79,6 +71,14 @@ public class DatasetIsBinary implements Op {
             }
         }
 
+        if (invertedValues) {
+            backgroundValue = values.last().longValue();
+            foregroundValue = values.first().longValue();
+        } else {
+            backgroundValue = values.first().longValue();
+            foregroundValue = values.last().longValue();
+        }
+
         isBinary = true;
     }
 
@@ -88,4 +88,5 @@ public class DatasetIsBinary implements Op {
     private boolean datasetIsEmpty() {
         return !dataset.cursor().hasNext();
     }
+    //endregion
 }
