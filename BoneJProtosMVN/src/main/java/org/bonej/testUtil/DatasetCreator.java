@@ -3,6 +3,7 @@ package org.bonej.testUtil;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.util.Iterator;
 import java.util.Random;
 import java.util.stream.IntStream;
 
@@ -12,7 +13,9 @@ import net.imagej.Dataset;
 import net.imagej.DatasetService;
 import net.imagej.axis.Axes;
 import net.imagej.axis.AxisType;
+import net.imglib2.Cursor;
 import net.imglib2.type.logic.BitType;
+import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.integer.*;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.type.numeric.real.FloatType;
@@ -101,56 +104,22 @@ public final class DatasetCreator extends AbstractContextual {
     }
 
     /**
-     * Fills the given Dataset with random numbers.
+     * Fills the elements in the given Dataset with random integers.
      *
-     * @todo    write methods for other Dataset types (or a generic version with Cursor?)
-     * @throws  IllegalArgumentException if the Dataset isn't three dimensional, or has the wrong type
-     * @param dataset   A 3D GenericIntType Dataset (X,Y,Z dimensions)
      * @param minValue  Minimum value of the random numbers (inclusive)
      * @param maxValue  Maximum value of the random numbers (inclusive)
      */
-    public static void fillWithRandomData(final Dataset dataset, final int minValue, final int maxValue)
-            throws IllegalArgumentException {
-        checkArgument(dataset.getType() instanceof GenericIntType, "Dataset has the wrong type");
-
-        final long width = datasetWidth(dataset);
-        final long height = datasetHeight(dataset);
-        final long depth = datasetDepth(dataset);
-
-        checkArgument(width >= 0, "Dataset has no x-dimension");
-        checkArgument(height >= 0, "Dataset has no y-dimension");
-        checkArgument(depth >= 0, "Dataset has no z-dimension");
-
-        final long planeSize = width * height;
-        final int modulo = maxValue + 1;
-        final Random random = new Random(System.currentTimeMillis());
-
-        IntStream.range(0, (int)depth).forEach(z -> {
-            int[] plane = random.ints(planeSize, minValue, modulo).toArray();
-            dataset.setPlane(z, plane);
-        });
-    }
-
-    public static long datasetDepth(Dataset dataset) {
-        return datasetNamedDimension(dataset, Axes.Z);
-    }
-
-    public static long datasetHeight(Dataset dataset) {
-        return datasetNamedDimension(dataset, Axes.Y);
-    }
-
-    public static long datasetWidth(Dataset dataset) {
-        return datasetNamedDimension(dataset, Axes.X);
-    }
-
-    private static long datasetNamedDimension(Dataset dataset, AxisType axisType) {
-        int index = dataset.dimensionIndex(axisType);
-
-        if (index < 0) {
-            return -1;
+    public static void fillWithRandomIntegers(final Dataset dataset, final int minValue, final int maxValue) {
+        if (dataset == null) {
+            return;
         }
 
-        return dataset.dimension(index);
+        final Cursor<RealType<?>> cursor = dataset.cursor();
+
+        final Iterator<Integer> randomIterator =
+                new Random(System.currentTimeMillis()).ints(minValue, maxValue + 1).iterator();
+
+        cursor.forEachRemaining(c -> c.setReal(randomIterator.next()));
     }
 
     /**
