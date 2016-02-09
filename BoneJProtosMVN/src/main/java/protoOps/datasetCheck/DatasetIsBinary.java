@@ -17,22 +17,33 @@ import org.scijava.plugin.Plugin;
  * One of these values is considered foreground, and one background. By default the greater value is foreground.
  *
  * @author Richard Domander
- * @todo Make unary?
  */
 @Plugin(type = Op.class, name = "datasetIsBinary")
 public class DatasetIsBinary implements Op {
     @Parameter(type = ItemIO.INPUT)
     private Dataset dataset = null;
 
+    /** Invert values so that the lesser is considered foreground */
     @Parameter(type = ItemIO.INPUT, required = false)
     private boolean invertedValues = false;
 
+    /**
+     * If true, then the Dataset contains only one or two distinct values
+     */
     @Parameter(type = ItemIO.OUTPUT)
     private boolean isBinary = false;
 
+    /**
+     * The value of background particles found in the Dataset
+     * NB only set if isBinary == true
+     */
     @Parameter(type = ItemIO.OUTPUT)
     private long backgroundValue = 0;
 
+    /**
+     * The value of foreground particles found in the Dataset
+     * NB only set if isBinary == true
+     */
     @Parameter(type = ItemIO.OUTPUT)
     private long foregroundValue = 0;
 
