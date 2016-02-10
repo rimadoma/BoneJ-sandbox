@@ -11,6 +11,7 @@ import javax.annotation.Nullable;
 
 import net.imagej.Dataset;
 import net.imagej.DatasetService;
+import net.imagej.ImageJ;
 import net.imagej.axis.Axes;
 import net.imagej.axis.AxisType;
 import net.imglib2.Cursor;
@@ -104,22 +105,43 @@ public final class DatasetCreator extends AbstractContextual {
     }
 
     /**
-     * Fills the elements in the given Dataset with random integers.
+     * Fills the elements in the given Dataset with random whole numbers.
      *
+     * @implNote        Min and max values are clamped to prevent under - and overflow.
+     *                  E.g. If maxValue == 1000 and dataset type == UnsignedByteType(), then maxValue = 255
      * @param minValue  Minimum value of the random numbers (inclusive)
      * @param maxValue  Maximum value of the random numbers (inclusive)
      */
-    public static void fillWithRandomIntegers(final Dataset dataset, final int minValue, final int maxValue) {
+    public static void fillWithRandomWholeNumbers(@Nullable final Dataset dataset, long minValue, long maxValue) {
         if (dataset == null) {
             return;
         }
 
+        long modulo = maxValue + 1;
         final Cursor<RealType<?>> cursor = dataset.cursor();
 
-        final Iterator<Integer> randomIterator =
-                new Random(System.currentTimeMillis()).ints(minValue, maxValue + 1).iterator();
+        cursor.fwd();
+        final RealType<?> element = cursor.next();
+        final long typeMin = (long) element.getMinValue();
+        final long typeMax = (long) element.getMaxValue();
+        minValue = clamp(minValue, typeMin, typeMax);
+        modulo = clamp(modulo, typeMin, typeMax);
+        cursor.reset();
+
+        final Iterator<Long> randomIterator =
+                new Random(System.currentTimeMillis()).longs(minValue, modulo).iterator();
 
         cursor.forEachRemaining(c -> c.setReal(randomIterator.next()));
+    }
+
+    private static long clamp(long value, long min, long max) {
+        if (value < min) {
+            return min;
+        }
+        if (value > max) {
+            return max;
+        }
+        return value;
     }
 
     /**

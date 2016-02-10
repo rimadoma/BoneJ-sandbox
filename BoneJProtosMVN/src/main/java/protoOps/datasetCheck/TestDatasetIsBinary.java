@@ -59,7 +59,7 @@ public class TestDatasetIsBinary {
         final int minValue = 1;
         final int maxValue = 1;
         dataset = datasetCreator.createDataset(DatasetType.INT);
-        DatasetCreator.fillWithRandomIntegers(dataset, minValue, maxValue);
+        DatasetCreator.fillWithRandomWholeNumbers(dataset, minValue, maxValue);
 
         ArrayList<Object> results = (ArrayList<Object>) ij.op().run(DatasetIsBinary.class, dataset);
         final boolean isBinary = (boolean) results.get(0);
@@ -77,7 +77,7 @@ public class TestDatasetIsBinary {
         final int minValue = 1;
         final int maxValue = 2;
         dataset = datasetCreator.createDataset(DatasetType.INT);
-        DatasetCreator.fillWithRandomIntegers(dataset, minValue, maxValue);
+        DatasetCreator.fillWithRandomWholeNumbers(dataset, minValue, maxValue);
 
         ArrayList<Object> results = (ArrayList<Object>) ij.op().run(DatasetIsBinary.class, dataset);
         final boolean isBinary = (boolean) results.get(0);
@@ -92,7 +92,7 @@ public class TestDatasetIsBinary {
     @Test
     public void testDatasetWithMoreThanTwoValuesFails() throws AssertionError {
         dataset = datasetCreator.createDataset(DatasetType.INT);
-        DatasetCreator.fillWithRandomIntegers(dataset, 0, 2);
+        DatasetCreator.fillWithRandomWholeNumbers(dataset, 0, 2);
 
         boolean result = (boolean) ((ArrayList<Object>)ij.op().run(DatasetIsBinary.class, dataset)).get(0);
         assertFalse("A Dataset containing more than two distinct values is not binary", result);
@@ -103,7 +103,7 @@ public class TestDatasetIsBinary {
         final int minValue = -1;
         final int maxValue = 0;
         dataset = datasetCreator.createDataset(DatasetType.INT);
-        DatasetCreator.fillWithRandomIntegers(dataset, minValue, maxValue);
+        DatasetCreator.fillWithRandomWholeNumbers(dataset, minValue, maxValue);
 
         ArrayList<Object> results = (ArrayList<Object>) ij.op().run(DatasetIsBinary.class, dataset, true);
         final long background = (long) results.get(1);
