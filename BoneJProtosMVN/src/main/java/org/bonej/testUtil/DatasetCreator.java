@@ -113,19 +113,23 @@ public final class DatasetCreator extends AbstractContextual {
             return;
         }
 
-        long modulo = maxValue + 1;
         final Cursor<RealType<?>> cursor = dataset.cursor();
+        if (!cursor.hasNext()) {
+            return;
+        }
 
         cursor.fwd();
         final RealType<?> element = cursor.next();
         final long typeMin = (long) element.getMinValue();
         final long typeMax = (long) element.getMaxValue();
         minValue = clamp(minValue, typeMin, typeMax);
-        modulo = clamp(modulo, typeMin, typeMax);
+        maxValue = clamp(maxValue, typeMin, typeMax);
         cursor.reset();
 
+        long exclusiveMax = maxValue + 1;
+
         final Iterator<Long> randomIterator =
-                new Random(System.currentTimeMillis()).longs(minValue, modulo).iterator();
+                new Random(System.currentTimeMillis()).longs(minValue, exclusiveMax).iterator();
 
         cursor.forEachRemaining(c -> c.setReal(randomIterator.next()));
     }
