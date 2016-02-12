@@ -1,17 +1,14 @@
 package org.bonej.testUtil;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.Iterator;
 import java.util.Random;
-import java.util.stream.IntStream;
 
 import javax.annotation.Nullable;
 
 import net.imagej.Dataset;
 import net.imagej.DatasetService;
-import net.imagej.ImageJ;
 import net.imagej.axis.Axes;
 import net.imagej.axis.AxisType;
 import net.imglib2.Cursor;
@@ -30,9 +27,6 @@ import org.scijava.plugin.Parameter;
  *
  * Call setContext before creating Datasets.
  *
- * @todo    Extend to NativeType<T>?
- * @todo    VolatileRealType?
- * @todo    UnsignedVariableBitLengthType?
  * @author  Richard Domander
  */
 public final class DatasetCreator extends AbstractContextual {
@@ -99,6 +93,8 @@ public final class DatasetCreator extends AbstractContextual {
                 return datasetService.create(new UnsignedIntType(), dimensions, "Dataset", axesTypes);
             case UNSIGNED_LONG:
                 return datasetService.create(new UnsignedLongType(), dimensions, "Dataset", axesTypes);
+            case UNSIGNED_VARIABLE_BIT_LENGTH:
+                return datasetService.create(new UnsignedVariableBitLengthType(64), dimensions, "Dataset", axesTypes);
             default:
                 return null;
         }
@@ -108,7 +104,7 @@ public final class DatasetCreator extends AbstractContextual {
      * Fills the elements in the given Dataset with random whole numbers.
      *
      * @implNote        Min and max values are clamped to prevent under - and overflow.
-     *                  E.g. If maxValue == 1000 and dataset type == UnsignedByteType(), then maxValue = 255
+     *                  E.g. If maxValue == 1000 and dataset type == UnsignedByteType, then maxValue = 255
      * @param minValue  Minimum value of the random numbers (inclusive)
      * @param maxValue  Maximum value of the random numbers (inclusive)
      */
@@ -144,10 +140,6 @@ public final class DatasetCreator extends AbstractContextual {
         return value;
     }
 
-    /**
-     * Instead using a hacky enum, it'd be ideal to have a method with a RealType<?> parameter,
-     * which would then somehow create a Dataset based on the runtime type of that parameter.
-     */
     public enum DatasetType {
         BIT,
         BYTE,
@@ -161,8 +153,9 @@ public final class DatasetCreator extends AbstractContextual {
         UNSIGNED_2_BIT,
         UNSIGNED_4_BIT,
         UNSIGNED_BYTE,
-        UNSIGNED_SHORT,
         UNSIGNED_INT,
-        UNSIGNED_LONG
+        UNSIGNED_LONG,
+        UNSIGNED_SHORT,
+        UNSIGNED_VARIABLE_BIT_LENGTH
     }
 }
