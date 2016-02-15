@@ -305,7 +305,7 @@ public class RoiUtil {
 	 * @param padding
 	 *            Number pixels added to each side of the copy target
 	 */
-	public static void copyRoiWithMask(final ImageProcessor sourceProcessor, final ImageProcessor targetProcessor,
+	private static void copyRoiWithMask(final ImageProcessor sourceProcessor, final ImageProcessor targetProcessor,
                                        final int minX, final int minY, final int maxX, final int maxY,
                                        final int padding) {
         ImageProcessor mask = sourceProcessor.getMask();

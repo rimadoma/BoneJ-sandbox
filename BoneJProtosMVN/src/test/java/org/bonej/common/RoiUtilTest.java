@@ -18,6 +18,7 @@ import ij.ImagePlus;
 import ij.ImageStack;
 import ij.gui.Roi;
 import ij.plugin.frame.RoiManager;
+import ij.process.ByteProcessor;
 import ij.process.ImageProcessor;
 
 /**
@@ -440,37 +441,66 @@ public class RoiUtilTest {
     @Test
     public void testCopyRoiWithMask() throws Exception
     {
+        final int WIDTH = 10;
+        final int HEIGHT = 10;
         final int TEST_COLOR = 0x20;
         final int TEST_COLOR_COUNT = 75;
+        final ImageProcessor mask = createLMask(WIDTH, HEIGHT);
 
-        // Create a mask from an L-shaped polygon
+        //Set up mock RoiManager
+        final Roi roi = new Roi(0, 0, WIDTH, HEIGHT);
+        roi.setName("0001-0000-0001");
+        when(mockRoiManager.getRoisAsArray()).thenReturn(new Roi[]{roi});
+        when(mockRoiManager.getCount()).thenReturn(1);
+        when(mockRoiManager.getSliceNumber(anyString())).thenCallRealMethod();
+
+        //Set up mock ImageStack
+        ImageProcessor mockProcessor = mock(ImageProcessor.class);
+        when(mockProcessor.get(anyInt(), anyInt())).thenReturn(TEST_COLOR);
+        when(mockProcessor.getMask()).thenReturn(mask);
+        when(mockProcessor.getWidth()).thenReturn(WIDTH);
+        when(mockProcessor.getHeight()).thenReturn(HEIGHT);
+        when(mockProcessor.createProcessor(WIDTH, HEIGHT)).thenReturn(new ByteProcessor(WIDTH, HEIGHT));
+
+        ImageStack mockStack = mock(ImageStack.class);
+        when(mockStack.getWidth()).thenReturn(WIDTH);
+        when(mockStack.getHeight()).thenReturn(HEIGHT);
+        when(mockStack.getSize()).thenReturn(1);
+        when(mockStack.getProcessor(anyInt())).thenReturn(mockProcessor);
+
+        // Assert results
+        Optional<ImageStack> optionalResult = RoiUtil.cropToRois(mockRoiManager, mockStack, false, 0x00);
+        assertTrue("Empty ImageStack Optional", optionalResult.isPresent());
+        ImageStack result = optionalResult.get();
+
+        int foregroundCount = countColorPixels(result, TEST_COLOR);
+        assertEquals("Masking didn't work correctly", TEST_COLOR_COUNT, foregroundCount);
+    }
+
+    /**
+     * Creates an L-shaped mask that blocks the lower right-hand corner of an image
+     *
+     * NB width & height need to be the same than the dimensions of the image this mask is used on.
+     *
+     * @param width     Width of the mask
+     * @param height    Height of the mask
+     * @return An ImageProcessor that can be passed to ImageProcessor#setMask
+     */
+    private ImageProcessor createLMask(final int width, final int height) {
+        ImageProcessor mask = new ByteProcessor(width, height);
+        ImageProcessor tmp = new ByteProcessor(width, height);
+
         Polygon polygon = new Polygon();
         polygon.addPoint(0, 0);
-        polygon.addPoint(10, 0);
-        polygon.addPoint(10, 5);
-        polygon.addPoint(5, 5);
-        polygon.addPoint(5, 10);
-        polygon.addPoint(0, 10);
+        polygon.addPoint(width, 0);
+        polygon.addPoint(width, height / 2);
+        polygon.addPoint(width / 2, height / 2);
+        polygon.addPoint(width / 2, height);
+        polygon.addPoint(0, height);
         polygon.addPoint(0, 0);
+        tmp.setRoi(polygon);
 
-        ImageProcessor result = mockStack.getProcessor(1).createProcessor(mockImage.getWidth(),
-                mockImage.getHeight());
-        ImageProcessor ip = mockStack.getProcessor(1).createProcessor(mockImage.getWidth(),
-                mockImage.getHeight());
-        ip.setRoi(polygon);
-        ImageProcessor mask = ip.getMask();
-
-        // set up mock ImageProcessor
-        ImageProcessor mockSource = mock(ImageProcessor.class);
-        when(mockSource.getMask()).thenReturn(mask);
-        when(mockSource.get(anyInt(), anyInt())).thenReturn(TEST_COLOR);
-
-        // get and assert result
-        RoiUtil.copyRoiWithMask(mockSource, result, 0, 0, 10, 10, 0);
-        ImageStack stack = new ImageStack(result.getWidth(), result.getHeight());
-        stack.addSlice(result);
-
-        int foregroundCount = countColorPixels(stack, TEST_COLOR);
-        assertEquals(TEST_COLOR_COUNT, foregroundCount);
+        mask.setPixels(tmp.getMask().getPixels());
+        return mask;
     }
 }
