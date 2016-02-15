@@ -12,6 +12,11 @@ import org.junit.Test;
  * @author Richard Domander
  */
 public class VectorsTest {
+    @Test(expected = NullPointerException.class)
+    public void testJoinedVectorAngleThrowsNullPointerExceptionIfVectorIsNull() throws Exception {
+        Vectors.joinedVectorAngle(null, new Vector3d(1.0, 0.0, 0.0), new Vector3d(0.0, 1.0, 0.0));
+    }
+
     @Test
     public void testJoinedVectorAngle() throws Exception {
         final Vector3d originalU = new Vector3d(1.0, 2.0, 3.0);
