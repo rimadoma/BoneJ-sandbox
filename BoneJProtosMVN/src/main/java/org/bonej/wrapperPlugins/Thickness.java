@@ -4,6 +4,7 @@ import static org.scijava.ui.DialogPrompt.*;
 
 import java.io.IOException;
 import java.net.URL;
+import java.util.Optional;
 
 import net.imagej.Main;
 
@@ -197,13 +198,16 @@ public class Thickness implements Command {
 
 		if (doRoi) {
 			RoiManager roiManager = RoiManager.getInstance();
-			ImageStack croppedStack = RoiUtil.cropToRois(roiManager, image.getStack(), true, Common.BINARY_BLACK);
 
-			if (croppedStack == null) {
-				uiService.showDialog("There are no valid ROIs in the ROI Manager for cropping", "ROI Manager empty",
-						MessageType.ERROR_MESSAGE, OptionType.DEFAULT_OPTION);
-				return false;
-			}
+            Optional<ImageStack> resultStack =
+                    RoiUtil.cropToRois(roiManager, image.getStack(), true, Common.BINARY_BLACK);
+            if (!resultStack.isPresent()) {
+                uiService.showDialog("There are no valid ROIs in the ROI Manager for cropping", "ROI Manager empty",
+                        MessageType.ERROR_MESSAGE, OptionType.DEFAULT_OPTION);
+                return false;
+            }
+
+            ImageStack croppedStack = resultStack.get();
 
 			ImagePlus croppedImage = new ImagePlus("", croppedStack);
 			croppedImage.copyScale(image);

@@ -2,6 +2,7 @@ package org.bonej.common;
 
 import java.awt.*;
 import java.util.ArrayList;
+import java.util.Optional;
 
 import javax.annotation.Nullable;
 
@@ -33,7 +34,8 @@ public class RoiUtil {
 	 *         stack == null
 	 *
 	 */
-	public static ArrayList<Roi> getSliceRoi(@Nullable RoiManager roiMan, @Nullable ImageStack stack, int sliceNumber) {
+	public static ArrayList<Roi> getSliceRoi(@Nullable final RoiManager roiMan, @Nullable final ImageStack stack,
+                                             final int sliceNumber) {
 		ArrayList<Roi> roiList = new ArrayList<>();
 
 		if (roiMan == null || stack == null) {
@@ -59,28 +61,23 @@ public class RoiUtil {
 	}
 
 	/**
-	 * Find the x, y and z limits of the ROIs in the ROI Manager
+	 * Find the x, y and z limits of the stack defined by the ROIs in the ROI Manager
 	 *
+     * @implNote If for any ROI isActiveOnAllSlices == true, then z0 == 1 and z1 == stack.getSize().
 	 * @param roiMan
 	 *            The collection of all the current ROIs
 	 * @param stack
 	 *            The stack inside which the ROIs must fit (max limits).
-	 * @return int[] containing x min, x max, y min, y max, z min and z max.
-	 *         Returns null if roiMan == null || roiMan.getCount() == 0 Returns
-	 *         null if stack == null Returns null if every ROI in roiMan is
-	 *         outside the given stack
-	 *
-	 *         If for any ROI isActiveOnAllSlices == true, then z min is set to
-	 *         1 and z max is set to stack.getSize().
+	 * @return  Returns an Optional with the limits in an int array {x0, x1, y0, y1, z0, z1}.
+     *          Returns an empty Optional if roiMan == null or stack == null or roiMan is empty
 	 */
-	@Nullable
-	public static int[] getLimits(@Nullable RoiManager roiMan, @Nullable ImageStack stack) {
+	public static Optional<int[]> getLimits(@Nullable final RoiManager roiMan, @Nullable final ImageStack stack) {
 		if (roiMan == null || stack == null) {
-			return null;
+			return Optional.empty();
 		}
 
 		if (roiMan.getCount() == 0) {
-			return null;
+			return Optional.empty();
 		}
 
 		final int DEFAULT_Z_MIN = 1;
@@ -122,7 +119,7 @@ public class RoiUtil {
 		}
 
 		if (noValidRois) {
-			return null;
+			return Optional.empty();
 		}
 
 		int[] limits = {xMin, xMax, yMin, yMax, zMin, zMax};
@@ -132,10 +129,10 @@ public class RoiUtil {
 			limits[5] = DEFAULT_Z_MAX;
 		}
 
-		return limits;
+		return Optional.of(limits);
 	}
 
-	private static boolean isActiveOnAllSlices(int sliceNumber) {
+	private static boolean isActiveOnAllSlices(final int sliceNumber) {
 		return sliceNumber == NO_SLICE_NUMBER;
 	}
 
@@ -151,7 +148,7 @@ public class RoiUtil {
 	 * @return false if the height or width of the fitted rectangle is 0
 	 *         (Couldn't be cropped inside the area).
 	 */
-	public static boolean getSafeRoiBounds(Rectangle bounds, int width, int height) {
+	public static boolean getSafeRoiBounds(final Rectangle bounds, final int width, final int height) {
 		int xMin = Common.clamp(bounds.x, 0, width);
 		int xMax = Common.clamp(bounds.x + bounds.width, 0, width);
 		int yMin = Common.clamp(bounds.y, 0, height);
@@ -165,16 +162,15 @@ public class RoiUtil {
 	}
 
 	/**
-	 * Same as @see RoiUtil.cropToRois, but with default padding of 0. Handy if
-	 * padding might affect the results of your plugin.
+	 * Same as @see RoiUtil.cropToRois, but with default padding of 0.
 	 */
-	public static ImageStack cropToRois(RoiManager roiMan, ImageStack sourceStack, boolean fillBackground,
-			int fillColor) {
+	public static Optional<ImageStack> cropToRois(final RoiManager roiMan, final ImageStack sourceStack,
+                                                  final boolean fillBackground, final int fillColor) {
 		return cropToRois(roiMan, sourceStack, fillBackground, fillColor, 0);
 	}
 
 	/**
-	 * Crop a stack to the limits of the ROIs in the ROI Manager and optionally
+	 * Crop a stack to the limits defined by the ROIs in the ROI Manager and optionally
 	 * fill the background with a single pixel value.
 	 *
 	 * @param roiMan
@@ -187,21 +183,24 @@ public class RoiUtil {
 	 *            Color of the background of the cropped image
 	 * @param padding
 	 *            Number of pixels added to the each side of the resulting image
-	 * @return A new image stack containing the cropped version of the given
-	 *         image. Returns null if roiMan is null or empty. Returns null if
-	 *         sourceStack == null
-	 *
+     * @return  An Optional with the cropped stack of the given image.
+     *          The Optional is empty if roiMan == null, or sourceStack == null, or roiMan is empty
 	 */
-	@Nullable
-	public static ImageStack cropToRois(@Nullable RoiManager roiMan, @Nullable ImageStack sourceStack,
-			boolean fillBackground, int fillColor, int padding) {
-		int[] limits = getLimits(roiMan, sourceStack);
+	public static Optional<ImageStack> cropToRois(@Nullable final RoiManager roiMan,
+                                                  @Nullable final ImageStack sourceStack, final boolean fillBackground,
+                                                  final int fillColor, final int padding) {
+        if (roiMan == null || sourceStack == null) {
+            return Optional.empty();
+        }
 
-		if (limits == null) {
-			return null;
-		}
+        Optional<int[]> optionalLimits = getLimits(roiMan, sourceStack);
+        if (!optionalLimits.isPresent()) {
+            return Optional.empty();
+        }
 
-		final int xMin = limits[0];
+		int[] limits = optionalLimits.get();
+
+        final int xMin = limits[0];
 		final int xMax = limits[1];
 		final int yMin = limits[2];
 		final int yMax = limits[3];
@@ -247,7 +246,7 @@ public class RoiUtil {
 			targetStack.addSlice(targetProcessor.duplicate());
 		}
 
-		return targetStack;
+		return Optional.of(targetStack);
 	}
 
 	/**
@@ -262,8 +261,8 @@ public class RoiUtil {
 	 * @param padding
 	 *            Number of pixels added on each side of the target slide
 	 */
-	private static void copySlice(ImageProcessor sourceProcessor, ImageProcessor targetProcessor,
-			ArrayList<Roi> sliceRois, int padding) {
+	private static void copySlice(final ImageProcessor sourceProcessor, final ImageProcessor targetProcessor,
+			final ArrayList<Roi> sliceRois, final int padding) {
 		for (Roi sliceRoi : sliceRois) {
 			Rectangle rectangle = sliceRoi.getBounds();
 			boolean valid = getSafeRoiBounds(rectangle, sourceProcessor.getWidth(), sourceProcessor.getHeight());
@@ -290,6 +289,7 @@ public class RoiUtil {
 	 * Copies the pixels in the given ROI from the source image to the target
 	 * image. Copies only those pixels where the color of the given mask > 0.
 	 *
+     * @implNote Calls copyRoi with the given parameters if sourceProcessor.getMask() == null
 	 * @param sourceProcessor
 	 *            Copy source
 	 * @param targetProcessor
@@ -304,15 +304,11 @@ public class RoiUtil {
 	 *            Vertical end of the copy area 0 <= maxY <= height
 	 * @param padding
 	 *            Number pixels added to each side of the copy target
-	 * @pre sourceProcessor != null
-	 * @pre targetProcessor != null
-	 *
-	 *      Calls copyRoi with the given parameters if sourceProcessor.getMask()
-	 *      == null
 	 */
-	public static void copyRoiWithMask(ImageProcessor sourceProcessor, ImageProcessor targetProcessor, final int minX,
-			final int minY, final int maxX, final int maxY, final int padding) {
-		ImageProcessor mask = sourceProcessor.getMask();
+	public static void copyRoiWithMask(final ImageProcessor sourceProcessor, final ImageProcessor targetProcessor,
+                                       final int minX, final int minY, final int maxX, final int maxY,
+                                       final int padding) {
+        ImageProcessor mask = sourceProcessor.getMask();
 		if (mask == null) {
 			copyRoi(sourceProcessor, targetProcessor, minX, minY, maxX, maxY, padding);
 			return;

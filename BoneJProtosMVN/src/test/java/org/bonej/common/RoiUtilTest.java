@@ -1,11 +1,11 @@
 package org.bonej.common;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
 import java.awt.*;
 import java.util.ArrayList;
+import java.util.Optional;
 
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -163,24 +163,25 @@ public class RoiUtilTest {
         when(mockRoiManager.getRoisAsArray()).thenReturn(rois);
 
         // Null RoiManager
-        int limitsResult[] = RoiUtil.getLimits(null, mockStack);
-        assertEquals(null, limitsResult);
+        Optional<int[]> optionalResult = RoiUtil.getLimits(null, mockStack);
+        assertFalse(optionalResult.isPresent());
 
         // Null stack
-        limitsResult = RoiUtil.getLimits(mockRoiManager, null);
-        assertEquals(null, limitsResult);
+        optionalResult = RoiUtil.getLimits(mockRoiManager, null);
+        assertFalse(optionalResult.isPresent());
 
         // Empty RoiManager
         when(mockRoiManager.getCount()).thenReturn(0);
 
-        limitsResult = RoiUtil.getLimits(mockRoiManager, mockStack);
-        assertEquals(null, limitsResult);
+        optionalResult = RoiUtil.getLimits(mockRoiManager, mockStack);
+        assertFalse(optionalResult.isPresent());
 
         // All valid ROIs
         when(mockRoiManager.getCount()).thenReturn(rois.length);
 
-        limitsResult = RoiUtil.getLimits(mockRoiManager, mockStack);
-        assertNotEquals(null, limitsResult);
+        optionalResult = RoiUtil.getLimits(mockRoiManager, mockStack);
+        assertTrue(optionalResult.isPresent());
+        int[] limitsResult = optionalResult.get();
         assertEquals(NUM_LIMITS, limitsResult.length);
         assertEquals(MIN_X, limitsResult[0]);
         assertEquals(MAX_X, limitsResult[1]);
@@ -197,8 +198,9 @@ public class RoiUtilTest {
 
         when(mockRoiManager.getRoisAsArray()).thenReturn(roisWithAllActive);
 
-        limitsResult = RoiUtil.getLimits(mockRoiManager, mockStack);
-        assertNotEquals(null, limitsResult);
+        optionalResult = RoiUtil.getLimits(mockRoiManager, mockStack);
+        assertTrue(optionalResult.isPresent());
+        limitsResult = optionalResult.get();
         assertEquals(1, limitsResult[MIN_Z_INDEX]);
         assertEquals(mockStack.getSize(), limitsResult[MAX_Z_INDEX]);
 
@@ -210,8 +212,9 @@ public class RoiUtilTest {
 
         when(mockRoiManager.getRoisAsArray()).thenReturn(roisWithBadZ);
 
-        limitsResult = RoiUtil.getLimits(mockRoiManager, mockStack);
-        assertNotEquals(null, limitsResult);
+        optionalResult = RoiUtil.getLimits(mockRoiManager, mockStack);
+        assertTrue(optionalResult.isPresent());
+        limitsResult = optionalResult.get();
         assertEquals(MIN_Z, limitsResult[MIN_Z_INDEX]);
         assertEquals(MAX_Z, limitsResult[MAX_Z_INDEX]);
 
@@ -223,8 +226,9 @@ public class RoiUtilTest {
 
         when(mockRoiManager.getRoisAsArray()).thenReturn(badRois);
 
-        limitsResult = RoiUtil.getLimits(mockRoiManager, mockStack);
-        assertEquals(null, limitsResult);
+
+        optionalResult = RoiUtil.getLimits(mockRoiManager, mockStack);
+        assertFalse(optionalResult.isPresent());
     }
 
     @Test
@@ -265,7 +269,8 @@ public class RoiUtilTest {
         ImageStack originalStack = image.getStack();
 
         //All valid ROIs (basic cropping test)
-        ImageStack resultStack = RoiUtil.cropToRois(mockRoiManager, originalStack, false, 0x00, 0);
+        Optional<ImageStack> optionalResult = RoiUtil.cropToRois(mockRoiManager, originalStack, false, 0x00, 0);
+        ImageStack resultStack = optionalResult.get();
         assertEquals("Cropped stack has wrong width", WIDTH, resultStack.getWidth());
         assertEquals("Cropped stack has wrong height", HEIGHT, resultStack.getHeight());
         assertEquals("Cropped stack has wrong depth", DEPTH, resultStack.getSize());
@@ -277,7 +282,8 @@ public class RoiUtilTest {
         assertEquals("Cropped area has wrong amount of background color", BACKGROUND_COLOR_COUNT, backgroundCount);
 
         //padding
-        ImageStack paddedResultStack = RoiUtil.cropToRois(mockRoiManager, originalStack, false, 0x00, PADDING);
+        optionalResult = RoiUtil.cropToRois(mockRoiManager, originalStack, false, 0x00, PADDING);
+        ImageStack paddedResultStack = optionalResult.get();
         assertEquals("Cropped stack has wrong padded width", WIDTH + TOTAL_PADDING, paddedResultStack.getWidth());
         assertEquals("Cropped stack has wrong padded height", HEIGHT + TOTAL_PADDING, paddedResultStack.getHeight());
         assertEquals("Cropped stack has wrong padded depth", DEPTH + TOTAL_PADDING, paddedResultStack.getSize());
@@ -286,7 +292,8 @@ public class RoiUtilTest {
                 PADDING));
 
         //fill color
-        resultStack = RoiUtil.cropToRois(mockRoiManager, originalStack, true, FILL_COLOR, 0);
+        optionalResult = RoiUtil.cropToRois(mockRoiManager, originalStack, true, FILL_COLOR, 0);
+        resultStack = optionalResult.get();
 
         foregroundCount = countColorPixels(resultStack, TEST_COLOR);
         assertEquals("Cropped area has wrong amount of foreground color", TEST_COLOR_COUNT, foregroundCount);
@@ -307,7 +314,8 @@ public class RoiUtilTest {
 
         when(mockRoiManager.getRoisAsArray()).thenReturn(noZRois);
 
-        resultStack = RoiUtil.cropToRois(mockRoiManager, originalStack, false, 0x00, 0);
+        optionalResult = RoiUtil.cropToRois(mockRoiManager, originalStack, false, 0x00, 0);
+        resultStack = optionalResult.get();
         assertEquals("Cropped stack has wrong width", ALL_ACTIVE_WIDTH, resultStack.getWidth());
         assertEquals("Cropped stack has wrong height", ALL_ACTIVE_HEIGHT, resultStack.getHeight());
         assertEquals("Cropped stack has wrong depth", originalStack.getSize(), resultStack.getSize());
@@ -324,7 +332,8 @@ public class RoiUtilTest {
 
         when(mockRoiManager.getRoisAsArray()).thenReturn(badRois);
 
-        resultStack = RoiUtil.cropToRois(mockRoiManager, originalStack, false, 0x00, 0);
+        optionalResult = RoiUtil.cropToRois(mockRoiManager, originalStack, false, 0x00, 0);
+        resultStack = optionalResult.get();
         assertEquals("Cropped stack has wrong width", originalStack.getWidth(), resultStack.getWidth());
         assertEquals("Cropped stack has wrong height", originalStack.getHeight(), resultStack.getHeight());
         assertEquals("Cropped stack has wrong depth", 1, resultStack.getSize());
