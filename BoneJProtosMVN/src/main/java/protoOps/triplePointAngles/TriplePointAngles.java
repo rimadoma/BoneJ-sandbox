@@ -232,9 +232,9 @@ public class TriplePointAngles implements Op {
 		ArrayList<Point> oppositeVertex0Points = oppositeVertex0.getPoints();
 		ArrayList<Point> oppositeVertex1Points = oppositeVertex1.getPoints();
 
-		double[] vertexCentroid = Centroid.getCentroid(vertexPoints);
-		double[] oppositeVertex0Centroid = Centroid.getCentroid(oppositeVertex0Points);
-		double[] oppositeVertex1Centroid = Centroid.getCentroid(oppositeVertex1Points);
+		double[] vertexCentroid = Centroid.getCentroidCoordinates(vertexPoints).get();
+		double[] oppositeVertex0Centroid = Centroid.getCentroidCoordinates(oppositeVertex0Points).get();
+		double[] oppositeVertex1Centroid = Centroid.getCentroidCoordinates(oppositeVertex1Points).get();
 
 		return Vectors.joinedVectorAngle(oppositeVertex0Centroid[0], oppositeVertex0Centroid[1],
 				oppositeVertex0Centroid[2], oppositeVertex1Centroid[0], oppositeVertex1Centroid[1],
@@ -245,7 +245,7 @@ public class TriplePointAngles implements Op {
 		Point p0 = getNthPointOfEdge(vertex, edge0);
 		Point p1 = getNthPointOfEdge(vertex, edge1);
 
-		double cv[] = Centroid.getCentroid(vertex.getPoints());
+		double cv[] = Centroid.getCentroidCoordinates(vertex.getPoints()).get();
 		return Vectors.joinedVectorAngle(p0.x, p0.y, p0.z, p1.x, p1.y, p1.z, cv[0], cv[1], cv[2]);
 	}
 
@@ -256,7 +256,7 @@ public class TriplePointAngles implements Op {
         if (edgePoints.isEmpty()) {
             // No slabs, edge has only an end-point and a junction point
             ArrayList<Point> oppositeVertexPoints = edge.getOppositeVertex(vertex).getPoints();
-            Point oppositeVertexCentroid = Centroid.getCentroidPoint(oppositeVertexPoints);
+            Point oppositeVertexCentroid = Centroid.getCentroidPoint(oppositeVertexPoints).get();
             return oppositeVertexCentroid;
         }
 
