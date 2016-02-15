@@ -8,18 +8,19 @@ import ij.measure.ResultsTable;
 
 /**
  * A wrapper class for ResultsTable used to insert measurements according to the
- * following policy: 1) If there are no rows with the given label, then add a
- * new row. 2) If there are rows with the given label, but there is not a column
- * with the given heading, then add a column, and set its value on the first row
- * with the label. 3) If there are rows with the given label, and there's a
- * column with the given heading, then find the first row which has no value in
- * the column (Double.NaN), and add the new value there. If there are no such
- * rows, then add a new row.
+ * following policy:
+ * 1)   If there are no rows with the given label, then add a new row.
+ * 2)   If there are rows with the given label, but there is not a column
+ *      with the given heading, then add a column, and set its value on the first row
+ *      with the label.
+ * 3)   If there are rows with the given label, and there's a column with the given heading,
+ *      then find the first row which has no value in   the column (Double.NaN), and add the new value there.
+ *      If there are no such rows, then add a new row.
  *
  * By default the class uses the instance returned by
  * ResultsTable.getResultsTable()
  * 
- * @author <a href="mailto:rdomander@rvc.ac.uk">Richard Domander</a>
+ * @author Richard Domander
  * @author Michael Doube
  *
  * @todo add behaviour for headless mode: ResultsTable.saveAs...?
@@ -60,8 +61,6 @@ public class ResultsInserter {
 	 *            The column heading of the new data
 	 * @param measurementValue
 	 *            The value of the new data
-	 *
-	 *            May or may not columns or rows to the table.
 	 */
 	public void setMeasurementInFirstFreeRow(String rowLabel, String measurementHeading, double measurementValue) {
 		checkArgument(!Strings.isNullOrEmpty(rowLabel), "Row label must not be null or empty");
@@ -88,6 +87,11 @@ public class ResultsInserter {
 		resultsTable.setValue(measurementHeading, firstFreeDataRow, measurementValue);
 	}
 
+    public void updateTable() {
+        resultsTable.show(DEFAULT_RESULTS_TABLE_TITLE);
+    }
+
+    //region -- Helper methods --
 	private void addNewRow(String label, String measurementTitle, double measurementValue) {
 		resultsTable.incrementCounter();
 		resultsTable.addLabel(label);
@@ -138,8 +142,5 @@ public class ResultsInserter {
 
 		return -1;
 	}
-
-	public void updateTable() {
-		resultsTable.show(DEFAULT_RESULTS_TABLE_TITLE);
-	}
+    //endregion
 }

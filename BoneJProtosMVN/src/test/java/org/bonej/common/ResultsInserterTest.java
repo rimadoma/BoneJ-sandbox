@@ -21,6 +21,7 @@ public class ResultsInserterTest {
 	private static final double MEASUREMENT_VALUE = 13.0;
 	private static final String NEW_MEASUREMENT_HEADING = "max";
 	private static final double NEW_MEASUREMENT_VALUE = 1000.0;
+    private static final double DELTA = 0.000000001;
 
 	private ResultsTable resultsTable;
 	private int beforeCount;
@@ -83,7 +84,7 @@ public class ResultsInserterTest {
 		assertEquals("The new column has the wrong heading", MEASUREMENT_HEADING, measurementHeading);
 
 		double measurementValue = resultsTable.getValueAsDouble(COLUMN, lastRow);
-		assertEquals("The new column has the wrong value", MEASUREMENT_VALUE, measurementValue, 0.000000001);
+		assertEquals("The new column has the wrong value", MEASUREMENT_VALUE, measurementValue, DELTA);
 	}
 
 	@Test
@@ -119,9 +120,9 @@ public class ResultsInserterTest {
 		int lastColumn = resultsTable.getLastColumn();
 
 		assertEquals("The new measurement was inserted on the wrong row", Double.NaN,
-				resultsTable.getValueAsDouble(lastColumn, 2), 0.00000001);
+				resultsTable.getValueAsDouble(lastColumn, 2), DELTA);
 		assertEquals("The new measurement should have been inserted on the first row with the same label",
-				NEW_MEASUREMENT_VALUE, resultsTable.getValueAsDouble(lastColumn, 1), 0.00000001);
+				NEW_MEASUREMENT_VALUE, resultsTable.getValueAsDouble(lastColumn, 1), DELTA);
 	}
 
 	@Test
@@ -134,7 +135,7 @@ public class ResultsInserterTest {
 
 		assertEquals(3, resultsTable.getCounter());
 		assertEquals("The new value should be inserted on the first row with no data", NEW_MEASUREMENT_VALUE,
-				resultsTable.getValueAsDouble(1, 1), 0.00000001);
+				resultsTable.getValueAsDouble(1, 1), DELTA);
 		assertEquals("The new value was inserted on the wrong row", Double.NaN, resultsTable.getValueAsDouble(1, 2),
 				0.00000001);
 	}
