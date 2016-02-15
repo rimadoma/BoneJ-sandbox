@@ -27,8 +27,8 @@ import ij.process.ImageProcessor;
  */
 public class RoiUtilTest {
     RoiManager mockRoiManager = mock(RoiManager.class);
-    private static ImagePlus mockImage;
-    private static ImageStack mockStack;
+    private static ImagePlus testImage;
+    private static ImageStack testStack;
 
     private final static int MOCK_IMAGE_WIDTH = 100;
     private final static int MOCK_IMAGE_HEIGHT = 100;
@@ -37,19 +37,19 @@ public class RoiUtilTest {
     @BeforeClass
     public static void oneTimeSetUp()
     {
-        IJ.newImage("mockImage", "8-bit", MOCK_IMAGE_WIDTH, MOCK_IMAGE_HEIGHT, MOCK_IMAGE_DEPTH);
-        mockImage = IJ.getImage();
-        mockStack = mockImage.getStack();
+        IJ.newImage("testImage", "8-bit", MOCK_IMAGE_WIDTH, MOCK_IMAGE_HEIGHT, MOCK_IMAGE_DEPTH);
+        testImage = IJ.getImage();
+        testStack = testImage.getStack();
     }
 
     @AfterClass
     public static void oneTimeTearDown()
     {
-        if (mockImage != null) {
-            mockImage.flush();
-            mockImage.close();
-            mockImage = null;
-            mockStack = null;
+        if (testImage != null) {
+            testImage.flush();
+            testImage.close();
+            testImage = null;
+            testStack = null;
         }
     }
 
@@ -91,7 +91,7 @@ public class RoiUtilTest {
         when(mockRoiManager.getRoisAsArray()).thenReturn(rois);
 
         // RoiMan == null
-        ArrayList<Roi> resultRois = RoiUtil.getSliceRoi(null, mockStack, 1);
+        ArrayList<Roi> resultRois = RoiUtil.getSliceRoi(null, testStack, 1);
         assertEquals(true, resultRois.isEmpty());
 
         // ImageStack == null
@@ -99,26 +99,26 @@ public class RoiUtilTest {
         assertEquals(true, resultRois.isEmpty());
 
         // Out of bounds slice number
-        resultRois = RoiUtil.getSliceRoi(mockRoiManager, mockStack, BAD_SLICE_NUMBER);
+        resultRois = RoiUtil.getSliceRoi(mockRoiManager, testStack, BAD_SLICE_NUMBER);
         assertEquals("Out of bounds slice number should return no ROIs", 0, resultRois.size());
 
-        resultRois = RoiUtil.getSliceRoi(mockRoiManager, mockStack, mockStack.getSize() + 1);
+        resultRois = RoiUtil.getSliceRoi(mockRoiManager, testStack, testStack.getSize() + 1);
         assertEquals("Out of bounds slice number should return no ROIs", 0, resultRois.size());
 
         // Slice with no (associated) Rois
-        resultRois = RoiUtil.getSliceRoi(mockRoiManager, mockStack, NO_ROI_SLICE_NO);
+        resultRois = RoiUtil.getSliceRoi(mockRoiManager, testStack, NO_ROI_SLICE_NO);
         assertEquals("Wrong number of ROIs returned", 1, resultRois.size());
         assertEquals("Wrong ROI returned", noSliceLabel, resultRois.get(0).getName());
 
         // Slice with one Roi
-        resultRois = RoiUtil.getSliceRoi(mockRoiManager, mockStack, SINGLE_ROI_SLICE_NO);
+        resultRois = RoiUtil.getSliceRoi(mockRoiManager, testStack, SINGLE_ROI_SLICE_NO);
 
         assertEquals("Wrong number of ROIs returned", 2, resultRois.size());
         assertEquals("Wrong ROI returned, or ROIs in wrong order", singleRoiLabel, resultRois.get(0).getName());
         assertEquals("Wrong ROI returned, or ROIs in wrong order", noSliceLabel, resultRois.get(1).getName());
 
         // Slice with multiple Rois
-        resultRois = RoiUtil.getSliceRoi(mockRoiManager, mockStack, MULTI_ROI_SLICE_NO);
+        resultRois = RoiUtil.getSliceRoi(mockRoiManager, testStack, MULTI_ROI_SLICE_NO);
 
         assertEquals("Wrong number of ROIs returned", 3, resultRois.size());
         assertEquals("Wrong ROI returned, or ROIs in wrong order", multiRoi1Label, resultRois.get(0).getName());
@@ -164,7 +164,7 @@ public class RoiUtilTest {
         when(mockRoiManager.getRoisAsArray()).thenReturn(rois);
 
         // Null RoiManager
-        Optional<int[]> optionalResult = RoiUtil.getLimits(null, mockStack);
+        Optional<int[]> optionalResult = RoiUtil.getLimits(null, testStack);
         assertFalse(optionalResult.isPresent());
 
         // Null stack
@@ -174,13 +174,13 @@ public class RoiUtilTest {
         // Empty RoiManager
         when(mockRoiManager.getCount()).thenReturn(0);
 
-        optionalResult = RoiUtil.getLimits(mockRoiManager, mockStack);
+        optionalResult = RoiUtil.getLimits(mockRoiManager, testStack);
         assertFalse(optionalResult.isPresent());
 
         // All valid ROIs
         when(mockRoiManager.getCount()).thenReturn(rois.length);
 
-        optionalResult = RoiUtil.getLimits(mockRoiManager, mockStack);
+        optionalResult = RoiUtil.getLimits(mockRoiManager, testStack);
         assertTrue(optionalResult.isPresent());
         int[] limitsResult = optionalResult.get();
         assertEquals(NUM_LIMITS, limitsResult.length);
@@ -199,11 +199,11 @@ public class RoiUtilTest {
 
         when(mockRoiManager.getRoisAsArray()).thenReturn(roisWithAllActive);
 
-        optionalResult = RoiUtil.getLimits(mockRoiManager, mockStack);
+        optionalResult = RoiUtil.getLimits(mockRoiManager, testStack);
         assertTrue(optionalResult.isPresent());
         limitsResult = optionalResult.get();
         assertEquals(1, limitsResult[MIN_Z_INDEX]);
-        assertEquals(mockStack.getSize(), limitsResult[MAX_Z_INDEX]);
+        assertEquals(testStack.getSize(), limitsResult[MAX_Z_INDEX]);
 
         // Valid ROIs, and one with a too large slice number
         Roi farZRoi = new Roi(10, 10, 10, 10);
@@ -213,7 +213,7 @@ public class RoiUtilTest {
 
         when(mockRoiManager.getRoisAsArray()).thenReturn(roisWithBadZ);
 
-        optionalResult = RoiUtil.getLimits(mockRoiManager, mockStack);
+        optionalResult = RoiUtil.getLimits(mockRoiManager, testStack);
         assertTrue(optionalResult.isPresent());
         limitsResult = optionalResult.get();
         assertEquals(MIN_Z, limitsResult[MIN_Z_INDEX]);
@@ -228,7 +228,7 @@ public class RoiUtilTest {
         when(mockRoiManager.getRoisAsArray()).thenReturn(badRois);
 
 
-        optionalResult = RoiUtil.getLimits(mockRoiManager, mockStack);
+        optionalResult = RoiUtil.getLimits(mockRoiManager, testStack);
         assertFalse(optionalResult.isPresent());
     }
 
@@ -340,61 +340,6 @@ public class RoiUtilTest {
         assertEquals("Cropped stack has wrong depth", 1, resultStack.getSize());
     }
 
-    /**
-     * Checks that padding has moved all of the pixels to correct coordinates
-     * @param   croppedStack  The cropped image without padding
-     * @param   paddedStack   The same image with padding
-     * @param   padding       number of padding pixels on each side of paddedStack
-     * @pre     padding >= 0
-     * @return true if all the pixels have shifted the correct amount
-     */
-    private static boolean pixelsShifted(ImageStack croppedStack, ImageStack paddedStack, int padding) {
-        for (int z = 1; z <= croppedStack.getSize(); z++) {
-            ImageProcessor sourceProcessor = croppedStack.getProcessor(z);
-            int targetZ = z + padding;
-            ImageProcessor targetProcessor = paddedStack.getProcessor(targetZ);
-            for (int y = 0; y < croppedStack.getHeight(); y++) {
-                int targetY = y + padding;
-                for (int x = 0; x < croppedStack.getWidth(); x++) {
-                    int targetX = x + padding;
-                    int sourceColor = sourceProcessor.get(x, y);
-                    int targetColor = targetProcessor.get(targetX, targetY);
-                    if (sourceColor != targetColor) {
-                        return false;
-                    }
-                }
-            }
-        }
-        return true;
-    }
-
-    /**
-     * Counts the number of pixels that have the given color in all the slices of the given stack
-     * @param stack The stack to inspect
-     * @param color The color to be searched
-     * @return The number of pixels that match the color
-     */
-    private static int countColorPixels(ImageStack stack, int color)
-    {
-        int count = 0;
-        int height = stack.getHeight();
-        int width = stack.getWidth();
-
-        for (int z = 1; z <= stack.getSize(); z++) {
-            byte pixels[] = (byte[]) stack.getPixels(z);
-            for (int y = 0; y < height; y++) {
-                int offset = y * width;
-                for (int x = 0; x < width; x++) {
-                    if (pixels[offset + x] == color) {
-                        count++;
-                    }
-                }
-            }
-        }
-
-        return count;
-    }
-
     @Test
     public void testGetSafeRoiBounds() throws Exception {
         final int X = 10;
@@ -404,10 +349,10 @@ public class RoiUtilTest {
 
         Rectangle validRectangle = new Rectangle(X, Y, WIDTH, HEIGHT);
         Rectangle outOfBoundsRectangle = new Rectangle(-10, -10, 5, 5);
-        Rectangle tooLargeRectangle = new Rectangle(X, Y, mockStack.getWidth() + 100, mockStack.getHeight() + 100);
+        Rectangle tooLargeRectangle = new Rectangle(X, Y, testStack.getWidth() + 100, testStack.getHeight() + 100);
 
         // valid bounds
-        boolean result = RoiUtil.getSafeRoiBounds(validRectangle, mockStack.getWidth(), mockStack.getHeight());
+        boolean result = RoiUtil.getSafeRoiBounds(validRectangle, testStack.getWidth(), testStack.getHeight());
         assertEquals(true, result);
         assertEquals(X, validRectangle.x);
         assertEquals(Y, validRectangle.y);
@@ -415,7 +360,7 @@ public class RoiUtilTest {
         assertEquals(HEIGHT, validRectangle.height);
 
         // bounds completely outside the image stack
-        result = RoiUtil.getSafeRoiBounds(outOfBoundsRectangle, mockStack.getWidth(), mockStack.getHeight());
+        result = RoiUtil.getSafeRoiBounds(outOfBoundsRectangle, testStack.getWidth(), testStack.getHeight());
         assertEquals(false, result);
         assertEquals(0, outOfBoundsRectangle.x);
         assertEquals(0, outOfBoundsRectangle.y);
@@ -423,12 +368,12 @@ public class RoiUtilTest {
         assertEquals(0, outOfBoundsRectangle.height);
 
         // bound partly outside the image stack
-        result = RoiUtil.getSafeRoiBounds(tooLargeRectangle, mockStack.getWidth(), mockStack.getHeight());
+        result = RoiUtil.getSafeRoiBounds(tooLargeRectangle, testStack.getWidth(), testStack.getHeight());
         assertEquals(true, result);
         assertEquals(X, tooLargeRectangle.x);
         assertEquals(Y, tooLargeRectangle.y);
-        assertEquals(mockStack.getWidth() - X, tooLargeRectangle.width);
-        assertEquals(mockStack.getHeight() - Y, tooLargeRectangle.height);
+        assertEquals(testStack.getWidth() - X, tooLargeRectangle.width);
+        assertEquals(testStack.getHeight() - Y, tooLargeRectangle.height);
 
     }
 
@@ -502,5 +447,60 @@ public class RoiUtilTest {
 
         mask.setPixels(tmp.getMask().getPixels());
         return mask;
+    }
+
+    /**
+     * Checks that padding has moved all of the pixels to correct coordinates
+     * @param   croppedStack  The cropped image without padding
+     * @param   paddedStack   The same image with padding
+     * @param   padding       number of padding pixels on each side of paddedStack
+     * @pre     padding >= 0
+     * @return true if all the pixels have shifted the correct amount
+     */
+    private static boolean pixelsShifted(ImageStack croppedStack, ImageStack paddedStack, int padding) {
+        for (int z = 1; z <= croppedStack.getSize(); z++) {
+            ImageProcessor sourceProcessor = croppedStack.getProcessor(z);
+            int targetZ = z + padding;
+            ImageProcessor targetProcessor = paddedStack.getProcessor(targetZ);
+            for (int y = 0; y < croppedStack.getHeight(); y++) {
+                int targetY = y + padding;
+                for (int x = 0; x < croppedStack.getWidth(); x++) {
+                    int targetX = x + padding;
+                    int sourceColor = sourceProcessor.get(x, y);
+                    int targetColor = targetProcessor.get(targetX, targetY);
+                    if (sourceColor != targetColor) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Counts the number of pixels that have the given color in all the slices of the given stack
+     * @param stack The stack to inspect
+     * @param color The color to be searched
+     * @return The number of pixels that match the color
+     */
+    private static int countColorPixels(ImageStack stack, int color)
+    {
+        int count = 0;
+        int height = stack.getHeight();
+        int width = stack.getWidth();
+
+        for (int z = 1; z <= stack.getSize(); z++) {
+            byte pixels[] = (byte[]) stack.getPixels(z);
+            for (int y = 0; y < height; y++) {
+                int offset = y * width;
+                for (int x = 0; x < width; x++) {
+                    if (pixels[offset + x] == color) {
+                        count++;
+                    }
+                }
+            }
+        }
+
+        return count;
     }
 }

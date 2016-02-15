@@ -18,9 +18,10 @@ import ij.process.ImageProcessor;
  * @author Richard Domander
  */
 public class RoiUtil {
-	public static final int FIRST_SLICE_NUMBER = 1;
-	public static final int NO_SLICE_NUMBER = -1;
+	private static final int FIRST_SLICE_NUMBER = 1;
+	private static final int NO_SLICE_NUMBER = -1;
 
+    //region -- Utility methods --
 	/**
 	 * Returns a list of ROIs that are active in the given slice.
 	 *
@@ -132,11 +133,7 @@ public class RoiUtil {
 		return Optional.of(limits);
 	}
 
-	private static boolean isActiveOnAllSlices(final int sliceNumber) {
-		return sliceNumber == NO_SLICE_NUMBER;
-	}
-
-	/**
+    /**
 	 * Crops the given rectangle to the area [0, 0, width, height]
 	 *
 	 * @param bounds
@@ -248,7 +245,9 @@ public class RoiUtil {
 
 		return Optional.of(targetStack);
 	}
+    //endregion
 
+    //region -- Helper methods --
 	/**
 	 * Copies pixels under all the ROIs on a slide
 	 *
@@ -363,4 +362,9 @@ public class RoiUtil {
 			targetY++;
 		}
 	}
+
+    private static boolean isActiveOnAllSlices(final int sliceNumber) {
+        return sliceNumber == NO_SLICE_NUMBER;
+    }
+    //endregion
 }
