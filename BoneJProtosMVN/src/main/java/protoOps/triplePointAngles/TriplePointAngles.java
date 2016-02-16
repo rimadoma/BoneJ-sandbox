@@ -53,7 +53,7 @@ public class TriplePointAngles implements Op {
      * containing an array of angles (3) between the branches of the triple point.
 	 */
 	@Parameter(type = ItemIO.OUTPUT)
-	private Optional<double[][][]> results = Optional.empty();
+	private double[][][] results;
 
 	/**
      * Get the array of the angles of the triple points from the previous run
@@ -64,7 +64,7 @@ public class TriplePointAngles implements Op {
      *          or calculateTriplePointAngles() failed
 	 */
 	public Optional<double[][][]> getResults() {
-		return results;
+		return Optional.ofNullable(results);
 	}
 
 	/**
@@ -102,7 +102,7 @@ public class TriplePointAngles implements Op {
 	public void calculateTriplePointAngles() throws NullPointerException, IllegalArgumentException {
 		checkImage(inputImage);
 
-		results = Optional.empty();
+		results = null;
 
 		skeletonizer.setup("", inputImage);
 		skeletonizer.run(null);
@@ -143,20 +143,16 @@ public class TriplePointAngles implements Op {
 	}
 
 	// region -- Helper methods --
-    private void createResults(final ArrayList<ArrayList<double[]>> graphsVertices) {
-        final double[][][] resultsArray = new double[graphsVertices.size()][][];
-        final int treeSize = graphsVertices.size();
+    private void createResults(final ArrayList<ArrayList<double[]>> graphs) {
+        final int numGraphs = graphs.size();
+        results = new double[numGraphs][][];
 
-        for (int g = 0; g < treeSize; g++) {
-            ArrayList<double[]> vertexAngles = graphsVertices.get(g);
-            final int graphSize = vertexAngles.size();
-            resultsArray[g] = new double[graphSize][];
-            for (int v = 0; v < graphSize; v++) {
-                resultsArray[g][v] = vertexAngles.get(v);
-            }
+        for (int g = 0; g < numGraphs; g++) {
+            final ArrayList<double[]> triplePoints = graphs.get(g);
+            final int numTriplePoints = triplePoints.size();
+            results[g] = new double[numTriplePoints][];
+            results[g] = triplePoints.toArray(results[g]);
         }
-
-        results = Optional.of(resultsArray);
     }
 
     private double[] calculateAnglesForVertex(final Vertex vertex) {
