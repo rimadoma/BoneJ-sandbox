@@ -47,7 +47,7 @@ public class WireFrameCuboidCreator implements Op {
      * @throws NullPointerException if the Op has no DatasetService
      */
 	@Override
-	public void run() {
+	public void run() throws NullPointerException {
         checkNotNull(datasetService, "No dataset service found");
         createWireFrameCuboid();
 	}
@@ -64,10 +64,6 @@ public class WireFrameCuboidCreator implements Op {
 
 	/**
 	 * Draw a wire-frame cuboid to this.testImage
-	 *
-	 * @throws NullPointerException
-	 *             if this.datasetService == null
-	 *
 	 */
 	private void createWireFrameCuboid() {
         ImagePlus imagePlus = StaticTestImageHelper.createWireFrameCuboid(cuboidWidth, cuboidHeight, cuboidDepth,

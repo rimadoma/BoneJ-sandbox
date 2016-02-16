@@ -50,7 +50,7 @@ public class CuboidCreator implements Op {
      * @throws NullPointerException if the Op has no DatasetService
      */
     @Override
-	public void run() {
+	public void run() throws NullPointerException {
         checkNotNull(datasetService, "No dataset service found");
         createCuboid();
 	}

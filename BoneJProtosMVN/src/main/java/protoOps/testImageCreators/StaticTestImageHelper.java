@@ -42,7 +42,8 @@ public class StaticTestImageHelper {
 	 *             if padding < 0
 	 * @return An ImagePlus object with a white cuboid on a black background
 	 */
-	public static ImagePlus createCuboid(int width, int height, int depth, int color, int padding) {
+	public static ImagePlus createCuboid(final int width, final int height, final int depth, final int color,
+                                         final int padding) throws IllegalArgumentException {
 		checkArgument(width > 0, "Width must be positive");
 		checkArgument(height > 0, "Height must be positive");
 		checkArgument(depth > 0, "Depth must be positive");
@@ -90,7 +91,8 @@ public class StaticTestImageHelper {
 	 *             if padding < 0
 	 * @return Image containing a 1-pixel wide outline of a 3D box
 	 */
-	public static ImagePlus createWireFrameCuboid(int width, int height, int depth, int padding) {
+	public static ImagePlus createWireFrameCuboid(final int width, final int height, final int depth,
+                                                  final int padding) throws IllegalArgumentException {
 		checkArgument(width > 0, "Width must be positive");
 		checkArgument(height > 0, "Height must be positive");
 		checkArgument(depth > 0, "Depth must be positive");
@@ -138,7 +140,7 @@ public class StaticTestImageHelper {
 	 *         background
 	 *
 	 */
-	public static ImagePlus createCrossedCircle(int size) {
+	public static ImagePlus createCrossedCircle(final int size) throws IllegalArgumentException {
 		checkArgument(size > 0, "Image size must be positive");
 
 		ImageProcessor ip = new ByteProcessor(size, size);
