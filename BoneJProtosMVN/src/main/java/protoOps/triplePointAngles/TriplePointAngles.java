@@ -128,7 +128,7 @@ public class TriplePointAngles implements Op {
 	}
 
     @Override
-	public void run() {
+	public void run() throws NullPointerException, IllegalArgumentException {
 		calculateTriplePointAngles();
 	}
 
@@ -183,7 +183,7 @@ public class TriplePointAngles implements Op {
 	 * @throws IllegalArgumentException
 	 *             if image is not binary
 	 */
-	private static void checkImage(final ImagePlus image) {
+	private static void checkImage(final ImagePlus image)  throws NullPointerException, IllegalArgumentException {
 		checkNotNull(image, "Must have an input image");
 		checkArgument(ImageCheck.isBinary(image), "Input image must be binary");
 	}
@@ -195,7 +195,7 @@ public class TriplePointAngles implements Op {
 	 *             if parameter nthPoint < 0 && nthPoint !=
 	 *             TriplePointAngles#VERTEX_TO_VERTEX
 	 */
-	private static void checkNthPoint(final int nthPoint) {
+	private static void checkNthPoint(final int nthPoint) throws IllegalArgumentException {
 		checkArgument(nthPoint >= 0 || nthPoint == VERTEX_TO_VERTEX, "Invalid nth point value");
 	}
 

@@ -40,11 +40,10 @@ public class ResultsInserter {
 	/**
 	 * Sets the ResultsTable the ResultsInserter uses
 	 *
-	 * @param resultsTable
-	 *            The table where the values are inserted
-	 * @post this.resultsTable != null
+	 * @param resultsTable  The table where the values are inserted
+     * @throws NullPointerException if resultsTable == null
 	 */
-	public void setResultsTable(ResultsTable resultsTable) {
+	public void setResultsTable(ResultsTable resultsTable) throws NullPointerException {
 		checkNotNull(resultsTable, "The ResultsTable in ResultsInserter must not be set null");
 
 		this.resultsTable = resultsTable;
@@ -61,8 +60,10 @@ public class ResultsInserter {
 	 *            The column heading of the new data
 	 * @param measurementValue
 	 *            The value of the new data
+     * @throws IllegalArgumentException if either String argument is null or empty
 	 */
-	public void setMeasurementInFirstFreeRow(String rowLabel, String measurementHeading, double measurementValue) {
+	public void setMeasurementInFirstFreeRow(String rowLabel, String measurementHeading,
+                                             double measurementValue) throws IllegalArgumentException {
 		checkArgument(!Strings.isNullOrEmpty(rowLabel), "Row label must not be null or empty");
 		checkArgument(!Strings.isNullOrEmpty(measurementHeading), "Measurement heading must not be null or empty");
 

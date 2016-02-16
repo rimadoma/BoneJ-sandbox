@@ -160,7 +160,7 @@ public abstract class VolumeFractionOp implements Op {
      *
      * Needed when the Op is run via an opService, and the setter methods have not been called
      */
-    protected final void checkInputs() {
+    protected final void checkInputs() throws NullPointerException, IllegalArgumentException{
         checkImage(inputImage);
         checkThresholds(minThreshold, maxThreshold);
     }
@@ -170,7 +170,7 @@ public abstract class VolumeFractionOp implements Op {
     private void checkThresholds(final int min, final int max) throws NullPointerException, IllegalArgumentException {
         checkNotNull(inputImage, "Cannot determine threshold values without an image");
 
-        int thresholdUpperBound = 0x00;
+        int thresholdUpperBound;
 
         switch (inputImage.getType()) {
             case ImagePlus.GRAY8:
@@ -179,6 +179,8 @@ public abstract class VolumeFractionOp implements Op {
             case ImagePlus.GRAY16:
                 thresholdUpperBound = 0xFFFF;
                 break;
+            default:
+                throw new AssertionError("Input image has wrong type");
         }
 
         checkArgument(0 <= min && min <= thresholdUpperBound, "Min threshold out of bounds");
@@ -199,6 +201,8 @@ public abstract class VolumeFractionOp implements Op {
                 minThreshold = 2424;
                 maxThreshold = 11_215;
                 break;
+            default:
+                throw new AssertionError("Input image has wrong type");
         }
     }
     //endregion

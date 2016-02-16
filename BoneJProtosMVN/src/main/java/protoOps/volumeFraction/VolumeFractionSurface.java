@@ -59,8 +59,12 @@ public final class VolumeFractionSurface extends VolumeFractionOp {
     }
     // endregion
 
+    /**
+     * @param resampling
+     * @throws IllegalArgumentException
+     */
     // region -- Setters --
-    public void setSurfaceResampling(int resampling) {
+    public void setSurfaceResampling(int resampling) throws IllegalArgumentException {
         checkArgument(resampling >= 0, "Resampling value must be >= 0");
 
         surfaceResampling = resampling;
@@ -79,7 +83,7 @@ public final class VolumeFractionSurface extends VolumeFractionOp {
     }
 
     @Override
-    public void run() {
+    public void run() throws NullPointerException, IllegalArgumentException {
         checkInputs();
 
         volumeFractionSurface();

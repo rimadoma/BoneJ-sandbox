@@ -43,7 +43,6 @@ public final class DatasetCreator extends AbstractContextual {
      * Creates a Dataset of the given type with the default dimensions (X = 10, Y = 10, Z = 10)
      * @see DatasetCreator#createDataset(DatasetType, AxisType[], long[])
      */
-    @Nullable
     public Dataset createDataset(DatasetType type) {
         return createDataset(type, DEFAULT_AXES, DEFAULT_DIMS);
     }
@@ -57,7 +56,6 @@ public final class DatasetCreator extends AbstractContextual {
      * @param dimensions    The sizes of the dimensions in the Dataset
      * @return A new Dataset, or null if type is not recognized
      */
-    @Nullable
     public Dataset createDataset(DatasetType type, AxisType[] axesTypes, long[] dimensions) 
             throws NullPointerException {
         checkNotNull(datasetService, "No datasetService available - did you call setContext?");
@@ -96,7 +94,7 @@ public final class DatasetCreator extends AbstractContextual {
             case UNSIGNED_VARIABLE_BIT_LENGTH:
                 return datasetService.create(new UnsignedVariableBitLengthType(64), dimensions, "Dataset", axesTypes);
             default:
-                return null;
+                throw new AssertionError("Unhandled DatasetType value");
         }
     }
 
@@ -108,7 +106,8 @@ public final class DatasetCreator extends AbstractContextual {
      * @param minValue  Minimum value of the random numbers (inclusive)
      * @param maxValue  Maximum value of the random numbers (inclusive)
      */
-    public static void fillWithRandomWholeNumbers(@Nullable final Dataset dataset, long minValue, long maxValue) {
+    public static void fillWithRandomWholeNumbers(@Nullable final Dataset dataset, long minValue,
+                                                  long maxValue) {
         if (dataset == null) {
             return;
         }
@@ -134,7 +133,7 @@ public final class DatasetCreator extends AbstractContextual {
         cursor.forEachRemaining(c -> c.setReal(randomIterator.next()));
     }
 
-    private static long clamp(long value, long min, long max) {
+    private static long clamp(final long value, final long min, final long max) {
         if (value < min) {
             return min;
         }

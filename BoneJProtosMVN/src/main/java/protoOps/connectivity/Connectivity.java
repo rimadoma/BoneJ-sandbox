@@ -228,7 +228,7 @@ public class Connectivity implements Op {
     }
 
     @Override
-    public void run() {
+    public void run() throws NullPointerException, IllegalArgumentException {
         checkImage(inputImage);
 
         calculateEulerCharacteristic();
@@ -241,7 +241,7 @@ public class Connectivity implements Op {
     /**
      * @todo Check that there's only one object with 3D_Objects_Counter?
      */
-    private static void checkImage(final ImagePlus imagePlus) {
+    private static void checkImage(final ImagePlus imagePlus) throws NullPointerException, IllegalArgumentException {
         checkNotNull(imagePlus, "Must have an input image");
         checkArgument(ImageCheck.isBinary(imagePlus), "Input image must be binary");
     }
@@ -436,7 +436,7 @@ public class Connectivity implements Op {
             case Z:
                 return getPixel(x, y, z) == FOREGROUND || getPixel(x, y, z - 1) == FOREGROUND;
             default:
-                return false;
+                throw new AssertionError("Unhandled Orientation1D value");
         }
     }
 
@@ -453,7 +453,7 @@ public class Connectivity implements Op {
                 return getPixel(x, y, z) == FOREGROUND || getPixel(x, y - 1, z) == FOREGROUND
                         || getPixel(x, y - 1, z - 1) == FOREGROUND || getPixel(x, y, z - 1) == FOREGROUND;
             default:
-                return false;
+                throw new AssertionError("Unhandled Orientation2D value");
         }
     }
 

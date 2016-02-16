@@ -5,6 +5,8 @@ import java.util.Optional;
 
 import sc.fiji.analyzeSkeleton.Point;
 
+import javax.annotation.Nullable;
+
 /**
  * @author Michael Doube
  * @author Richard Domander
@@ -22,7 +24,7 @@ public class Centroid {
 	 * @return  An Optional of an array containing {x,y,z}
      *          Returns an empty Optional if points == null or points.isEmpty()
 	 */
-	public static Optional<double[]> getCentroidCoordinates(final ArrayList<Point> points) {
+	public static Optional<double[]> getCentroidCoordinates(@Nullable final ArrayList<Point> points) {
         if (points == null || points.isEmpty()) {
             return Optional.empty();
         }
@@ -49,7 +51,7 @@ public class Centroid {
      * @param points A list of points in 3D
      * @return An Optional containing the centroid Point. The Optional is empty if points == null or points.isEmpty()
      */
-    public static Optional<Point> getCentroidPoint(final ArrayList<Point> points) {
+    public static Optional<Point> getCentroidPoint(@Nullable final ArrayList<Point> points) {
         Optional<double[]> optional = getCentroidCoordinates(points);
         if (!optional.isPresent()) {
             return Optional.empty();

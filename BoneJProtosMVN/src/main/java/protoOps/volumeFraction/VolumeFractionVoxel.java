@@ -36,7 +36,7 @@ public class VolumeFractionVoxel extends VolumeFractionOp {
 	}
 
 	@Override
-	public void run() {
+	public void run() throws NullPointerException, IllegalArgumentException {
         checkInputs();
 
         volumeFractionVoxel();
