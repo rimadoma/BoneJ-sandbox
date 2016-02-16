@@ -11,6 +11,8 @@ import protoOps.testImageCreators.StaticTestImageHelper;
 import ij.IJ;
 import ij.ImagePlus;
 
+import java.util.Optional;
+
 /**
  * Unit tests for the TriplePointAngles Op
  *
@@ -63,7 +65,9 @@ public class TriplePointAnglesTest {
 		triplePointAngles.setNthPoint(TriplePointAngles.VERTEX_TO_VERTEX);
 		triplePointAngles.calculateTriplePointAngles();
 
-		double[][][] result = triplePointAngles.getResults();
+        Optional<double[][][]> optional = triplePointAngles.getResults();
+        assertTrue("Triple point angles not available", optional.isPresent());
+		double[][][] result = optional.get();
 		assertNotEquals(null, result);
 		assertEquals("Resulting angle array has wrong size", WIRE_FRAME_RESULT.length, result.length);
 
@@ -89,7 +93,9 @@ public class TriplePointAnglesTest {
 		triplePointAngles.setNthPoint(32);
 		triplePointAngles.calculateTriplePointAngles();
 
-		double[][][] result = triplePointAngles.getResults();
+        Optional<double[][][]> optional = triplePointAngles.getResults();
+        assertTrue("Triple point angles not available", optional.isPresent());
+        double[][][] result = optional.get();
 
 		for (int g = 0; g < WIRE_FRAME_RESULT_NTH_POINT.length; g++) {
 			for (int v = 0; v < WIRE_FRAME_RESULT_NTH_POINT[g].length; v++) {
@@ -107,7 +113,10 @@ public class TriplePointAnglesTest {
 		triplePointAngles.setNthPoint(TriplePointAngles.VERTEX_TO_VERTEX);
 		triplePointAngles.calculateTriplePointAngles();
 
-		double[][][] result = triplePointAngles.getResults();
+        Optional<double[][][]> optional = triplePointAngles.getResults();
+        assertTrue("Triple point angles not available", optional.isPresent());
+        double[][][] result = optional.get();
+
 		assertEquals("Resulting angle array has wrong size", CROSSED_CIRCLE_RESULT.length, result.length);
 		for (int g = 0; g < CROSSED_CIRCLE_RESULT.length; g++) {
 			assertEquals("Resulting angle array has wrong size", CROSSED_CIRCLE_RESULT[g].length, result[g].length);
@@ -129,7 +138,10 @@ public class TriplePointAnglesTest {
 		triplePointAngles.setNthPoint(8);
 		triplePointAngles.calculateTriplePointAngles();
 
-		double[][][] result = triplePointAngles.getResults();
+        Optional<double[][][]> optional = triplePointAngles.getResults();
+        assertTrue("Triple point angles not available", optional.isPresent());
+        double[][][] result = optional.get();
+
 		for (int g = 0; g < CROSSED_CIRCLE_RESULT_NTH_POINT.length; g++)
 			for (int v = 0; v < CROSSED_CIRCLE_RESULT_NTH_POINT[g].length; v++)
 				assertArrayEquals(CROSSED_CIRCLE_RESULT_NTH_POINT[g][v], result[g][v], 1e-12);

@@ -2,6 +2,7 @@ package org.bonej.wrapperPlugins;
 
 import java.io.IOException;
 import java.net.URL;
+import java.util.NoSuchElementException;
 
 import net.imagej.Main;
 
@@ -60,15 +61,19 @@ public class TriplePointAnglesWrapperBoneJ extends ContextCommand {
 	public void run() {
 		nthPoint = nthPointFromPointChoice();
 
-		try {
+        try {
 			triplePointAngles.setNthPoint(nthPoint);
 			triplePointAngles.calculateTriplePointAngles();
-		} catch (IllegalArgumentException e) {
+            angleResults = triplePointAngles.getResults().get();
+		} catch (IllegalArgumentException | NullPointerException e) {
 			uiService.showDialog(e.getMessage(), DialogPrompt.MessageType.ERROR_MESSAGE);
 			return;
-		}
+		} catch (NoSuchElementException e) {
+            uiService.showDialog("Error: plugin failed to calculate triple point angles",
+                    DialogPrompt.MessageType.ERROR_MESSAGE);
+            return;
+        }
 
-		angleResults = triplePointAngles.getResults();
 		showResults();
 	}
 
