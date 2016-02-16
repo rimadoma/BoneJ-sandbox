@@ -204,12 +204,10 @@ public class Connectivity implements Op {
     /**
      * Sets the input image for processing
      *
-     * @throws NullPointerException
-     *             if image == null
-     * @throws IllegalArgumentException
-     *             if image is not binary
+     * @throws NullPointerException if image == null
+     * @throws IllegalArgumentException if image is not binary
      */
-    public void setInputImage(ImagePlus image) {
+    public void setInputImage(final ImagePlus image) throws NullPointerException, IllegalArgumentException {
         checkImage(image);
 
         inputImage = image;
@@ -243,7 +241,7 @@ public class Connectivity implements Op {
     /**
      * @todo Check that there's only one object with 3D_Objects_Counter?
      */
-    private static void checkImage(ImagePlus imagePlus) {
+    private static void checkImage(final ImagePlus imagePlus) {
         checkNotNull(imagePlus, "Must have an input image");
         checkArgument(ImageCheck.isBinary(imagePlus), "Input image must be binary");
     }
@@ -284,7 +282,7 @@ public class Connectivity implements Op {
         eulerCharacteristic /= 8.0;
     }
 
-    private boolean isOctantEmpty(byte[] octant) {
+    private static boolean isOctantEmpty(final byte[] octant) {
         return octant[0] == 0;
     }
     
@@ -316,7 +314,7 @@ public class Connectivity implements Op {
         return octant;
     }
 
-    private byte countNeighbors(byte[] octant) {
+    private static byte countNeighbors(final byte[] octant) {
         byte neighbors = 0;
 
         for (int n = 1; n < octant.length; n++) {
@@ -332,8 +330,8 @@ public class Connectivity implements Op {
      * @param x The x-coordinate of the pixel
      * @param y The y-coordinate of the pixel
      * @param z The z-coordinate of the pixel
-     * @return  The value of the pixel at (x, y, z)
-     *          0 if (x, y, z) is out of bounds
+     * @return  The value of the pixel at (x, y, z),
+     *          or 0 if (x, y, z) is out of bounds
      *
      */
     private byte getPixel(final int x, final int y, final int z) {
@@ -353,7 +351,7 @@ public class Connectivity implements Op {
      *            voxel values
      * @return Delta euler value from the LUT, or 0 if octant is empty
      */
-    private int getDeltaEuler(final byte[] octant) {
+    private static int getDeltaEuler(final byte[] octant) {
         if (isOctantEmpty(octant)) {
             return 0;
         }
@@ -429,7 +427,7 @@ public class Connectivity implements Op {
         return EULER_LUT[index];
     }
 
-    private boolean isNeighborhoodForeground(int x, int y, int z, Orientation1D orientation) {
+    private boolean isNeighborhoodForeground(final int x, final int y, final int z, final Orientation1D orientation) {
         switch (orientation) {
             case X:
                 return getPixel(x, y, z) == FOREGROUND || getPixel(x - 1, y, z) == FOREGROUND;
@@ -442,7 +440,7 @@ public class Connectivity implements Op {
         }
     }
 
-    private boolean isNeighborhoodForeground(int x, int y, int z, Orientation2D orientation)
+    private boolean isNeighborhoodForeground(final int x, final int y, final int z, final Orientation2D orientation)
     {
         switch (orientation) {
             case XY:
