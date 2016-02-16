@@ -7,10 +7,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.awt.*;
-import java.util.ArrayList;
 
-import net.imagej.ImageJ;
-
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import protoOps.testImageCreators.StaticTestImageHelper;
@@ -29,7 +28,6 @@ import ij.process.ImageStatistics;
  * @author Richard Domander
  */
 public class VolumeFractionVoxelTest {
-    private static final ImageJ imageJInstance = new ImageJ();
     private static final double DELTA = 1E-12;
     private static final int WHITE = 255;
     private static final int MIN_THRESHOLD = 127;
@@ -41,28 +39,37 @@ public class VolumeFractionVoxelTest {
     private static final int PADDING = 1;
     private static final int TOTAL_PADDING = 2;
 
-    private static final int FG_INDEX = 0;
-    private static final int TOTAL_INDEX = 1;
-    private static final int RATIO_INDEX = 2;
+    private VolumeFractionVoxel volumeFractionVoxel;
 
+    @Before
+    public void setUp() {
+        volumeFractionVoxel = new VolumeFractionVoxel();
+    }
+
+    @After
+    public void tearDown() {
+        volumeFractionVoxel = null;
+    }
 
     /**
      * Test that volumes and volume fraction are correctly calculated
      */
     @Test
-    public void testVolumeFractionOpServiceRun() throws Exception {
+    public void testVolumeFractionVoxel() throws Exception {
         // Can't make cuboid a class member due IJ1 incompatibility issues
         final ImagePlus cuboid = StaticTestImageHelper.createCuboid(WIDTH, HEIGHT, DEPTH, WHITE, PADDING);
         final int CUBOID_VOLUME = WIDTH * HEIGHT * DEPTH;
         final int TOTAL_VOLUME = (WIDTH + TOTAL_PADDING) * (HEIGHT + TOTAL_PADDING) * (DEPTH + TOTAL_PADDING);
 
-        final ArrayList<Double> volumes = (ArrayList<Double>) imageJInstance.op().run("volumeFractionVoxel", cuboid,
-                MIN_THRESHOLD, MAX_THRESHOLD);
+        volumeFractionVoxel.setImage(cuboid);
+        volumeFractionVoxel.setThresholds(MIN_THRESHOLD, MAX_THRESHOLD);
+        volumeFractionVoxel.run();
 
-        assertEquals("Sample foreground volume is incorrect", CUBOID_VOLUME, volumes.get(FG_INDEX), DELTA);
-        assertEquals("Total sample volume is incorrect", TOTAL_VOLUME, volumes.get(TOTAL_INDEX), DELTA);
-        assertEquals("Volume ratio is incorrect", CUBOID_VOLUME / (double) TOTAL_VOLUME, volumes.get(RATIO_INDEX),
+        assertEquals("Sample foreground volume is incorrect", CUBOID_VOLUME, volumeFractionVoxel.getForegroundVolume(),
                 DELTA);
+        assertEquals("Total sample volume is incorrect", TOTAL_VOLUME, volumeFractionVoxel.getTotalVolume(), DELTA);
+        assertEquals("Volume ratio is incorrect", CUBOID_VOLUME / (double) TOTAL_VOLUME,
+                volumeFractionVoxel.getVolumeRatio(), DELTA);
     }
 
     /**
@@ -82,15 +89,19 @@ public class VolumeFractionVoxelTest {
 
         RoiManager mockManager = mock(RoiManager.class);
         when(mockManager.getRoisAsArray()).thenReturn(rois);
+        when(mockManager.getCount()).thenReturn(rois.length);
         when(mockManager.getSliceNumber(anyString())).thenCallRealMethod();
 
-        final ArrayList<Double> volumes = (ArrayList<Double>) imageJInstance.op().run("volumeFractionVoxel", cuboid,
-                MIN_THRESHOLD, MAX_THRESHOLD, mockManager);
+        volumeFractionVoxel.setImage(cuboid);
+        volumeFractionVoxel.setThresholds(MIN_THRESHOLD, MAX_THRESHOLD);
+        volumeFractionVoxel.setRoiManager(mockManager);
+        volumeFractionVoxel.run();
 
-        assertEquals("Sample foreground volume is incorrect", CUBOID_VOLUME, volumes.get(FG_INDEX), DELTA);
-        assertEquals("Total sample volume is incorrect", TOTAL_VOLUME, volumes.get(TOTAL_INDEX), DELTA);
-        assertEquals("Volume ratio is incorrect", CUBOID_VOLUME / (double) TOTAL_VOLUME, volumes.get(RATIO_INDEX),
+        assertEquals("Sample foreground volume is incorrect", CUBOID_VOLUME, volumeFractionVoxel.getForegroundVolume(),
                 DELTA);
+        assertEquals("Total sample volume is incorrect", TOTAL_VOLUME, volumeFractionVoxel.getTotalVolume(), DELTA);
+        assertEquals("Volume ratio is incorrect", CUBOID_VOLUME / (double) TOTAL_VOLUME,
+                volumeFractionVoxel.getVolumeRatio(), DELTA);
     }
 
     /**
@@ -128,13 +139,15 @@ public class VolumeFractionVoxelTest {
         when(mockCuboid.getType()).thenReturn(ImagePlus.GRAY8);
         when(mockCuboid.getCalibration()).thenReturn(new Calibration());
 
-        final ArrayList<Double> volumes = (ArrayList<Double>) imageJInstance.op().run("volumeFractionVoxel", mockCuboid,
-                MIN_THRESHOLD, MAX_THRESHOLD);
+        volumeFractionVoxel.setImage(mockCuboid);
+        volumeFractionVoxel.setThresholds(MIN_THRESHOLD, MAX_THRESHOLD);
+        volumeFractionVoxel.run();
 
-        assertEquals("Sample foreground volume is incorrect", FOREGROUND_VOLUME, volumes.get(FG_INDEX), DELTA);
-        assertEquals("Total sample volume is incorrect", TOTAL_VOLUME, volumes.get(TOTAL_INDEX), DELTA);
-        assertEquals("Volume ratio is incorrect", FOREGROUND_VOLUME / TOTAL_VOLUME, volumes.get(RATIO_INDEX),
-                DELTA);
+        assertEquals("Sample foreground volume is incorrect", FOREGROUND_VOLUME,
+                volumeFractionVoxel.getForegroundVolume(), DELTA);
+        assertEquals("Total sample volume is incorrect", TOTAL_VOLUME, volumeFractionVoxel.getTotalVolume(), DELTA);
+        assertEquals("Volume ratio is incorrect", FOREGROUND_VOLUME / TOTAL_VOLUME,
+                volumeFractionVoxel.getVolumeRatio(), DELTA);
     }
 
     /**

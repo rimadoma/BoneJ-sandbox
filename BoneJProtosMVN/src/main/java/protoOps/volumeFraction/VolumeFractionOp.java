@@ -12,6 +12,8 @@ import org.scijava.plugin.Parameter;
 import ij.ImagePlus;
 import ij.plugin.frame.RoiManager;
 
+import java.util.Optional;
+
 /**
  * An interface for Ops which measure the volume of foreground elements over the total volume of the sample
  *
@@ -19,7 +21,7 @@ import ij.plugin.frame.RoiManager;
  */
 public abstract class VolumeFractionOp implements Op {
     @Parameter(type = ItemIO.INPUT)
-    private ImagePlus inputImage = null;
+    private ImagePlus inputImage;
 
     @Parameter(type = ItemIO.INPUT)
     private int minThreshold;
@@ -28,7 +30,7 @@ public abstract class VolumeFractionOp implements Op {
     private int maxThreshold;
 
     @Parameter(type = ItemIO.INPUT, required = false)
-    private RoiManager roiManager = null;
+    private RoiManager roiManager;
 
     @Parameter(type = ItemIO.OUTPUT)
     private double foregroundVolume;
@@ -60,21 +62,21 @@ public abstract class VolumeFractionOp implements Op {
         return maxThreshold;
     }
 
-    public ImagePlus getImage() {
-        return inputImage;
+    public Optional<ImagePlus> getImage() {
+        return Optional.ofNullable(inputImage);
     }
 
-    public RoiManager getRoiManager() {
-        return roiManager;
+    public Optional<RoiManager> getRoiManager() {
+        return Optional.ofNullable(roiManager);
     }
     //endregion
 
     //region -- Setters --
-    public void setForegroundVolume(double volume) {
+    public void setForegroundVolume(final double volume) {
         foregroundVolume = volume;
     }
 
-    public void setTotalVolume(double volume) {
+    public void setTotalVolume(final double volume) {
         totalVolume = volume;
     }
 
@@ -82,7 +84,13 @@ public abstract class VolumeFractionOp implements Op {
         volumeRatio = foregroundVolume / totalVolume;
     }
 
-    public void setImage(ImagePlus image) {
+    /**
+     * Sets the input image for the Op
+     *
+     * @throws NullPointerException if image is null
+     * @throws IllegalArgumentException if image is incompatible
+     */
+    public void setImage(final ImagePlus image) throws NullPointerException, IllegalArgumentException {
         checkImage(image);
 
         inputImage = image;
@@ -90,14 +98,27 @@ public abstract class VolumeFractionOp implements Op {
         initThresholds();
     }
 
-    public void setRoiManager(RoiManager roiManager) {
+    /**
+     * Sets the RoiManager used the limit the area of the volume calculations
+     *
+     * @throws NullPointerException if roiManager is null
+     * @throws IllegalArgumentException if roiManager is empty
+     */
+    public void setRoiManager(final RoiManager roiManager) throws NullPointerException, IllegalArgumentException  {
         checkNotNull(roiManager, "May not use a null ROI Manager");
         checkArgument(roiManager.getCount() != 0, "May not use an empty ROI Manager");
 
         this.roiManager = roiManager;
     }
 
-    public void setThresholds(int min, int max) {
+
+    /**
+     * Sets the lower and upper values used for thresholding the input image
+     *
+     * @throws NullPointerException if inputImage == null (max threshold value is determined by the type of the image)
+     * @throws IllegalArgumentException if either threshold is below the minimum pixel value or above the maximum
+     */
+    public void setThresholds(final int min, final int max) throws NullPointerException, IllegalArgumentException {
         checkThresholds(min, max);
 
         minThreshold = min;
@@ -115,14 +136,38 @@ public abstract class VolumeFractionOp implements Op {
         return !ImageCheck.isBinary(inputImage);
     }
 
-    public void reset() {
-        roiManager = null;
-        foregroundVolume = 0.0;
-        totalVolume = 0.0;
-        volumeRatio = Double.NaN;
-    }
+    //region -- Utility methods --
+    /**
+     * Checks if the given image can be used by the VolumeFraction Op
+     *
+     * @param image The image for the Op
+     * @throws NullPointerException if image == null
+     * @throws IllegalArgumentException if image is unsuitable for the Op
+     */
+    public static void checkImage(final ImagePlus image) throws NullPointerException, IllegalArgumentException{
+        checkNotNull(image, "Must have an input image");
 
-    public void checkThresholds(int min, int max) {
+        final int bitDepth = image.getBitDepth();
+        checkArgument(bitDepth == 8 || bitDepth == 16, "Input image must be 8-bit or 16-bit");
+
+        checkArgument(ImageCheck.isBinary(image) || ImageCheck.isGrayscale(image), "Need a binary or grayscale image");
+    }
+    //endregion
+
+    //region -- Internal methods --
+    /**
+     * Check that input @Parameters are valid.
+     *
+     * Needed when the Op is run via an opService, and the setter methods have not been called
+     */
+    protected final void checkInputs() {
+        checkImage(inputImage);
+        checkThresholds(minThreshold, maxThreshold);
+    }
+    //endregion
+
+    //region -- Helper methods --
+    private void checkThresholds(final int min, final int max) throws NullPointerException, IllegalArgumentException {
         checkNotNull(inputImage, "Cannot determine threshold values without an image");
 
         int thresholdUpperBound = 0x00;
@@ -141,45 +186,6 @@ public abstract class VolumeFractionOp implements Op {
         checkArgument(min <= max, "Minimum threshold must be less or equal to maximum threshold");
     }
 
-    //region -- Utility methods --
-    /**
-     * Checks if the given image can be used by the VolumeFraction Op
-     *
-     * @param image The image for the Op
-     * @throws NullPointerException if image == null
-     * @throws IllegalArgumentException if image is unsuitable for the Op
-     */
-    public static void checkImage(ImagePlus image) {
-        checkNotNull(image, "Must have an input image");
-
-        int bitDepth = image.getBitDepth();
-        checkArgument(bitDepth == 8 || bitDepth == 16, "Input image must be 8-bit or 16-bit");
-
-        checkArgument(ImageCheck.isBinary(image) || ImageCheck.isGrayscale(image), "Need a binary or grayscale image");
-    }
-    //endregion
-
-    //region -- Internal methods --
-    protected final void checkImage() {
-        checkImage(inputImage);
-    }
-
-    protected final void checkThresholds() {
-        checkThresholds(minThreshold, maxThreshold);
-    }
-
-    /**
-     * Check that input @Parameters are valid.
-     *
-     * Needed when the Op is run via an opService, and the setter methods have not been called before calling run()
-     */
-    protected void checkOpInputs() {
-        checkImage();
-        checkThresholds();
-    }
-    //endregion
-
-    //region -- Helper methods --
     /**
      * Sets the initial values for min & max threshold based on the type of the input image
      */

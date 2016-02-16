@@ -3,8 +3,6 @@ package org.bonej.wrapperPlugins;
 import java.io.IOException;
 import java.net.URL;
 
-import net.imagej.Main;
-
 import org.bonej.common.ResultsInserter;
 import org.scijava.command.Command;
 import org.scijava.command.ContextCommand;
@@ -86,8 +84,6 @@ public class VolumeFractionWrapperBoneJ extends ContextCommand {
                 volumeFractionOp = volumeFractionVoxel;
             }
 
-            volumeFractionOp.reset();
-
             volumeFractionOp.setImage(activeImage);
 
             if (volumeFractionOp.needThresholds()) {
@@ -111,13 +107,7 @@ public class VolumeFractionWrapperBoneJ extends ContextCommand {
         }
 	}
 
-    // region -- Utility methods --
-	public static void main(final String... args) {
-		Main.launch(args);
-	}
-	// endregion
-
-	// region -- Helper methods --
+    // region -- Helper methods --
 	@SuppressWarnings("unused")
 	private void initRoiManager() {
 		roiManager = RoiManager.getInstance();

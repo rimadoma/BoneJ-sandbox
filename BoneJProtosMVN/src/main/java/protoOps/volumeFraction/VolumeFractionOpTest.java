@@ -6,6 +6,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import org.bonej.common.ImageCheck;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -22,15 +23,19 @@ import ij.process.ImageStatistics;
  * @author Richard Domander
  */
 public class VolumeFractionOpTest {
-    private static final ImagePlus testImage = IJ.createImage("Test", "8black", 100, 100, 10);
+    @Rule
+    public final ExpectedException expectedException = ExpectedException.none();
+
     private VolumeFractionOp volumeFractionOp;
 
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
-
     @Before
-    public void setup() {
+    public void setUp() {
         volumeFractionOp = new VolumeFractionVoxel();
+    }
+
+    @After
+    public void tearDown() {
+        volumeFractionOp = null;
     }
 
     @Test
@@ -45,6 +50,7 @@ public class VolumeFractionOpTest {
     public void testSetImageThrowsIllegalArgumentExceptionIfBitDepthIsWrong() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Input image must be 8-bit or 16-bit");
+
         ImagePlus mockImage = mock(ImagePlus.class);
         when(mockImage.getBitDepth()).thenReturn(24);
 
@@ -55,6 +61,7 @@ public class VolumeFractionOpTest {
     public void testSetImageThrowsIllegalArgumentExceptionIfColorImage() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Need a binary or grayscale image");
+
         ImagePlus mockImage = mock(ImagePlus.class);
         when(mockImage.getBitDepth()).thenReturn(8);
         when(mockImage.getType()).thenReturn(ImagePlus.COLOR_256);
@@ -77,8 +84,10 @@ public class VolumeFractionOpTest {
         assertEquals("Sanity check failed: image is not 8-bit", 8, mockImage.getBitDepth());
 
         volumeFractionOp.setImage(mockImage);
-        assertEquals("Incorrect minimum threshold for a 8-bit grayscale image", 128, volumeFractionOp.getMinThreshold());
-        assertEquals("Incorrect maximum threshold for a 8-bit grayscale image", 255, volumeFractionOp.getMaxThreshold());
+        assertEquals("Incorrect minimum threshold for a 8-bit grayscale image", 128,
+                volumeFractionOp.getMinThreshold());
+        assertEquals("Incorrect maximum threshold for a 8-bit grayscale image", 255,
+                volumeFractionOp.getMaxThreshold());
     }
 
     @Test
@@ -96,7 +105,8 @@ public class VolumeFractionOpTest {
         assertEquals("Sanity check failed: image is not 16-bit", 16, mockImage.getBitDepth());
 
         volumeFractionOp.setImage(mockImage);
-        assertEquals("Incorrect minimum threshold for a 16-bit grayscale image", 2424, volumeFractionOp.getMinThreshold());
+        assertEquals("Incorrect minimum threshold for a 16-bit grayscale image", 2424,
+                volumeFractionOp.getMinThreshold());
         assertEquals("Incorrect maximum threshold for a 16-bit grayscale image", 11_215,
                 volumeFractionOp.getMaxThreshold());
     }
@@ -129,6 +139,7 @@ public class VolumeFractionOpTest {
 
     @Test
     public void testSetThresholdsThrowsIllegalArgumentExceptionIfMinOverMax() throws Exception {
+        final ImagePlus testImage = IJ.createImage("Test", "8black", 100, 100, 10);
         volumeFractionOp.setImage(testImage);
 
         expectedException.expect(IllegalArgumentException.class);
@@ -139,6 +150,7 @@ public class VolumeFractionOpTest {
 
     @Test
     public void testSetThresholdsThrowsIllegalArgumentExceptionIfThresholdIsNegative() throws Exception {
+        final ImagePlus testImage = IJ.createImage("Test", "8black", 100, 100, 10);
         volumeFractionOp.setImage(testImage);
 
         expectedException.expect(IllegalArgumentException.class);
@@ -149,6 +161,7 @@ public class VolumeFractionOpTest {
 
     @Test
     public void testSetThresholdsThrowsIllegalArgumentExceptionIfThresholdIsTooLarge() throws Exception {
+        final ImagePlus testImage = IJ.createImage("Test", "8black", 100, 100, 10);
         volumeFractionOp.setImage(testImage);
 
         expectedException.expect(IllegalArgumentException.class);

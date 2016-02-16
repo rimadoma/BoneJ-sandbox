@@ -49,10 +49,6 @@ public final class VolumeFractionSurface extends VolumeFractionOp {
     @Parameter(type = ItemIO.OUTPUT)
     private CustomTriangleMesh totalSurface;
     
-    public VolumeFractionSurface() {
-        reset();
-    }
-
     // region -- Getters --
     public CustomTriangleMesh getForegroundSurface() {
         return foregroundSurface;
@@ -84,22 +80,15 @@ public final class VolumeFractionSurface extends VolumeFractionOp {
 
     @Override
     public void run() {
-        checkOpInputs();
+        checkInputs();
 
         volumeFractionSurface();
-    }
-
-    @Override
-    public void reset() {
-        super.reset();
-        foregroundSurface = null;
-        totalSurface = null;
     }
 
     // region -- Helper methods --
 
     private void volumeFractionSurface() {
-        final ImageStack stack = getImage().getImageStack();
+        final ImageStack stack = getImage().get().getImageStack();
         final int xMin = 0;
         final int xMax = stack.getWidth();
         final int yMin = 0;
@@ -114,14 +103,14 @@ public final class VolumeFractionSurface extends VolumeFractionOp {
         ImagePlus outImp = IJ.createImage("Out", "8black", width, height, depth);
         ImagePlus maskImp = IJ.createImage("Mask", "8black", width, height, depth);
 
-        Calibration calibration = getImage().getCalibration();
+        Calibration calibration = getImage().get().getCalibration();
         outImp.setCalibration(calibration);
         maskImp.setCalibration(calibration);
 
         final ImageStack outStack = outImp.getStack();
         final ImageStack maskStack = maskImp.getStack();
 
-        if (getRoiManager() != null) {
+        if (getRoiManager().isPresent()) {
             drawSurfaceMasksWithRois(zMin, zMax, xMin, yMin, stack, maskStack, outStack);
         } else {
             drawSurfaceMasksWithNoRoi(zMin, zMax, xMin, yMin, stack, maskStack, outStack);
@@ -149,7 +138,7 @@ public final class VolumeFractionSurface extends VolumeFractionOp {
 
     /**
      * Code for print debugging
-     * @Todo Remove when no longer necessary
+     * @todo Remove when no longer necessary
      */
     private void analyzeMask(final String maskName, final ImageStack maskStack, final int zMin, final int zMax) {
         System.out.println(maskName);
@@ -158,8 +147,8 @@ public final class VolumeFractionSurface extends VolumeFractionOp {
         int totalPixels = 0;
         for (int z = zMin; z <= zMax; z++) {
             final byte[] slice = (byte[]) maskStack.getPixels(z);
-            for (int p = 0; p < slice.length; p++) {
-                if (slice[p] != 0) {
+            for (byte pixel : slice) {
+                if (pixel != 0) {
                     fgPixels++;
                 }
             }
@@ -191,7 +180,7 @@ public final class VolumeFractionSurface extends VolumeFractionOp {
     private void drawSurfaceMasksWithRois(final int zMin, final int zMax, final int xMin, final int yMin,
                                           final ImageStack inputStack, final ImageStack maskStack,
                                           final ImageStack outStack) {
-        final RoiManager roiManager = getRoiManager();
+        final RoiManager roiManager = getRoiManager().get();
 
 		IntStream.rangeClosed(zMin, zMax).parallel().forEach(z -> {
 			final ArrayList<Roi> rois = RoiUtil.getSliceRoi(roiManager, inputStack, z);

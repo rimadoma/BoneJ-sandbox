@@ -25,10 +25,6 @@ import ij.process.ImageProcessor;
  */
 @Plugin(type = Op.class, name = "volumeFractionVoxel")
 public class VolumeFractionVoxel extends VolumeFractionOp {
-    public VolumeFractionVoxel() {
-        reset();
-    }
-
     @Override
 	public OpEnvironment ops() {
 		return null;
@@ -41,22 +37,22 @@ public class VolumeFractionVoxel extends VolumeFractionOp {
 
 	@Override
 	public void run() {
-        checkOpInputs();
+        checkInputs();
 
         volumeFractionVoxel();
 	}
 
     // region -- Helper methods --
     private void volumeFractionVoxel() {
-        final ImageStack stack = getImage().getStack();
+        final ImageStack stack = getImage().get().getStack();
         final int stackSize = stack.getSize();
         final long sliceTotalVolumes[] = new long[stackSize + 1];
         final long sliceForeGroundsVolumes[] = new long[stackSize + 1];
 
-        if (getRoiManager() == null) {
-            voxelVolumeWithNoRois(stack, sliceTotalVolumes, sliceForeGroundsVolumes);
-        } else {
+        if (getRoiManager().isPresent()) {
             voxelVolumeWithRois(stack, sliceTotalVolumes, sliceForeGroundsVolumes);
+        } else {
+            voxelVolumeWithNoRois(stack, sliceTotalVolumes, sliceForeGroundsVolumes);
         }
 
         final long foregroundVolume = Arrays.stream(sliceForeGroundsVolumes).sum();
@@ -81,7 +77,7 @@ public class VolumeFractionVoxel extends VolumeFractionOp {
     private void voxelVolumeWithRois(final ImageStack stack, final long[] sliceTotalVolumes,
                                      final long[] sliceForeGroundsVolumes) {
         final int stackSize = stack.getSize();
-        final RoiManager roiManager = getRoiManager();
+        final RoiManager roiManager = getRoiManager().get();
 
 		IntStream.rangeClosed(1, stackSize).parallel().forEach(z -> {
 			final ArrayList<Roi> rois = RoiUtil.getSliceRoi(roiManager, stack, z);
@@ -160,7 +156,7 @@ public class VolumeFractionVoxel extends VolumeFractionOp {
     }
 
     private void calibrateVolumes() {
-        Calibration calibration = getImage().getCalibration();
+        Calibration calibration = getImage().get().getCalibration();
         double volumeScale = calibration.pixelWidth * calibration.pixelHeight * calibration.pixelDepth;
         double scaledForegroundVolume = volumeScale * getForegroundVolume();
         setForegroundVolume(scaledForegroundVolume);

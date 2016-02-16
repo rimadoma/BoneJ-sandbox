@@ -2,21 +2,20 @@ package protoOps.volumeFraction;
 
 import static org.junit.Assert.assertEquals;
 
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.ExpectedException;
 
 import protoOps.testImageCreators.StaticTestImageHelper;
 import ij.ImagePlus;
 
 /**
+ * Unit tests for the VolumeFractionSurface Op
+ *
  * Richard Domander
- * @todo exception tests for setters
  */
 public class VolumeFractionSurfaceTest {
     @Rule
-    public ExpectedException expectedException = ExpectedException.none();
+    public final ExpectedException expectedException = ExpectedException.none();
 
     private static final double DELTA = 1E-12;
 	private static final int CUBOID_WIDTH = 32;
@@ -28,33 +27,47 @@ public class VolumeFractionSurfaceTest {
 	private static final double TOTAL_VOLUME = (CUBOID_WIDTH + TOTAL_PADDING) * (CUBOID_HEIGHT + TOTAL_PADDING)
 			* (CUBOID_DEPTH + TOTAL_PADDING);
 
-	private static final ImagePlus cuboid = StaticTestImageHelper.createCuboid(32, 64, 96, 0xFF, 1);
-	private final VolumeFractionSurface volumeFractionSurface = new VolumeFractionSurface();
-	private double foregroundVolume = 0.0;
-	private double totalVolume = 0.0;
-	private double volumeRatio = Double.NaN;
+    private VolumeFractionSurface volumeFractionSurface;
+
+    @Before
+    public void setUp() {
+        volumeFractionSurface = new VolumeFractionSurface();
+    }
+
+    @After
+    public void tearDown() {
+        volumeFractionSurface = null;
+    }
+
+    @Test
+    public void testSetSurfaceResamplingThrowsIllegalArgumentExceptionIfArgumentIsNegative() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Resampling value must be >= 0");
+
+        volumeFractionSurface.setSurfaceResampling(-1);
+    }
 
     /**
-     * Test adopted from doube's unit tests for VolumeFraction in BoneJ1.
-     * Ignore test because it basically just tests CustomTriangleMesh.getVolume()
-     * whose implementation has apparently changed since bonej1, because the test fails.
-     *
+     * Copied from BoneJ1's unit tests. Fails because the implementation of
+     * CustomTriangleMesh#getVolume() has changed since then..?
      * When run with the image binary_trabeculae_small.tif the plugin produces same results than in BoneJ1
      */
-    @Ignore
     @Test
     public void testVolumeFractionSurfaceCuboid() throws Exception {
+        final ImagePlus cuboid = StaticTestImageHelper.createCuboid(CUBOID_WIDTH, CUBOID_HEIGHT, CUBOID_DEPTH, 0xFF,
+                PADDING);
+
 		volumeFractionSurface.setImage(cuboid);
         volumeFractionSurface.setSurfaceResampling(1);
 		volumeFractionSurface.run();
 
-        foregroundVolume = volumeFractionSurface.getForegroundVolume();
+        double foregroundVolume = volumeFractionSurface.getForegroundVolume();
         assertEquals("Incorrect foreground volume", CUBOID_VOLUME, foregroundVolume, DELTA);
 
-        totalVolume = volumeFractionSurface.getTotalVolume();
+        double totalVolume = volumeFractionSurface.getTotalVolume();
         assertEquals(TOTAL_VOLUME, totalVolume, DELTA);
 
-        volumeRatio = volumeFractionSurface.getVolumeRatio();
+        double volumeRatio = volumeFractionSurface.getVolumeRatio();
         assertEquals(CUBOID_VOLUME / TOTAL_VOLUME, volumeRatio, DELTA);
 	}
 }
